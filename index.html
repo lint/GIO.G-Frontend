@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Indoor-Outdoor Graph Generator</title>
+<link rel="stylesheet" href="static/css/styles.css">
+<script src="https://unpkg.com/konva@9/konva.min.js"></script>
+
+</head>
+
+<body>
+
+  <!-- <div id="navbar">
+    <div>Indoor-Outdoor Graph Generator Demo</div>
+  </div>
+   -->
+  <div id="page">
+    <div id="sidebar">
+      <div id="config-container" class="options-container">
+
+        <div class="title">Graph Generation Config</div>
+        <div id="config-form-container">
+          <form id="config-form">
+  
+            <div class="config-form-input-container">
+              <label for="num-buildings-input">Number of Buildings:</label>
+              <br>
+              <input type="text" id="num-buildings-input" name="num_buildings" required minlength="1" maxlength="8" size="10" value="25" placeholder="e.g. 25"
+                oninput="this.value = this.value.replace(/\D/g, '');"/>
+            </div>
+  
+            <div class="config-form-input-container">
+              <label for="coverage-input">Building Coverage:</label>
+              <br>
+              <input type="range" id="coverage-input" name="coverage" min="0" max="1" step="0.01" value="0.75"/>
+              <span id="coverage-value"></span>
+            </div>
+  
+            <div class="config-form-input-container">
+              <label for="clustering-input">Building Clustering:</label>
+              <br>
+              <input type="range" id="clustering-input" name="clustering" min="0" max="0.5" step="0.01" value="0"/>
+              <span id="clustering-value"></span>
+            </div>
+  
+            <div class="config-form-input-container">
+              <label for="constant-congestion-input">Constant Congestion:</label>
+              <br>
+              <input type="checkbox" id="constant-congestion-input" name="constant_con"/>
+              <label for="constant-congestion-input">Enabled</label><br>
+            </div>
+  
+            <div class="config-form-input-container">
+              <label for="high-congestion-input">High Congestion:</label>
+              <br>
+              <input type="range" id="high-congestion-input" name="high_con" min="0" max="1" step="0.01" value="0.3"/>
+              <span id="high-congestion-value"></span>
+            </div>
+  
+            <div class="config-form-input-container">
+              <label for="med-congestion-input">Medium Congestion:</label>
+              <br>
+              <input type="range" id="med-congestion-input" name="med_con" min="0" max="1" step="0.01" value="0.4"/>
+              <span id="med-congestion-value"></span>
+            </div>
+  
+            <div class="config-form-input-container">
+              <label for="med-congestion-input">Low Congestion:</label>
+              <br>
+              <input type="range" id="low-congestion-input" name="low_con" min="0" max="1" step="0.01" value="0.3"/>
+              <span id="low-congestion-value"></span>
+            </div>
+  
+            <div id="config-form-submit-container" class="button-container">
+              <button type="button" onclick="submit_config_form()">Submit</button>
+            </div>
+          </form>
+        </div>
+        
+      </div>
+
+      <div id="path-gen-container" class="options-container">
+
+        <div class="title">Path Generation Config</div>
+
+        <div id="path-gen-form-container">
+          <form id="path-gen-form">
+            
+            <div class="path-gen-input-container">
+              <label for="algorithm-input">Algorithm:</label>
+              <br>
+              <select id="alg-select" onchange="">
+                <option disabled selected value="0">Select Algorithm:</option>
+                <option value="1">Astro</option>
+                <option value="2">AstroG</option>
+                <option value="3">AstroStar</option>
+                <option value="4">Dijkstra</option>
+                <option value="5">etc ...</option>
+              </select>
+            </div>  
+
+            <div class="path-gen-input-container">
+              <label>Accessibility:</label>
+              <br>
+              <input type="radio" id="standard-input" name="standard" value="standard">
+              <label for="standard-input">Standard</label>
+              <br>
+              <input type="radio" id="accessibility-input" name="accessibility" value="accessible">
+              <label for="accessibility-input">Accessible Only</label>
+            </div>
+
+            <div class="path-gen-input-container">
+              Select start point:
+            </div>
+            <div class="path-gen-input-container">
+              Select end point:
+            </div>
+            
+            <div id="path-gen-submit-container" class="button-container">
+              <button type="button" onclick="">Submit</button>
+            </div>
+          </form>
+        </div>
+
+      </div>
+
+      <div id="test-container">
+        <button type="button" onclick="test_draw_paths()">Test Path Drawing</button>
+      </div>
+
+    </div>
+    
+    <div id="graph-section">
+      <div id="graph-container">
+      
+      </div>
+    </div>
+
+    <div id="building-editor-container"> 
+      <div class="title">Building Editor</div>
+
+
+      <div id="selected-building-stage-container"></div>
+      <div id="selected-building-info"></div>
+      <div id="selected-building-actions-container"></div>
+      <div id="selected-building-doors-container"></div>
+    </div>
+
+
+  </div>
+  
+  
+<script type="text/javascript" src="static/js/script.js"></script>
+</body>
+</html> 
+
+

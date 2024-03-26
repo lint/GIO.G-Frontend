@@ -1,0 +1,111 @@
+html, body {
+    height: 100%;
+    margin: 0;
+    padding: 0;
+}
+
+#page {
+    height: 100%;
+    width: 100%;
+    display: flex;
+    justify-content: center;
+    gap: 20px;
+}
+
+#navbar {
+    border-bottom: solid 2px black;
+    padding: 10px;
+}
+
+#sidebar {
+    height: 100%;
+    width: 18%;
+    position: fixed;
+    top: 0;
+    left: 0;
+    border-right: solid 2px black;
+    padding: 10px;
+    overflow-y: scroll;
+    box-sizing: border-box;
+}
+
+#config-container {
+
+}
+
+.config-form-input-container {
+    margin: 10px 10px 5px 10px;
+}
+
+.path-gen-input-container {
+    margin: 10px 10px 5px 10px;
+}
+
+#graph-section {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+#graph-container {
+    border: solid 2px black;
+}
+
+#config-form {
+    display: flex;
+    flex-direction: column;
+}
+
+#building-editor-container {
+    border-left: solid 2px black;
+    top: 0; 
+    right: 0;
+    padding: 10px;
+    height: 100%;
+    width: 18%;
+    position:fixed;
+    overflow:scroll;
+}
+
+#selected-building-stage-container {
+    border: solid 2px black;
+}
+
+#selected-building-doors-container {
+
+}
+
+#selected-building-actions-container {
+    
+}
+
+#edit-doors-list {
+    list-style-type: none;
+    padding: 0 10px 0 10px;
+    margin: 0;
+}
+
+.title {
+    font-size:20px;
+    font-weight: bold;
+}
+
+.options-container {
+    border: solid 2px black;
+    /* min-width: 20%; */
+    padding: 10px;
+}
+
+#path-gen-container {
+    margin-top: 10px;
+}
+
+.button-container {
+
+}
+
+#test-container {
+    border: solid 2px black;
+    padding: 10px;
+    margin-top: 10px;
+}
