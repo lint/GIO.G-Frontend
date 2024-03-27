@@ -1,6 +1,6 @@
 
 // default configuation values defined in GraphGenerator.scala
-let default_config = {
+const default_config = {
     num_buildings: 25,
     coverage: 0.75,
     clustering: 0,
@@ -23,7 +23,21 @@ let pan_start_pointer_pos = null;
 let pan_start_stage_pos = null;
 let is_panning = false;
 let is_pan_attempted = false;
-let pan_min_dist = 5;
+const pan_min_dist = 5;
+
+// define congestion constants
+const con_std_dev = 20;
+const con_level_names = {
+    low: "Low",
+    med: "Medium",
+    high: "High"
+};
+const con_vals = {
+    low: 75,
+    med: 125,
+    high: 200,
+    constant: 100
+};
 
 // define stages
 let stage = new Konva.Stage({
@@ -127,11 +141,11 @@ function create_empty_grid(length) {
                 },
                 building_mods: {
                     entrance_mods: {}, 
-                    deleted_entrances: [],
                     open: true,
                     orig_entrances: null,
                     next_new_door_id: 1,
-                    outline_grid_coords: []
+                    outline_grid_coords: [],
+                    con_level: null
                 }
             };            
 
@@ -144,8 +158,93 @@ function create_empty_grid(length) {
 }
 
 
+// generates a congestion array using a given config
+function generate_congestion(config, con_level_override) {
+
+    // get values from config
+    let is_constant = config["constant_con"];
+    let low_con_perc = config["low_con"];
+    let med_con_perc = config["med_con"];
+    
+    let con_avg = 0;
+
+    // congestion override provided
+    if (con_level_override !== null) {
+        con_avg = rand_gaussian(con_vals[con_level_override], con_std_dev);
+    
+    // no override, check if constant congestion enabled or not
+    } else if (is_constant) {
+        con_avg = con_vals["constant"];
+
+    // variable random congestion
+    } else {
+
+        let rand = Math.random();
+
+        // randomly selected high congestion
+        if (rand > low_con_perc + med_con_perc) {
+            con_avg = rand_gaussian(con_vals["high"], con_std_dev);
+
+        // randomly selected med congestion
+        } else if (rand > low_con_perc) {
+            con_avg = rand_gaussian(con_vals["med"], con_std_dev);
+
+        // randomly selected low congestion
+        } else {
+            con_avg = rand_gaussian(con_vals["low"], con_std_dev);
+        }
+    }
+
+    // determine the min and max possible values of the congestion
+    let min = is_constant ? 80 : Math.abs(con_avg - con_std_dev * 2);
+    let max = is_constant ? 120 : con_avg + con_std_dev * 2;
+
+    let cons = [];
+
+    // write congestion for every 5 min window of a 24hr day
+    for (let i = 0; i < 288; i++) {
+        let lower = i * 5;
+        let upper = lower + 5;
+
+        // create congestion object
+        let con = {
+            id: i,
+            timestep: i,
+            lower: lower,
+            upper: upper,
+            min: min,
+            max: max,
+            avg: con_avg,
+            stdDev: con_std_dev
+        };
+        cons.push(con);
+    }
+
+    return cons;
+}
+
+
+// detect the congestion level from a given array of congestion objects
+function determine_con_level(congestion) {
+
+    let con_avg = congestion[0]["avg"];
+
+    // find the number of standard deviations away from the avg each congestion level is
+    let high_std_devs = Math.abs(con_vals["high"] - con_avg) / con_std_dev;
+    let med_std_devs = Math.abs(con_vals["med"] - con_avg) / con_std_dev;
+    let low_std_devs = Math.abs(con_vals["low"] - con_avg) / con_std_dev;
+
+    // construct an array to get the minimum std and its associated name
+    let std_devs = [[high_std_devs, "high"], [med_std_devs, "med"], [low_std_devs, "low"]];
+    let sorted_std_devs = std_devs.sort((a, b) => a[0] - b[0]);
+
+    // return the name of congestion that's the lowest number of standard deviations away
+    return sorted_std_devs[0][1];
+}
+
+
 // initialize the grid cell info for a given building
-function init_grid_info(building) {
+function init_grid_cell_info(building) {
     
     let doors = building["entrances"];
 
@@ -161,11 +260,11 @@ function init_grid_info(building) {
     // add necessary info about the building cell to the grid array
     cell_info["building_data"] = building;
     cell_info["building_mods"]["open"] = true;
-    cell_info["building_mods"]["deleted_entrances"] = [];
     cell_info["building_mods"]["outline_grid_coords"] = [];
     cell_info["building_mods"]["entrance_mods"] = {};
     cell_info["building_mods"]["orig_entrances"] = building["entrances"].map(a => {return {...a}});
     cell_info["building_mods"]["next_new_door_id"] = doors.length + 1;
+    cell_info["building_mods"]["con_level"] = determine_con_level(building["congestion"]);
 
     // iterate over every door in the building
     for (let d = 0; d < doors.length; d++) {
@@ -178,37 +277,82 @@ function init_grid_info(building) {
             last_drag_time: 0
         };
     }
+
+    return cell_info;
+}
+
+
+// creates a list of building doors with the provided information (they are just generated, not added to any data structure)
+function generate_new_doors(building_grid_coords, num_doors, door_id_start) {
+
+    let doors = [];
+    let angle_partition = 360 / num_doors;
+
+    for (let i = 0; i < num_doors; i++) {
+        let door_r = rand_in_range(0.1, 0.4); // ensures doors are not too close to the center nor outside the grid cell
+        let door_theta = (i * angle_partition + rand_in_range(0, angle_partition)) * (Math.PI / 180); // convert to radians from degrees
+        
+        let door_graph_coords = {
+            x: building_grid_coords.x + door_r * Math.cos(door_theta) + 1, // convert polar coordinates to area around building, and 
+            y: building_grid_coords.y + door_r * Math.sin(door_theta) + 1  // add 1 to convert from 0-indexed to 1-indexed
+        };
+
+        let accessibility = Math.random() > 0.5 ? 1 : 0;
+
+        // create new door object
+        let door = {
+            id: door_id_start + i,
+            x: door_graph_coords.x,
+            y: door_graph_coords.y,
+            accessible: accessibility
+        };
+
+        doors.push(door);
+    }
+
+    return doors;
+}
+
+
+// creates a new building object with the provided information
+function generate_building(building_grid_coords) {
+    
+    let grid_len = grid.length;
+
+    // initialize new building object
+    let building = {
+        id: building_grid_coords.x * grid_len + building_grid_coords.y,
+        x: building_grid_coords.x + 1, // convert from 0-indexed to 1-indexed
+        y: building_grid_coords.y + 1,
+        congestion: generate_congestion(current_config, null), 
+        entrances: generate_new_doors(building_grid_coords, rand_int_in_range(3, 6), 1)
+    };
+
+    return building;
 }
 
 
 // adds a new door to the given building
-function create_building_door(building_grid_coords) {
+function add_new_building_door(building_grid_coords) {
 
     let cell_info = grid_object_at_coords(building_grid_coords);
     let building_mods = cell_info["building_mods"];
     let door_id = building_mods["next_new_door_id"]++;
 
-    // generate a random point that is offset by a max value of 0.4 away from the building grid coordinates
-    let max_rand_val = 0.4;
-    let min_rand_val = -0.4;
+    // generate a new door object
+    let door = generate_new_doors(building_grid_coords, 1, door_id)[0];
 
     let door_grid_coords = {
-        x: building_grid_coords.x + (rand_in_range(min_rand_val, max_rand_val)),
-        y: building_grid_coords.y + (rand_in_range(min_rand_val, max_rand_val)),
+        x: door["x"] - 1, // adjust back to 0 indexed coords
+        y: door["y"] - 1
     };
 
     // move the door point to the outline of the building
     if (building_mods["outline_grid_coords"].length > 0) {
         door_grid_coords = calc_closest_point_to_shape(building_mods["outline_grid_coords"], door_grid_coords);
+        door["x"] = door_grid_coords.x + 1;
+        door["y"] = door_grid_coords.y + 1;
     }
-
-    // create a new door object
-    let door = {
-        id: door_id, 
-        x: door_grid_coords.x + 1, // currently just setting to center of building grid cell
-        y: door_grid_coords.y + 1,
-        accessible: Math.random() > 0.5 ? 1 : 0
-    };
 
     // create a new door modification object
     let door_mod =  {
@@ -239,9 +383,6 @@ function delete_building_door(building_grid_coords, door_id) {
 
             // remove the door from the doors array
             doors.splice(d, 1);
-
-            // add the door to the deleted doors array
-            cell_info["building_mods"]["deleted_entrances"].push(door);
             break;
         }
     }
@@ -252,34 +393,23 @@ function delete_building_door(building_grid_coords, door_id) {
 
 
 // creates a new building at the given coords
-function create_building(building_grid_coords) {
+function add_new_building(building_grid_coords) {
 
-    // TODO: fix this, it's pretty messy / hacky
-
-    let grid_len = grid.length;
-
-    // initialize new building object
-    let building = {
-        id: building_grid_coords.x * grid_len + building_grid_coords.y,
-        x: building_grid_coords.x + 1, // convert from 0-indexed to 1-indexed
-        y: building_grid_coords.y + 1,
-        congestion: [], // TODO: can copy congestion from another random building? 
-        entrances: []
-    };
-
-    // initialize the cell info object
-    init_grid_info(building);
+    // get the current grid cell info
     let cell_info = grid_object_at_coords(building_grid_coords);
-    
-    // create a random number of new doors for the building
-    let num_doors = rand_int_in_range(3, 6);
-    for (let i = 0; i < num_doors; i++) {
 
-        // TODO: doors created with this method are not sorted radially, leading to strange building shapes
-        create_building_door(building_grid_coords);
+    // if there is a building at the given location, delete it first
+    if (cell_info["building_data"] !== null) {
+        delete_building(building_grid_coords);
     }
 
-    cell_info["building_mods"]["orig_entrances"] = building["entrances"].map(a => {return {...a}});
+    // create a new building object
+    let building = generate_building(building_grid_coords);
+
+    // initialize the cell info object for the given building
+    init_grid_cell_info(building);
+
+    // add the new door to the graph data
     current_graph.push(building);
 }
 
@@ -288,19 +418,20 @@ function create_building(building_grid_coords) {
 function delete_building(building_grid_coords) {
 
     let cell_info = grid_object_at_coords(building_grid_coords);
-    let selected_building = cell_info["building_data"];
+    let building = cell_info["building_data"];
 
     // remove the building from the graph data
-    current_graph = current_graph.filter((building) => building != selected_building); 
+    let building_index = current_graph.indexOf(building);
+    current_graph.splice(building_index, 1);
 
     // reset the cell info for the selected building
     cell_info["building_data"] = null;
     cell_info["building_mods"]["open"] = true;
-    cell_info["building_mods"]["deleted_entrances"] = [];
     cell_info["building_mods"]["outline_grid_coords"] = [];
     cell_info["building_mods"]["entrance_mods"] = {};
     cell_info["building_mods"]["orig_entrances"] = [];
     cell_info["building_mods"]["next_new_door_id"] = 1;
+    cell_info["building_mods"]["con_level"] = null;
     cell_info["shapes"]["building"] = null;
     cell_info["shapes"]["building_outline"] = null;
     cell_info["shapes"]["entrances"] = {};
@@ -370,12 +501,12 @@ function reset_building_editor() {
     // get selected building elements
     let info_div = document.getElementById("selected-building-info");
     let doors_list_container = document.getElementById("selected-building-doors-container");
-    let building_actions_container = document.getElementById("selected-building-actions-container");
+    let building_options_container = document.getElementById("selected-building-options-container");
 
-    // clear previous selected information and doors list
+    // clear elements relevant to the previous selected building
     info_div.innerHTML = '';
     doors_list_container.innerHTML = '';
-    building_actions_container.innerHTML = '';
+    building_options_container.innerHTML = '';
 
     // clear the editor stage
     editor_stage.destroyChildren();
@@ -386,6 +517,7 @@ function reset_building_editor() {
 function handle_delete_building_button(building_grid_coords) {
 
     console.log("building deleted: ", building_grid_coords);
+
     let cell_info = grid_object_at_coords(building_grid_coords);
 
     // delete the building group from the main stage
@@ -406,7 +538,8 @@ function handle_add_building_button(building_grid_coords) {
 
     console.log("building added: ", building_grid_coords);
 
-    create_building(building_grid_coords);
+    // create a new building object
+    add_new_building(building_grid_coords);
 
     // TODO: better way to add the building to the stage without redrawing all of them (this method should be reserved for the first draw)
     draw_buildings(current_graph, current_config);
@@ -416,11 +549,59 @@ function handle_add_building_button(building_grid_coords) {
 }
 
 
+// handle the selected building open checkbox being changed
+function building_open_checkbox_checked(building_grid_coords) {
+
+    // get the information for the given building
+    let cell_info = grid_object_at_coords(building_grid_coords);
+    let building = cell_info["building_data"];
+    let building_mods = cell_info["building_mods"];
+
+    // get the previous open status
+    let prev_open = building_mods["open"];
+    let new_open = !prev_open;
+
+    // if closing an open door, remove the door from the building data
+    if (prev_open) {
+        let building_index = current_graph.indexOf(building);
+        current_graph.splice(building_index, 1);
+    
+    // add the biulding back to the graph array
+    } else {
+        current_graph.push(building);
+    }
+    
+    // assign the new open status to the door
+    building_mods["open"] = new_open;
+    
+    // redraw the building to reflect the changes in accessibility
+    redraw_selected_building(building_grid_coords);
+}
+
+// handle the selected building congestion radio being checked
+function building_con_radio_checked(building_grid_coords, con_level) {
+    console.log("new con level: ", con_level);
+
+    // get the information for the given building
+    let cell_info = grid_object_at_coords(building_grid_coords);
+    let building = cell_info["building_data"];
+    let building_mods = cell_info["building_mods"];
+
+    // generate new congestion based on the given value
+    let new_con = generate_congestion(current_config, con_level);
+
+    // update building data
+    building["congestion"] = new_con;
+    building_mods["con_level"] = con_level;
+}
+
 // handle dragging an entrance in the drag editor
 function selected_door_moved(building_grid_coords, door_id, editor_door_shape) {
 
     let cell_info = grid_object_at_coords(building_grid_coords);
     let door = door_object_at_coords(building_grid_coords, door_id);
+    let door_mods = cell_info["building_mods"]["entrance_mods"]
+    let door_mod = door_mods[door_id];
 
     // get the editor stage coordinates of the moved door shape
     let new_door_stage_coords = {
@@ -436,7 +617,7 @@ function selected_door_moved(building_grid_coords, door_id, editor_door_shape) {
     door["y"] = new_door_grid_coords.y + 1;
 
     // log this door as being the last dragged door for this building (so it is drawn on top of other doors)
-    cell_info["building_mods"]["entrance_mods"][door_id]["last_drag_time"] = Date.now();
+    door_mod["last_drag_time"] = Date.now();
     
     // redraw the building to reflect the changes in position
     redraw_selected_building(building_grid_coords);
@@ -488,14 +669,11 @@ function door_accessible_checkbox_checked(building_grid_coords, door_id) {
     
     // redraw the building to reflect the changes in accessibility
     redraw_selected_building(building_grid_coords);
-
-    console.log("is accessible: ", door["accessible"]);
 }
 
 
 // remove the door with the given id from the given buildling
 function handle_delete_door_button(building_grid_coords, door_id) {
-
     console.log("delete door: ", building_grid_coords, door_id);
 
     // remove the door from the grid data structure
@@ -515,7 +693,7 @@ function handle_add_door_button(building_grid_coords) {
     console.log("add door: ", building_grid_coords);
 
     // add a new door to the grid data structure
-    let door_id = create_building_door(building_grid_coords);
+    let door_id = add_new_building_door(building_grid_coords);
  
     // add a new door list item to the editor list
     let li = create_door_list_item(building_grid_coords, door_id);
@@ -532,6 +710,7 @@ function create_door_list_item(building_grid_coords, door_id) {
 
     let cell_info = grid_object_at_coords(building_grid_coords);
     let door = door_object_at_coords(building_grid_coords, door_id);
+    let door_mod = cell_info["building_mods"]["entrance_mods"][door_id];
 
     // create a list item to contain door properties
     let li = document.createElement("li");
@@ -549,12 +728,12 @@ function create_door_list_item(building_grid_coords, door_id) {
     // create label and input checkbox to represent whether a door is open or closed (i.e. usable or not)        
     let open_label = document.createElement("label");
     open_label.innerHTML = "Open";
-    open_label.htmlFor = open_chkbox_id
+    open_label.htmlFor = open_chkbox_id;
 
     let open_chkbox = document.createElement("input");
     open_chkbox.type = "checkbox";
     open_chkbox.id = open_chkbox_id;
-    open_chkbox.checked = true;
+    open_chkbox.checked = door_mod["open"];
     open_chkbox.addEventListener("change", function(e) {
         door_open_checkbox_checked(building_grid_coords, door_id);
     });
@@ -562,7 +741,7 @@ function create_door_list_item(building_grid_coords, door_id) {
     // create label and input checkbox to represent whether a door is accessible or not
     let access_label = document.createElement("label");
     access_label.innerHTML = "Accessible";
-    access_label.htmlFor = access_chkbox_id
+    access_label.htmlFor = access_chkbox_id;
 
     let access_chkbox = document.createElement("input");
     access_chkbox.type = "checkbox";
@@ -591,6 +770,42 @@ function create_door_list_item(building_grid_coords, door_id) {
 }
 
 
+// creates a radio option and label for congestion level for a given building
+function create_con_radio(building_grid_coords, con_level) {
+
+    let cell_info = grid_object_at_coords(building_grid_coords);
+    let building_mods = cell_info["building_mods"];
+
+    let con_radio_id = `building-${con_level}-con-radio`;
+    
+    // create container for the radio and label
+    let span = document.createElement("span");
+
+    // create label for the radio
+    let con_label = document.createElement("label");
+    con_label.htmlFor = con_radio_id;
+    con_label.innerHTML = con_level_names[con_level];
+
+    // create the radio button 
+    let con_radio = document.createElement("input");
+    con_radio.type = "radio";
+    con_radio.id = con_radio_id;
+    con_radio.checked = building_mods["con_level"] === con_level;
+    con_radio.name = "con_level";
+    con_radio.addEventListener("change", function(e) {
+        if (this.checked) {
+            building_con_radio_checked(building_grid_coords, con_level);
+        }
+    });
+    
+    // add radio button and text to the label
+    span.appendChild(con_radio);
+    span.appendChild(con_label);
+
+    return span;
+}
+
+
 // select a building at the given coordinates and open it in the editor
 function select_building(building_grid_coords) {
 
@@ -602,6 +817,7 @@ function select_building(building_grid_coords) {
 
     // get the info object for the building at the given coords
     let cell_info = grid_object_at_coords(building_grid_coords);
+    let building_mods = cell_info["building_mods"];
 
     console.log("cell info:", cell_info);
 
@@ -611,7 +827,7 @@ function select_building(building_grid_coords) {
     // get container elements to build elements into
     let info_div = document.getElementById("selected-building-info");
     let doors_list_container = document.getElementById("selected-building-doors-container");
-    let building_actions_container = document.getElementById("selected-building-actions-container");
+    let building_options_container = document.getElementById("selected-building-options-container");
 
     let info = `Grid Cell: (${building_grid_coords.x + 1}, ${building_grid_coords.y + 1})`;
     
@@ -622,21 +838,11 @@ function select_building(building_grid_coords) {
 
         info += `<BR>Building ID: ${building_id}`
         
-        let ul = document.createElement("ul");
-        ul.setAttribute("id", "edit-doors-list");
-
+        // create a title for the edit doors list
         let edit_doors_list_title = document.createElement("div");
         edit_doors_list_title.id="edit-doors-list-title";
-        edit_doors_list_title.innerHTML = "<BR>Doors:";
-        
-        // iterate over every door in the building
-        for (let d = 0; d < doors.length; d++) {
-            let door = doors[d];
-            let door_id = door["id"];
-
-            let li = create_door_list_item(building_grid_coords, door_id);
-            ul.appendChild(li);
-        }
+        edit_doors_list_title.innerHTML = "Doors:";
+        doors_list_container.appendChild(edit_doors_list_title);
         
         // create a button that adds a door to the current building
         let add_door_button = document.createElement("button");
@@ -644,18 +850,78 @@ function select_building(building_grid_coords) {
         add_door_button.addEventListener("click", function (e) {
             handle_add_door_button(building_grid_coords);
         });
+        doors_list_container.appendChild(add_door_button);
+
+        // create list to store door info in
+        let edit_doors_list = document.createElement("ul");
+        edit_doors_list.setAttribute("id", "edit-doors-list");
         
+        // iterate over every door in the building
+        for (let door_id in cell_info["building_mods"]["entrance_mods"]) {
+            let door_list_item = create_door_list_item(building_grid_coords, door_id);
+            edit_doors_list.appendChild(door_list_item);
+        }
+        doors_list_container.appendChild(edit_doors_list);
+
+        // create title element for the options section
+        let building_options_title = document.createElement("div");
+        building_options_title.id="edit-doors-list-title";
+        building_options_title.innerHTML = "Options:";
+        building_options_container.appendChild(building_options_title);
+
+        // create label and input checkbox to represent whether the building is open or closed (i.e. usable or not)        
+        let building_open_label = document.createElement("label");
+        building_open_label.innerHTML = "Open";
+        building_open_label.htmlFor = "building-open-cb";
+
+        let buildling_open_chkbox = document.createElement("input");
+        buildling_open_chkbox.type = "checkbox";
+        buildling_open_chkbox.id = "building-open-cb";
+        buildling_open_chkbox.checked = building_mods["open"];
+        buildling_open_chkbox.addEventListener("change", function(e) {
+            building_open_checkbox_checked(building_grid_coords);
+        });
+        building_options_container.appendChild(buildling_open_chkbox);
+        building_options_container.appendChild(building_open_label);
+
+        // only show congestion radio if the graph does not use constant congestion
+        if (!current_config["constant_con"]) {
+
+            // create a container for the congestion radio element
+            let building_con_container = document.createElement("div");
+            building_con_container.id = "building-con-container";
+            building_options_container.appendChild(building_con_container);
+
+            // create labels and input radios to select building congestion level
+            let building_con_label = document.createElement("label");
+            building_con_label.innerHTML = "Congestion Level:";
+            building_con_container.appendChild(building_con_label);
+
+            // create span wrapped radios and label for each congestion level
+            let low_con_radio = create_con_radio(building_grid_coords, "low");
+            let med_con_radio = create_con_radio(building_grid_coords, "med");
+            let high_con_radio = create_con_radio(building_grid_coords, "high");
+
+            building_con_container.appendChild(low_con_radio);
+            building_con_container.appendChild(med_con_radio);
+            building_con_container.appendChild(high_con_radio);
+        }
+
+        
+        // create a container to hold the buttons for the building
+        let building_options_actions_container = document.createElement("div");
+        building_options_actions_container.id = "building-options-actions-container";
+        building_options_container.appendChild(building_options_actions_container);
+
         // create a button to delete the current building
         let delete_building_button = document.createElement("button");
         delete_building_button.innerHTML = "Delete Building";
         delete_building_button.addEventListener("click", function (e) {
             handle_delete_building_button(building_grid_coords);
         });
+
+        building_options_actions_container.appendChild(delete_building_button);
         
-        doors_list_container.appendChild(edit_doors_list_title);
-        doors_list_container.appendChild(add_door_button);
-        doors_list_container.appendChild(ul);
-        building_actions_container.appendChild(delete_building_button);
 
     } else {
 
@@ -665,7 +931,7 @@ function select_building(building_grid_coords) {
         add_building_button.addEventListener("click", function (e) {
             handle_add_building_button(building_grid_coords);
         });
-        building_actions_container.appendChild(add_building_button);
+        building_options_container.appendChild(add_building_button);
     }
 
     // set the info text
@@ -699,6 +965,8 @@ function select_building(building_grid_coords) {
 
 function test_draw_paths() {
 
+
+
     let path_layer = new Konva.Layer();
     stage.add(path_layer);
 
@@ -707,6 +975,14 @@ function test_draw_paths() {
         x: 0,
         y: 0
     };
+
+    let test_point2 = {
+        x: 1,
+        y: 0
+    };
+
+    console.log("NEW POINT: ", calc_line_extend_point(test_point, test_point2, 1));
+
 
     let target_grid_coords = {
         x: 5,
@@ -839,7 +1115,7 @@ function draw_buildings(buildings, config) {
         };
 
         // initialize the info object for the given building
-        init_grid_info(building);
+        init_grid_cell_info(building);
 
         // draw the building
         draw_building(building_grid_coords, building_layer, true) 
@@ -877,7 +1153,12 @@ function redraw_selected_building(building_grid_coords) {
 // draw a given building: its shape and doors
 function draw_building(building_grid_coords, parent, for_main_stage) {
     
+    // define the stroke width for the building
+    let outline_stroke_width = for_main_stage ? 2 : 4;
+
+    // get information about the given building
     let cell_info = grid_object_at_coords(building_grid_coords);
+    let building_mods = cell_info["building_mods"];
 
     // create a group to contain the building and its entrances
     let building_group = new Konva.Group();
@@ -911,10 +1192,13 @@ function draw_building(building_grid_coords, parent, for_main_stage) {
     // draw building entrances
     draw_entrances(building_grid_coords, building_group, for_main_stage);
 
-    // redraw building outline
+    // draw building outline (ensures doors have an outer border along the building shape)
+    let outline_color = building_mods["open"] ? "black" : "red";
     let building_outline = building_shape.clone({
         fill: "",
         listening: false,
+        stroke: outline_color,
+        strokeWidth: outline_stroke_width
     });
     building_group.add(building_outline);
 
@@ -928,9 +1212,6 @@ function draw_building(building_grid_coords, parent, for_main_stage) {
 
 // draw the building shape for the building at the given coordinates
 function draw_building_shape(building_grid_coords, parent, for_main_stage) {
-
-    // define the stroke width for the building
-    let building_stroke_width = for_main_stage ? 2 : 4;
 
     // get the grid cell info object associated with the building
     let cell_info = grid_object_at_coords(building_grid_coords);
@@ -947,6 +1228,26 @@ function draw_building_shape(building_grid_coords, parent, for_main_stage) {
     // store coordinates to draw building shape
     let stage_shape_path = [];
     let grid_shape_path = [];
+
+
+    
+
+    let prev_start_coord = {
+        x: doors[0]["x"] - 1,
+        y: doors[0]["y"] - 1
+    };
+
+    for (let d = 1; d <= doors.length; d++) {
+
+        let next_door = doors[d % doors.length];
+        let next_door_grid_coords_unscaled = {
+            x: doors[0]["x"] - 1,
+            y: doors[0]["y"] - 1
+        };
+        let corner_unscaled = calc_corner_between_points(prev_start_coord, next_door, true, false);
+
+
+    }
 
     // iterate over every sequential pairs of doors
     for (let d = 0; d < doors.length; d++) {
@@ -982,8 +1283,8 @@ function draw_building_shape(building_grid_coords, parent, for_main_stage) {
     let building_shape = new Konva.Line({
         points: stage_shape_path,
         fill: 'lightblue',
-        stroke: 'black',
-        strokeWidth: building_stroke_width,
+        // stroke: 'black',
+        // strokeWidth: building_stroke_width,
         closed: true,
     });
     parent.add(building_shape);
@@ -1026,14 +1327,13 @@ function draw_entrances(building_grid_coords, parent, for_main_stage) {
     // define an array to determine door draw order
     let door_draw_order = [];
 
-    // add closed doors to the draw order
+    // add doors to the draw order
     for (let door_id in door_mods) {
-
         let door_mod = door_mods[door_id];
         door_draw_order.push([door_mod["last_drag_time"], door_mod["data_ref"]]);
     }
 
-    // sort by last dragged timestamp to ensure the last repositioned doors appears on top of other doors
+    // sort by last dragged timestamp to ensure the most last repositioned doors appear on top of other doors
     door_draw_order.sort(function (a, b) {
 
         let a_ts = a[0];
@@ -1286,8 +1586,21 @@ function calc_dist(p1, p2) {
 }
 
 
+// calculates a new end-point a given distance beyond a given line 
+function calc_line_extend_point(l1, l2, len) {
+
+    let dist = calc_dist(l1, l2);
+
+    return {
+        x: l2.x + (l2.x - l1.x) / dist * len,
+        y: l2.y + (l2.y - l1.y) / dist * len
+    };
+}
+
+
 // helper method to calculate the nearest point on a line segment (defined by two points) from another point
-function calc_closest_point(l1, l2, p) {
+// t1 and t2 are the lower and upper bound percentages for the line (0 to 1)
+function calc_closest_point_bounded(l1, l2, p, t1, t2) {
 
     let b = {
         x: l2.x-l1.x,
@@ -1306,12 +1619,18 @@ function calc_closest_point(l1, l2, p) {
     };
 
     let dot = a.x * b.x + a.y * b.y;
-    let t = Math.max(0, Math.min(1, dot / line_len_squared));
+    let t = Math.max(t1, Math.min(t2, dot / line_len_squared));
 
     return {
         x: l1.x + t * b.x,
         y: l1.y + t * b.y
     };
+}
+
+
+// helper method to calculate the nearest point on a line segment (defined by two points) from another point
+function calc_closest_point(l1, l2, p) {
+    return calc_closest_point_bounded(l1, l2, p, 0, 1);
 }
 
 
@@ -1395,6 +1714,16 @@ function rand_int_in_range(min, max) {
 }
 
 
+// calculate a random number in a normal distribution
+function rand_gaussian(mean=0, stdev=1) {
+    const u = 1 - Math.random(); // Converting [0,1) to (0,1]
+    const v = Math.random();
+    const z = Math.sqrt(-2.0 * Math.log(u)) * Math.cos(2.0 * Math.PI * v);
+    // Transform to the desired mean and standard deviation:
+    return z * stdev + mean;
+}
+
+
 /* -------------------------------------------------------------------------- */
 /*                                form controls                               */
 /* -------------------------------------------------------------------------- */
@@ -1404,7 +1733,7 @@ function rand_int_in_range(min, max) {
 
 
 // detect when changes are made to the config form
-document.getElementById("config-form").addEventListener("input", function (e) {
+document.getElementById("config-form-container").addEventListener("input", function (e) {
     update_config_form_display();
 });
 
@@ -1412,7 +1741,7 @@ document.getElementById("config-form").addEventListener("input", function (e) {
 // update config form visuals based on the input values
 function update_config_form_display() {
 
-    let config_form = document.getElementById("config-form");
+    let config_form = document.getElementById("config-form-container");
     let range_inputs = config_form.querySelectorAll('input[type=range]');
 
     // iterate over every range input in the form

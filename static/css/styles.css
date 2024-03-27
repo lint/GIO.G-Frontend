@@ -4,6 +4,8 @@ html, body {
     padding: 0;
 }
 
+/* ---------------------------- main page layout ---------------------------- */
+
 #page {
     height: 100%;
     width: 100%;
@@ -12,12 +14,7 @@ html, body {
     gap: 20px;
 }
 
-#navbar {
-    border-bottom: solid 2px black;
-    padding: 10px;
-}
-
-#sidebar {
+#left-sidebar {
     height: 100%;
     width: 18%;
     position: fixed;
@@ -29,8 +26,38 @@ html, body {
     box-sizing: border-box;
 }
 
-#config-container {
+#right-sidebar {
+    border-left: solid 2px black;
+    top: 0; 
+    right: 0;
+    height: 100%;
+    width: 18%;
+    position:fixed;
+    overflow-y:scroll;
+}
 
+#right-sidebar-navbar {
+    padding: 10px;
+    border-bottom: solid 2px black;
+}
+
+/* ----------------------------- input elements ----------------------------- */
+
+.options-container {
+    border: solid 2px black;
+    /* min-width: 20%; */
+    padding: 10px;
+    margin: 5px 0 5px 0;
+}
+
+#config-form-container {
+    display: flex;
+    flex-direction: column;
+}
+
+#path-gen-form-container {
+    display: flex;
+    flex-direction: column;
 }
 
 .config-form-input-container {
@@ -40,6 +67,8 @@ html, body {
 .path-gen-input-container {
     margin: 10px 10px 5px 10px;
 }
+
+/* ----------------------------- graph elements ----------------------------- */
 
 #graph-section {
     display: flex;
@@ -51,20 +80,10 @@ html, body {
     border: solid 2px black;
 }
 
-#config-form {
-    display: flex;
-    flex-direction: column;
-}
+/* ----------------------------- building editor ---------------------------- */
 
 #building-editor-container {
-    border-left: solid 2px black;
-    top: 0; 
-    right: 0;
     padding: 10px;
-    height: 100%;
-    width: 18%;
-    position:fixed;
-    overflow:scroll;
 }
 
 #selected-building-stage-container {
@@ -72,11 +91,11 @@ html, body {
 }
 
 #selected-building-doors-container {
-
+    margin: 10px 0 10px 0;
 }
 
-#selected-building-actions-container {
-    
+#selected-building-options-container {
+    margin: 10px 0 10px 0;
 }
 
 #edit-doors-list {
@@ -85,19 +104,11 @@ html, body {
     margin: 0;
 }
 
+/* ---------------------------------- misc ---------------------------------- */
+
 .title {
     font-size:20px;
     font-weight: bold;
-}
-
-.options-container {
-    border: solid 2px black;
-    /* min-width: 20%; */
-    padding: 10px;
-}
-
-#path-gen-container {
-    margin-top: 10px;
 }
 
 .button-container {
