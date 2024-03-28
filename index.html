@@ -4,6 +4,8 @@
 <title>Indoor-Outdoor Graph Generator</title>
 <link rel="stylesheet" href="static/css/styles.css">
 <script src="https://unpkg.com/konva@9/konva.min.js"></script>
+<script type="text/javascript" src="/static/vendor/js/tinyqueue.js"></script>
+<script type="text/javascript" src="/static/vendor/js/polylabel.js"></script>
 
 </head>
 
@@ -116,15 +118,28 @@
             </div>
             
             <div id="path-gen-submit-container" class="button-container">
-              <button type="button" onclick="">Submit</button>
+              <button type="button" onclick="submit_path_gen_form()">Submit</button>
             </div>
           </form>
         </div>
 
       </div>
 
+      <div class="options-container">
+        <div class="title">Display Options</div>
+
+        <button type="button" onclick="handle_buildings_visible_button()">Toggle Buildings</button>
+        <br>
+        <button type="button" onclick="handle_roads_visible_button()">Toggle Roads</button>
+        <br>
+        <button type="button" onclick="handle_paths_visible_button()">Toggle Paths</button>
+        
+      </div>
+
       <div id="test-container">
         <button type="button" onclick="test_draw_paths()">Test Path Drawing</button>
+        <br>
+        <button type="button" onclick="handle_clipping_visible_button()">Toggle Building Clipping</button>
       </div>
 
     </div>
