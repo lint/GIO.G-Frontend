@@ -43,29 +43,24 @@ html, body {
 
 /* ----------------------------- input elements ----------------------------- */
 
-.options-container {
+.options-section {
     border: solid 2px black;
     /* min-width: 20%; */
     padding: 10px;
     margin: 5px 0 5px 0;
 }
 
-#config-form-container {
+.options-form-container {
     display: flex;
     flex-direction: column;
 }
 
-#path-gen-form-container {
-    display: flex;
-    flex-direction: column;
+.options-input-container {
+    margin: 5px 10px 5px 10px;
 }
 
-.config-form-input-container {
-    margin: 10px 10px 5px 10px;
-}
-
-.path-gen-input-container {
-    margin: 10px 10px 5px 10px;
+.options-submit-container {
+    margin: 5px 10px 5px 0px;
 }
 
 /* ----------------------------- graph elements ----------------------------- */
@@ -84,6 +79,7 @@ html, body {
 
 #building-editor-container {
     padding: 10px;
+    display: block;
 }
 
 #selected-building-stage-container {
@@ -103,6 +99,15 @@ html, body {
     padding: 0 10px 0 10px;
     margin: 0;
 }
+
+
+/* ----------------------------- path statistics ---------------------------- */
+
+#path-stats-container {
+    padding: 10px;
+    display: none;
+}
+
 
 /* ---------------------------------- misc ---------------------------------- */
 

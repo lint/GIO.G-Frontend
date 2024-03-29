@@ -13,6 +13,7 @@ const default_config = {
 // store data about the current graph
 let current_config = default_config;
 let current_graph = null;
+let current_paths = null;
 let grid = null;
 
 // allows access to the previously selected building
@@ -22,10 +23,11 @@ let last_selected_cell_info = null;
 let main_cell_dims = null;
 let editor_cell_dims = null;
 let door_len_ratio = 0.1;
-let cell_spacing = 0; // TODO: max spacing value? based on the size of the stage
+let cell_spacing = 10; // TODO: max spacing value? based on the size of the stage
 let road_size_ratio = 0.05;
 let road_dashes_per_cell = 15;
 let building_clipping_enabled = true;
+let building_corridors_enabled = true;
 let should_invert_door_y = false;
 
 // variables to support panning on the main stage
@@ -104,6 +106,19 @@ function generate_graph(config) {
         .catch((e) => console.error(e));
 }
 
+// contact the path recommender with the given options
+function recommend_path(path_options) {
+    // get the graph and draw its buildings on the response
+    fetch("static/assets/path.json")
+    .then((res) => res.json())
+    .then((json) => {
+        console.log("path data: ", json);
+        process_paths(json);
+        draw_paths();
+    })
+    .catch((e) => console.error(e));
+}
+
 
 /* -------------------------------------------------------------------------- */
 /*                               grid management                              */
@@ -178,10 +193,34 @@ function grid_object_at_coords(grid_coords) {
 }
 
 
+// get the grid object for the provided building
+function grid_object_for_id(building_id) {
+
+    // TODO: can use the id to get the coords directly
+
+    for (let y = 0; y < grid.length; y++) {
+        for (let x = 0; x < grid.length; x++) {
+
+            let cell_info = grid[y][x];
+
+            if (cell_info.building_data === null) {
+                continue;
+            }
+
+            if (cell_info.building_data.id === building_id) {
+                return cell_info;
+            }
+        }
+    }
+
+    return null;
+}
+
+
 // helper method to get the door object at the building at the provided coordinates
 function door_object_at_coords(grid_coords, door_id) {
     let cell_info = grid_object_at_coords(grid_coords);
-    let door_mods = cell_info["building_mods"]["entrance_mods"];
+    let door_mods = cell_info.building_mods.entrance_mods;
 
     return door_mods[door_id]["data_ref"];
 }
@@ -216,7 +255,8 @@ function create_empty_grid(length) {
                     next_new_door_id: 1,
                     outline_grid_path: [],
                     con_level: null,
-                    outline_grid_center: null
+                    outline_grid_center: null,
+                    effective_grid_walls: []
                 }
             };            
 
@@ -232,7 +272,7 @@ function create_empty_grid(length) {
 // initialize the grid cell info for a given building
 function init_grid_cell_info(building) {
     
-    let doors = building["entrances"];
+    let doors = building.entrances;
 
     // get building x and y coordinates (convert 1-indexed to 0-indexed)
     let building_grid_coords = {
@@ -244,29 +284,34 @@ function init_grid_cell_info(building) {
     let cell_info = grid_object_at_coords(building_grid_coords);
 
     // add necessary info about the building cell to the grid array
-    cell_info["building_data"] = building;
-    cell_info["building_mods"]["open"] = true;
-    cell_info["building_mods"]["outline_grid_path"] = [];
-    cell_info["building_mods"]["effective_grid_walls"] = [];
-    cell_info["building_mods"]["entrance_mods"] = {};
-    cell_info["building_mods"]["orig_entrances"] = building["entrances"].map(a => {return {...a}});
-    cell_info["building_mods"]["next_new_door_id"] = doors.length + 1;
-    cell_info["building_mods"]["con_level"] = determine_con_level(building["congestion"]);
+    cell_info.building_data = building;
+    cell_info.building_mods.open = true;
+    cell_info.building_mods.outline_grid_path = [];
+    cell_info.building_mods.effective_grid_walls = [];
+    cell_info.building_mods.entrance_mods = {};
+    cell_info.building_mods.orig_entrances = building.entrances.map(a => {return {...a}});
+    cell_info.building_mods.next_new_door_id = doors.length + 1;
+    cell_info.building_mods.con_level = determine_con_level(building["congestion"]);
 
     // iterate over every door in the building
     for (let d = 0; d < doors.length; d++) {
         let door = doors[d];
         let door_id = door["id"];
 
-        cell_info["building_mods"]["entrance_mods"][door_id] = {
+        cell_info.building_mods.entrance_mods[door_id] = {
             open: true,
             data_ref: door,
-            last_drag_time: 0
+            last_drag_time: 0,
+            wall_direction: "none",
+            attached_wall: null
         };
     }
 
     return cell_info;
 }
+
+
+/* ---------------------- building and door generation ---------------------- */
 
 
 // generates a congestion array using a given config
@@ -411,8 +456,8 @@ function generate_building(building_grid_coords) {
 function add_new_building_door(building_grid_coords) {
 
     let cell_info = grid_object_at_coords(building_grid_coords);
-    let building_mods = cell_info["building_mods"];
-    let door_id = building_mods["next_new_door_id"]++;
+    let building_mods = cell_info.building_mods;
+    let door_id = building_mods.next_new_door_id++;
 
     // generate a new door object
     let door = generate_new_doors(building_grid_coords, 1, door_id)[0];
@@ -423,8 +468,8 @@ function add_new_building_door(building_grid_coords) {
     };
 
     // move the door point to the outline of the building
-    if (building_mods["outline_grid_path"].length > 0) {
-        door_grid_coords = calc_closest_point_to_shape(building_mods["outline_grid_path"], door_grid_coords);
+    if (building_mods.outline_grid_path.length > 0) {
+        door_grid_coords = calc_closest_point_to_shape(building_mods.outline_grid_path, door_grid_coords);
         door["x"] = door_grid_coords.x + 1;
         door["y"] = door_grid_coords.y + 1;
     }
@@ -437,8 +482,8 @@ function add_new_building_door(building_grid_coords) {
     };
 
     // add new door structures to grid data
-    cell_info["building_data"]["entrances"].push(door);
-    building_mods["entrance_mods"][door_id] = door_mod;
+    cell_info.building_data.entrances.push(door);
+    building_mods.entrance_mods[door_id] = door_mod;
 
     return door_id
 }
@@ -448,7 +493,7 @@ function add_new_building_door(building_grid_coords) {
 function delete_building_door(building_grid_coords, door_id) {
     
     let cell_info = grid_object_at_coords(building_grid_coords);
-    let doors = cell_info["building_data"]["entrances"];
+    let doors = cell_info.building_data.entrances;
 
     // iterate over the doors array
     for (let d = 0; d < doors.length; d++) {
@@ -463,7 +508,7 @@ function delete_building_door(building_grid_coords, door_id) {
     }
 
     // remove the door from the building modifications doors array
-    delete cell_info["building_mods"]["entrance_mods"][door_id];
+    delete cell_info.building_mods.entrance_mods[door_id];
 }
 
 
@@ -474,7 +519,7 @@ function add_new_building(building_grid_coords) {
     let cell_info = grid_object_at_coords(building_grid_coords);
 
     // if there is a building at the given location, delete it first
-    if (cell_info["building_data"] !== null) {
+    if (cell_info.building_data !== null) {
         delete_building(building_grid_coords);
     }
 
@@ -493,7 +538,7 @@ function add_new_building(building_grid_coords) {
 function delete_building(building_grid_coords) {
 
     let cell_info = grid_object_at_coords(building_grid_coords);
-    let building = cell_info["building_data"];
+    let building = cell_info.building_data;
 
     // remove the building from the graph data
     let building_index = current_graph.indexOf(building);
@@ -501,21 +546,21 @@ function delete_building(building_grid_coords) {
 
     // TODO: do i really need to do this?
     // reset the cell info for the selected building
-    cell_info["building_data"] = null;
-    cell_info["building_mods"]["open"] = true;
-    cell_info["building_mods"]["outline_grid_path"] = [];
-    cell_info["building_mods"]["entrance_mods"] = {};
-    cell_info["building_mods"]["orig_entrances"] = [];
-    cell_info["building_mods"]["next_new_door_id"] = 1;
-    cell_info["building_mods"]["con_level"] = null;
-    cell_info["building_mods"]["effective_grid_walls"] = [];
-    cell_info["building_mods"]["outline_grid_center"] = null;
-    cell_info["shapes"]["building"] = null;
-    cell_info["shapes"]["building_outline"] = null;
-    cell_info["shapes"]["entrances"] = {};
-    cell_info["shapes"]["building_group"] = null;
-    cell_info["shapes"]["entrances_group"] = null;
-    cell_info["shapes"]["corridors_group"] = null;
+    cell_info.building_data = null;
+    cell_info.building_mods.open = true;
+    cell_info.building_mods.outline_grid_path = [];
+    cell_info.building_mods.entrance_mods = {};
+    cell_info.building_mods.orig_entrances = [];
+    cell_info.building_mods.next_new_door_id = 1;
+    cell_info.building_mods.con_level = null;
+    cell_info.building_mods.effective_grid_walls = [];
+    cell_info.building_mods.outline_grid_center = null;
+    cell_info.shapes.building = null;
+    cell_info.shapes.building_outline = null;
+    cell_info.shapes.entrances = {};
+    cell_info.shapes.building_group = null;
+    cell_info.shapes.entrances_group = null;
+    cell_info.shapes.corridors_group = null;
 }
 
 
@@ -526,7 +571,7 @@ function delete_building(building_grid_coords) {
 // a "deep" door is one where it's x or y coordinate is lower than both adjacent doors' x or y coordinates respectively
 function update_deep_doors(building) {
 
-    let doors = building["entrances"];
+    let doors = building.entrances;
     let found_deep_door = false;
 
     // does not apply to buildings with three or less doors
@@ -569,7 +614,7 @@ function update_deep_doors(building) {
 function create_building_outline_path(building_grid_coords) {
 
     let cell_info = grid_object_at_coords(building_grid_coords);
-    let doors = cell_info["building_data"]["entrances"];
+    let doors = cell_info.building_data.entrances;
 
     // store coordinates to draw building shape
     let grid_shape_path = [];
@@ -602,7 +647,7 @@ function create_building_outline_path(building_grid_coords) {
     simplified_grid_path = simplify_closed_path(grid_shape_path, 0.0001);
 
     // save the path to the cell_info
-    cell_info["building_mods"]["outline_grid_path"] = simplified_grid_path;
+    cell_info.building_mods.outline_grid_path = simplified_grid_path;
 }
 
 
@@ -610,7 +655,7 @@ function create_building_outline_path(building_grid_coords) {
 function find_building_effective_walls(building_grid_coords) {
 
     let cell_info = grid_object_at_coords(building_grid_coords);
-    let grid_path = cell_info["building_mods"]["outline_grid_path"];
+    let grid_path = cell_info.building_mods.outline_grid_path;
 
     // calculate the usable wall lines for door placement
     let effective_grid_walls = [];
@@ -635,7 +680,7 @@ function find_building_effective_walls(building_grid_coords) {
         effective_grid_walls.push(line);
     }
 
-    cell_info["building_mods"]["effective_grid_walls"] = effective_grid_walls;
+    cell_info.building_mods.effective_grid_walls = effective_grid_walls;
 }
 
 
@@ -643,8 +688,9 @@ function find_building_effective_walls(building_grid_coords) {
 function update_doors_to_effective_walls(building_grid_coords) {
     
     let cell_info = grid_object_at_coords(building_grid_coords);
-    let doors = cell_info["building_data"]["entrances"];
-    let effective_walls = cell_info["building_mods"]["effective_grid_walls"];
+    let doors = cell_info.building_data.entrances;
+    let door_mods = cell_info.building_mods.entrance_mods;
+    let effective_walls = cell_info.building_mods.effective_grid_walls;
 
     // don't update door positions if there are no walls
     if (effective_walls.length === 0) {
@@ -655,6 +701,7 @@ function update_doors_to_effective_walls(building_grid_coords) {
     for (let d = 0; d < doors.length; d++) {
 
         let door = doors[d];
+        let door_mod = door_mods[door.id];
 
         // get the grid coordinate for the door (converts 1-indexed to 0-indexed)
         let door_grid_coords = {
@@ -663,11 +710,14 @@ function update_doors_to_effective_walls(building_grid_coords) {
         };
 
         // get the closest wall location to the current location
-        let best_point = calc_closest_point_to_lines(effective_walls, door_grid_coords);
+        let best_point_and_line = calc_closest_line_and_point_from_point_to_lines(effective_walls, door_grid_coords);
+        let line_direction = calc_line_orthogonal_direction(best_point_and_line.line[0], best_point_and_line.line[1]);
+        door_mod["wall_direction"] = line_direction;
+        door_mod["attached_wall"] = best_point_and_line.line;
 
         // set door's need coordinates (and convert index back to 1-indexed)
-        door.x = best_point.x + 1;
-        door.y = best_point.y + 1;
+        door.x = best_point_and_line.point.x + 1;
+        door.y = best_point_and_line.point.y + 1;
     }
 }
 
@@ -676,13 +726,185 @@ function update_doors_to_effective_walls(building_grid_coords) {
 function find_building_center(building_grid_coords) {
 
     let cell_info = grid_object_at_coords(building_grid_coords);
-    let outline_grid_path = cell_info["building_mods"]["outline_grid_path"];
+    let outline_grid_path = cell_info.building_mods.outline_grid_path;
 
     // convert the outline grid path to the input needed by polylabel and then find its center point
     let polylabel_polygon = outline_grid_path.map((p) => [p.x, p.y]);
     let center = polylabel([polylabel_polygon]);
     
-    cell_info["building_mods"]["outline_grid_center"] = {x: center[0], y: center[1]};
+    cell_info.building_mods.outline_grid_center = {x: center[0], y: center[1]};
+}
+
+
+// get the door grid path to center coordinate
+function door_grid_path_to_center(building_grid_coords, door_id) {
+
+    // TODO: this does lots of repeated calculations if called multiple times in a row... fix it
+
+    let cell_info = grid_object_at_coords(building_grid_coords);
+    let door_mods = cell_info.building_mods.entrance_mods;
+    let door_mod = door_mods[door_id];
+
+    let door_grid_coords = {
+        x: door_mod.data_ref.x - 1,
+        y: door_mod.data_ref.y - 1
+    };
+
+    // get the calculated center of the building shape
+    let shape_grid_center = cell_info.building_mods.outline_grid_center;
+
+    // calculate grid points in all directions from center
+    let center_grid_left   = calc_point_translation(shape_grid_center, {x:0, y:0}, {x:1, y:0}, 1);
+    let center_grid_right  = calc_point_translation(shape_grid_center, {x:0, y:0}, {x:-1, y:0}, 1);
+    let center_grid_up     = calc_point_translation(shape_grid_center, {x:0, y:0}, {x:0, y:1}, 1);
+    let center_grid_down   = calc_point_translation(shape_grid_center, {x:0, y:0}, {x:0, y:-1}, 1);
+
+    let center_line_end = null;
+
+    // check quadrant of door and door orientation (quadrant names and checks are probably wrong since i'm not considering inverted y shenanigans)
+    // top right quadrant
+    if (door_grid_coords.x > shape_grid_center.x && door_grid_coords.y > shape_grid_center.y) {
+        if (door_mod.wall_direction === "vertical") {
+            center_line_end = center_grid_up;
+        } else {
+            center_line_end = center_grid_left;
+        }
+    
+    // bottom right quadrant
+    } else if (door_grid_coords.x > shape_grid_center.x && door_grid_coords.y < shape_grid_center.y) {
+        if (door_mod.wall_direction === "vertical") {
+            center_line_end = center_grid_down;
+        } else {
+            center_line_end = center_grid_left;
+        }
+
+    // top left quadrant
+    } else if (door_grid_coords.x < shape_grid_center.x && door_grid_coords.y > shape_grid_center.y) {
+        if (door_mod.wall_direction === "vertical") {
+            center_line_end = center_grid_up;
+        } else {
+            center_line_end = center_grid_right;
+        }
+
+    // bottom left quadrant
+    } else if (door_grid_coords.x < shape_grid_center.x && door_grid_coords.y < shape_grid_center.y) {
+        if (door_mod.wall_direction === "vertical") {
+            center_line_end = center_grid_down;
+        } else {
+            center_line_end = center_grid_right;
+        }
+    }
+
+    // calculate closest point to the determined center line
+    let closest_point = calc_closest_point(shape_grid_center, center_line_end, door_grid_coords);
+
+    // return the list of points representing the path to the center of the building
+    return [door_grid_coords, closest_point, shape_grid_center];
+}
+
+// get the door grid path to center coordinate
+function door_grid_path_to_border(building_grid_coords, door_id) {
+
+    let cell_info = grid_object_at_coords(building_grid_coords);
+    let door_mods = cell_info.building_mods.entrance_mods;
+    let door_mod = door_mods[door_id];
+
+    let door_grid_coords = {
+        x: door_mod.data_ref.x - 1,
+        y: door_mod.data_ref.y - 1
+    };
+
+    // adjusted to be door coordinates
+    let building_grid_corners = [
+        {x:building_grid_coords.x-0.5, y:building_grid_coords.y-0.5}, 
+        {x:building_grid_coords.x+0.5, y:building_grid_coords.y-0.5}, 
+        {x:building_grid_coords.x+0.5, y:building_grid_coords.y+0.5},
+        {x:building_grid_coords.x-0.5, y:building_grid_coords.y+0.5}
+    ];
+
+    let best_point = null;
+
+    // construct walls from the outline path
+    let walls = [];
+    let outline_grid_path = cell_info.building_mods.outline_grid_path
+    for (let i = 0; i < outline_grid_path.length; i++) {
+        let p1 = outline_grid_path[i];
+        let p2 = outline_grid_path[(i + 1) % outline_grid_path.length];
+
+        walls.push([p1, p2]);
+    }
+
+    // door is vertical
+    if (door_mod.wall_direction === "vertical") {
+
+        // calculate points to right/left borders
+        let building_right_line = [building_grid_corners[1], building_grid_corners[2]];
+        let building_left_line = [building_grid_corners[3], building_grid_corners[0]];
+
+        let to_right_point = calc_closest_point(building_right_line[0], building_right_line[1], door_grid_coords);
+        let to_left_point = calc_closest_point(building_left_line[0], building_left_line[1], door_grid_coords);
+
+        let right_intersections = 0;
+        let left_intersections = 0;
+
+        // calculate the number of intersections of line to right/left borders with each wall
+        walls.forEach(function (wall) {
+
+            let right_intersection_point = calc_lines_intersection([door_grid_coords, to_right_point], wall);
+            let left_intersection_point = calc_lines_intersection([door_grid_coords, to_left_point], wall);
+    
+            if (right_intersection_point !== null) {
+                right_intersections += 1;
+            }
+    
+            if (left_intersection_point !== null) {
+                left_intersections += 1;
+            }
+        });
+
+        best_point = left_intersections < right_intersections ? to_left_point : to_right_point;
+    
+    // door is horizontal
+    } else {
+
+        // calculate points to top/bottom borders
+        let building_top_line = [building_grid_corners[0], building_grid_corners[1]];
+        let building_bottom_line = [building_grid_corners[2], building_grid_corners[3]];
+
+        let to_top_point = calc_closest_point(building_top_line[0], building_top_line[1], door_grid_coords);
+        let to_bottom_point = calc_closest_point(building_bottom_line[0], building_bottom_line[1], door_grid_coords);
+
+        let top_intersections = 0;
+        let bottom_intersections = 0;
+
+        // calculate the number of intersections of line to top/bottom borders with each wall
+        walls.forEach(function (wall) {
+
+            let top_intersection_point = calc_lines_intersection([door_grid_coords, to_top_point], wall);
+            let bottom_intersection_point = calc_lines_intersection([door_grid_coords, to_bottom_point], wall);
+    
+            if (top_intersection_point !== null) {
+                top_intersections += 1;
+            }
+    
+            if (bottom_intersection_point !== null) {
+                bottom_intersections += 1;
+            }
+        });
+
+        best_point = top_intersections < bottom_intersections ? to_top_point : to_bottom_point;
+    }
+
+    return [door_grid_coords, best_point];
+}
+
+
+/* ----------------------------- path management ---------------------------- */
+
+
+// process returned path recommendation results
+function process_paths(paths) {
+    current_paths = paths;
 }
 
 
@@ -720,12 +942,30 @@ function select_building(building_grid_coords) {
 
     // get the info object for the building at the given coords
     let cell_info = grid_object_at_coords(building_grid_coords);
-    let building_mods = cell_info["building_mods"];
+    let building_mods = cell_info.building_mods;
 
     console.log("cell info:", cell_info);
 
     // reset the building editor elements
     reset_building_editor();
+
+    // clear last selected cell highlight
+    if (last_selected_cell_info !== null) {
+        last_selected_cell_info.shapes["main_selection_overlay"].stroke("");
+    }
+
+    // unselect if clicked same building (by doing nothing)
+    if (last_selected_cell_info === cell_info) {
+        // TODO: fix this unselecting the cell when deleting a building
+        // last_selected_cell_info = null;
+        // return;
+    } else {
+        last_selected_cell_info = cell_info;
+    }
+
+    // highlight the selected building in the main stage
+    let background_cell = cell_info.shapes["main_selection_overlay"];
+    background_cell.stroke("green");
     
     // get container elements to build elements into
     let info_div = document.getElementById("selected-building-info");
@@ -734,10 +974,10 @@ function select_building(building_grid_coords) {
 
     let info = `Grid Cell: (${building_grid_coords.x + 1}, ${building_grid_coords.y + 1})`;
     
-    if (cell_info["building_data"] !== null) {
+    if (cell_info.building_data !== null) {
 
-        let building_id = cell_info["building_data"]["id"];
-        let doors = cell_info["building_data"]["entrances"];
+        let building_id = cell_info.building_data["id"];
+        let doors = cell_info.building_data.entrances;
 
         info += `<BR>Building ID: ${building_id}`
         
@@ -760,7 +1000,7 @@ function select_building(building_grid_coords) {
         edit_doors_list.setAttribute("id", "edit-doors-list");
         
         // iterate over every door in the building
-        for (let door_id in cell_info["building_mods"]["entrance_mods"]) {
+        for (let door_id in cell_info.building_mods.entrance_mods) {
             let door_list_item = create_door_list_item(building_grid_coords, door_id);
             edit_doors_list.appendChild(door_list_item);
         }
@@ -780,7 +1020,7 @@ function select_building(building_grid_coords) {
         let buildling_open_chkbox = document.createElement("input");
         buildling_open_chkbox.type = "checkbox";
         buildling_open_chkbox.id = "building-open-cb";
-        buildling_open_chkbox.checked = building_mods["open"];
+        buildling_open_chkbox.checked = building_mods.open;
         buildling_open_chkbox.addEventListener("change", function(e) {
             building_open_checkbox_checked(building_grid_coords);
         });
@@ -841,20 +1081,9 @@ function select_building(building_grid_coords) {
     info_div.innerHTML = info;
 
     // redraw the selected building in both the editor stage and main stage
-    if (cell_info["building_data"] !== null) {
+    if (cell_info.building_data !== null) {
         redraw_selected_building(building_grid_coords);
     }
-
-    // highlight the selected building in the main stage
-    let background_cell = cell_info["shapes"]["main_selection_overlay"];
-    background_cell.stroke("green");
-
-    // clear last selected cell highlight
-    if (last_selected_cell_info !== null && last_selected_cell_info !== cell_info) {
-        last_selected_cell_info["shapes"]["main_selection_overlay"].stroke("");
-    }
-
-    last_selected_cell_info = cell_info;
 }
 
 
@@ -863,7 +1092,7 @@ function create_door_list_item(building_grid_coords, door_id) {
 
     let cell_info = grid_object_at_coords(building_grid_coords);
     let door = door_object_at_coords(building_grid_coords, door_id);
-    let door_mod = cell_info["building_mods"]["entrance_mods"][door_id];
+    let door_mod = cell_info.building_mods.entrance_mods[door_id];
 
     // create a list item to contain door properties
     let li = document.createElement("li");
@@ -886,7 +1115,7 @@ function create_door_list_item(building_grid_coords, door_id) {
     let open_chkbox = document.createElement("input");
     open_chkbox.type = "checkbox";
     open_chkbox.id = open_chkbox_id;
-    open_chkbox.checked = door_mod["open"];
+    open_chkbox.checked = door_mod.open;
     open_chkbox.addEventListener("change", function(e) {
         door_open_checkbox_checked(building_grid_coords, door_id);
     });
@@ -927,7 +1156,7 @@ function create_door_list_item(building_grid_coords, door_id) {
 function create_con_radio(building_grid_coords, con_level) {
 
     let cell_info = grid_object_at_coords(building_grid_coords);
-    let building_mods = cell_info["building_mods"];
+    let building_mods = cell_info.building_mods;
 
     let con_radio_id = `building-${con_level}-con-radio`;
     
@@ -943,7 +1172,7 @@ function create_con_radio(building_grid_coords, con_level) {
     let con_radio = document.createElement("input");
     con_radio.type = "radio";
     con_radio.id = con_radio_id;
-    con_radio.checked = building_mods["con_level"] === con_level;
+    con_radio.checked = building_mods.con_level === con_level;
     con_radio.name = "con_level";
     con_radio.addEventListener("change", function(e) {
         if (this.checked) {
@@ -970,7 +1199,7 @@ function handle_delete_building_button(building_grid_coords) {
     let cell_info = grid_object_at_coords(building_grid_coords);
 
     // delete the building group from the main stage
-    let group = cell_info["shapes"]["building_group"];
+    let group = cell_info.shapes.building_group;
     if (group !== null) {
         group.destroy();
     }
@@ -1003,11 +1232,11 @@ function building_open_checkbox_checked(building_grid_coords) {
 
     // get the information for the given building
     let cell_info = grid_object_at_coords(building_grid_coords);
-    let building = cell_info["building_data"];
-    let building_mods = cell_info["building_mods"];
+    let building = cell_info.building_data;
+    let building_mods = cell_info.building_mods;
 
     // get the previous open status
-    let prev_open = building_mods["open"];
+    let prev_open = building_mods.open;
     let new_open = !prev_open;
 
     // if closing an open door, remove the door from the building data
@@ -1021,7 +1250,7 @@ function building_open_checkbox_checked(building_grid_coords) {
     }
     
     // assign the new open status to the door
-    building_mods["open"] = new_open;
+    building_mods.open = new_open;
     
     // redraw the building to reflect the changes in accessibility
     redraw_selected_building(building_grid_coords);
@@ -1034,15 +1263,15 @@ function building_con_radio_checked(building_grid_coords, con_level) {
 
     // get the information for the given building
     let cell_info = grid_object_at_coords(building_grid_coords);
-    let building = cell_info["building_data"];
-    let building_mods = cell_info["building_mods"];
+    let building = cell_info.building_data;
+    let building_mods = cell_info.building_mods;
 
     // generate new congestion based on the given value
     let new_con = generate_congestion(current_config, con_level);
 
     // update building data
     building["congestion"] = new_con;
-    building_mods["con_level"] = con_level;
+    building_mods.con_level = con_level;
 }
 
 
@@ -1054,7 +1283,7 @@ function selected_door_moved(building_grid_coords, door_id, editor_door_shape) {
 
     let cell_info = grid_object_at_coords(building_grid_coords);
     let door = door_object_at_coords(building_grid_coords, door_id);
-    let door_mods = cell_info["building_mods"]["entrance_mods"]
+    let door_mods = cell_info.building_mods.entrance_mods
     let door_mod = door_mods[door_id];
 
     // get the editor stage coordinates of the moved door shape
@@ -1083,11 +1312,11 @@ function door_open_checkbox_checked(building_grid_coords, door_id) {
 
     let cell_info = grid_object_at_coords(building_grid_coords);
     let door = door_object_at_coords(building_grid_coords, door_id);
-    let doors = cell_info["building_data"]["entrances"];
-    let door_mod = cell_info["building_mods"]["entrance_mods"][door_id];
+    let doors = cell_info.building_data.entrances;
+    let door_mod = cell_info.building_mods.entrance_mods[door_id];
 
     // get the previous open status
-    let prev_open = door_mod["open"];
+    let prev_open = door_mod.open;
     let new_open = !prev_open;
 
     // if closing an open door, remove the door from the building data
@@ -1101,7 +1330,7 @@ function door_open_checkbox_checked(building_grid_coords, door_id) {
     }
 
     // assign the new open status to the door
-    door_mod["open"] = new_open;
+    door_mod.open = new_open;
     
     // redraw the building to reflect the changes in accessibility
     redraw_selected_building(building_grid_coords);
@@ -1159,7 +1388,6 @@ function handle_add_door_button(building_grid_coords) {
 }
 
 
-
 /* -------------------------------------------------------------------------- */
 /*                               canvas drawing                               */
 /* -------------------------------------------------------------------------- */
@@ -1212,6 +1440,31 @@ function handle_clipping_visible_button() {
     draw_main_stage();
 }
 
+// building corridors toggle
+function handle_corridors_visible_button() {
+    
+    // find the corridor group of every building and toggle it visible or not visible
+    for (let x = 0; x < grid.length; x++) {
+        for (let y = 0; y < grid.length; y++) {
+            
+            let cell_info = grid[y][x];
+            if (cell_info.building_data === null) {
+                continue;
+            }
+            
+            let corridors_group = cell_info.shapes.corridors_group;
+            if (building_corridors_enabled) {
+                corridors_group.hide();
+            } else {
+                corridors_group.show();
+            }
+        }
+    }
+
+    building_corridors_enabled = !building_corridors_enabled;
+}
+
+
 /* --------------------------- drawing dimensions --------------------------- */
 
 
@@ -1260,107 +1513,6 @@ function get_door_dims(for_main_stage) {
         height: cell_dims.height * door_len_ratio,
         stroke: for_main_stage ? 1 : 2
     };
-}
-
-
-/* ------------------------------ path drawing ------------------------------ */
-
-
-function test_draw_paths() {
-
-
-
-    let path_layer = new Konva.Layer();
-    stage.add(path_layer);
-
-
-    let test_point = {
-        x: 0,
-        y: 0
-    };
-
-    let test_point2 = {
-        x: 1,
-        y: 0
-    };
-
-    console.log("NEW POINT: ", calc_line_extend_point(test_point, test_point2, 1));
-
-
-    let target_grid_coords = {
-        x: 5,
-        y: 5
-    };
-
-    let target_stage_coords = grid_coords_to_main_stage_coords(target_grid_coords);
-
-    
-    for (let y = 0; y < grid.length; y++) {
-        let grid_row = grid[y];
-
-        for (let x = 0; x < grid_row.length; x++) {
-
-            let cell_info = grid_row[x];
-            let building = cell_info["building_data"];
-            
-            if (building === null) {
-                continue;
-            }
-
-            let doors = building["entrances"];
-
-            let building_grid_coords = {
-                x: x,
-                y: y
-            };
-
-            // find all corner points of the grid cell 
-            let grid_corners = [{x:x, y:y}, {x:x+1, y:y}, {x:x+1, y:y+1}, {x:x, y:y+1}];
-            let stage_corners = grid_corners.map((p) => grid_coords_to_main_stage_coords(p));
-
-            for (let d = 0; d < doors.length; d++) {
-                
-                let door = doors[d];
-
-                // get door x and y coordinates (convert 1-indexed to 0-indexed)
-                let door_grid_coords = {
-                    x: door["x"] - 1,
-                    y: door["y"] - 1
-                };
-
-                // convert grid coordinates to stage coordinates
-                let door_stage_coords = door_grid_coords_to_stage_coords(door_grid_coords, building_grid_coords, true);
-
-                let closest_cell_corner = calc_closest_point_to_points(stage_corners, door_stage_coords);
-                let closest_corner_to_cell_corner = calc_corner_between_points2(door_stage_coords, closest_cell_corner, true);
-                let corner_to_target = calc_corner_between_points(closest_cell_corner, target_stage_coords, false, false);
-                
-                console.log("closest cell corner: ", closest_cell_corner);
-                console.log("closest corner to cell corner: ", closest_corner_to_cell_corner);
-                console.log("corner to target: ", corner_to_target)
-
-                let path = flatten_points([door_stage_coords, closest_corner_to_cell_corner, closest_cell_corner, corner_to_target, target_stage_coords]);
-                // let path = flatten_points([closest_cell_corner, corner_to_target, target_stage_coords]);
-                
-                let path_shape = new Konva.Line({
-                    points: path,
-                    stroke: Konva.Util.getRandomColor(),
-                    strokeWidth: 4,
-                });
-                path_layer.add(path_shape);
-
-                // early return for testing
-                // if (building !== null) {
-                //     return;
-                // }
-            }
-
-            // early return for testing
-            if (building !== null) {
-                return;
-            }
-        }
-    }
 }
 
 
@@ -1436,7 +1588,7 @@ function draw_buildings(parent) {
 function redraw_selected_building(building_grid_coords) {
 
     let cell_info = grid_object_at_coords(building_grid_coords);
-    let building = cell_info["building_data"];
+    let building = cell_info.building_data;
 
     // clear the editor stage
     editor_stage.destroyChildren();
@@ -1450,7 +1602,7 @@ function redraw_selected_building(building_grid_coords) {
         draw_building(building_grid_coords, editor_layer, false);
     
         // get previous building group and the layer it was drawn on
-        let prev_building_group = cell_info["shapes"]["building_group"];
+        let prev_building_group = cell_info.shapes.building_group;
         let main_building_layer = prev_building_group.getLayer();
         
         // draw the building on the main stage
@@ -1464,7 +1616,7 @@ function draw_building(building_grid_coords, parent, for_main_stage) {
     
     // get information about the given building
     let cell_info = grid_object_at_coords(building_grid_coords);
-    let building_mods = cell_info["building_mods"];
+    let building_mods = cell_info.building_mods;
 
     // create a group to contain the building and its entrances
     let building_group = new Konva.Group();
@@ -1473,7 +1625,7 @@ function draw_building(building_grid_coords, parent, for_main_stage) {
     if (for_main_stage) {
 
         // remove previous shapes if they exist
-        let prev_group = cell_info["shapes"]["building_group"];
+        let prev_group = cell_info.shapes.building_group;
         if (prev_group !== null) {
             prev_group.destroy();
         }
@@ -1509,7 +1661,7 @@ function draw_building(building_grid_coords, parent, for_main_stage) {
 
     // store main stage shapes
     if (for_main_stage) {
-        cell_info["shapes"]["building_group"] = building_group;
+        cell_info.shapes.building_group = building_group;
     }
 }
 
@@ -1522,14 +1674,14 @@ function draw_building_shape(building_grid_coords, parent, for_main_stage) {
 
     // destroy previous building shape if there is one
     if (for_main_stage) {
-        let prev_building_shape = cell_info["shapes"]["building"];
+        let prev_building_shape = cell_info.shapes.building;
         if (prev_building_shape !== null) {
             prev_building_shape.destroy();
         }
     }
 
     // convert the grid path to a path that can be used by the stage
-    let grid_shape_path = cell_info["building_mods"]["outline_grid_path"];
+    let grid_shape_path = cell_info.building_mods.outline_grid_path;
     let stage_shape_path = grid_shape_path.map((point) => door_grid_coords_to_stage_coords(point, building_grid_coords, for_main_stage));
     stage_shape_path = flatten_points(stage_shape_path);
 
@@ -1545,7 +1697,7 @@ function draw_building_shape(building_grid_coords, parent, for_main_stage) {
 
     // add necessary info about the building cell to the grid array
     if (for_main_stage) {
-        cell_info["shapes"]["building"] = building_shape;
+        cell_info.shapes.building = building_shape;
     }
 
     return building_shape;
@@ -1556,23 +1708,23 @@ function draw_building_outline(building_grid_coords, parent, for_main_stage) {
 
     // get the grid cell info object associated with the building
     let cell_info = grid_object_at_coords(building_grid_coords);
-    let building_mods = cell_info["building_mods"];
+    let building_mods = cell_info.building_mods;
 
     // destroy previous building outline if there is one
     if (for_main_stage) {
-        let prev_building_outline = cell_info["shapes"]["building_outline"];
+        let prev_building_outline = cell_info.shapes.building_outline;
         if (prev_building_outline !== null) {
             prev_building_outline.destroy();
         }
     }
 
     // convert the grid path to a path that can be used by the stage
-    let grid_shape_path = building_mods["outline_grid_path"];
+    let grid_shape_path = building_mods.outline_grid_path;
     let stage_shape_path = grid_shape_path.map((point) => door_grid_coords_to_stage_coords(point, building_grid_coords, for_main_stage));
     stage_shape_path = flatten_points(stage_shape_path);
 
     // draw building outline (ensures doors have an outer border along the building shape)
-    let outline_color = building_mods["open"] ? "black" : "red";
+    let outline_color = building_mods.open ? "black" : "red";
     let building_outline = new Konva.Line({
         points: stage_shape_path,
         stroke: outline_color,
@@ -1584,7 +1736,7 @@ function draw_building_outline(building_grid_coords, parent, for_main_stage) {
 
     // store the building outline shape
     if (for_main_stage) {
-        cell_info["shapes"]["building_outline"] = building_outline;
+        cell_info.shapes.building_outline = building_outline;
     }
 }
 
@@ -1598,9 +1750,9 @@ function draw_entrances(building_grid_coords, parent, for_main_stage) {
 
     // get the grid cell info object associated with the building
     let cell_info = grid_object_at_coords(building_grid_coords);
-    let building_mods = cell_info["building_mods"];
-    let door_mods = building_mods["entrance_mods"];
-    let doors = cell_info["building_data"]["entrances"];
+    let building_mods = cell_info.building_mods;
+    let door_mods = building_mods.entrance_mods;
+    let doors = cell_info.building_data.entrances;
 
     // create new entrances group
     let entrances_group = new Konva.Group();
@@ -1609,13 +1761,13 @@ function draw_entrances(building_grid_coords, parent, for_main_stage) {
     // remove previous door shapes if they exist
     if (for_main_stage) {
 
-        let prev_entrances_group = cell_info["shapes"]["entrances_group"];
+        let prev_entrances_group = cell_info.shapes.entrances_group;
         if (prev_entrances_group !== null) {
             prev_entrances_group.destroy();
         }
 
-        cell_info["shapes"]["entrances_group"] = entrances_group;
-        cell_info["shapes"]["entrances"] = {};
+        cell_info.shapes.entrances_group = entrances_group;
+        cell_info.shapes.entrances = {};
     }
 
     // define an array to determine door draw order
@@ -1658,7 +1810,7 @@ function draw_entrances(building_grid_coords, parent, for_main_stage) {
         let door_stage_coords = door_grid_coords_to_stage_coords(door_grid_coords_unscaled, building_grid_coords, for_main_stage);
         
         let door_color = door["accessible"] == 1 ? "blue" : "gray";
-        let door_stroke_color = door_mod["open"] ? "black" : "red";
+        let door_stroke_color = door_mod.open ? "black" : "red";
 
         let door_shape = new Konva.Rect({
             width: door_dims.width,
@@ -1674,7 +1826,7 @@ function draw_entrances(building_grid_coords, parent, for_main_stage) {
         if (for_main_stage) {
             
             // add necessary info about the building's doors to the grid array
-            cell_info["shapes"]["entrances"][door_id] = door_shape;
+            cell_info.shapes.entrances[door_id] = door_shape;
 
         } else {
             // enable dragging to reposition doors in editor view
@@ -1686,7 +1838,7 @@ function draw_entrances(building_grid_coords, parent, for_main_stage) {
             });
 
             // get the stage coordinates of the effective grid walls
-            let effective_grid_walls = cell_info["building_mods"]["effective_grid_walls"];
+            let effective_grid_walls = cell_info.building_mods.effective_grid_walls;
             let effective_stage_walls = effective_grid_walls.map(function (line) {
                 return [
                     door_grid_coords_to_stage_coords(line[0], building_grid_coords, for_main_stage),
@@ -1708,12 +1860,17 @@ function draw_entrances(building_grid_coords, parent, for_main_stage) {
 
                 // find the point closest to the shape from the current point
                 // let best_point = calc_closest_point_to_shape(outline_stage_points, current_pos);
-                let best_point = calc_closest_point_to_lines(effective_stage_walls, current_pos);
+                // let best_point = calc_closest_point_to_lines(effective_stage_walls, current_pos);
+                // let attached_line = calc_closest_line_from_point_to_lines(effective_stage_walls, current_pos);
+                let best_point_and_line = calc_closest_line_and_point_from_point_to_lines(effective_stage_walls, current_pos);
+                let line_direction = calc_line_orthogonal_direction(best_point_and_line.line[0], best_point_and_line.line[1]);
+                door_mod["wall_direction"] = line_direction;
+                door_mod["attached_wall"] = best_point_and_line.line;
 
                 // adjust the point to door top left coordinate rather than center
                 let best_point_adjusted = {
-                    x: best_point.x - door_dims.width/2,
-                    y: best_point.y - door_dims.height/2
+                    x: best_point_and_line.point.x - door_dims.width/2,
+                    y: best_point_and_line.point.y - door_dims.height/2
                 };
 
                 // set the new position
@@ -1739,7 +1896,7 @@ function draw_corridors(building_grid_coords, parent, for_main_stage) {
     let cell_info = grid_object_at_coords(building_grid_coords);
     let cell_dims = get_cell_dims(for_main_stage);
     let door_dims = get_door_dims(for_main_stage);
-    let door_mods = cell_info["building_mods"]["entrance_mods"];
+    let door_mods = cell_info.building_mods.entrance_mods;
 
     // let corridor_color = "rgba(0,0,0,0.5)";
     // let corridor_color = "#c2dee6";
@@ -1750,111 +1907,71 @@ function draw_corridors(building_grid_coords, parent, for_main_stage) {
     let corridors_group = new Konva.Group();
     parent.add(corridors_group);
 
-    // remove previous door shapes if they exist
+    // remove previous corridors shapes if they exist
     if (for_main_stage) {
 
-        let prev_corridors_group = cell_info["shapes"]["corridors_group"];
+        let prev_corridors_group = cell_info.shapes.corridors_group;
         if (prev_corridors_group !== null) {
             prev_corridors_group.destroy();
         }
 
-        cell_info["shapes"]["corridors_group"] = corridors_group;
+        cell_info.shapes.corridors_group = corridors_group;
     }
 
-    // draw vertical center line
-    // let vert_line_start_grid = {
-    //     x: building_grid_coords.x,
-    //     y: building_grid_coords.y
-    // };
+    // get the calculated center of the building shape
+    let shape_grid_center = cell_info.building_mods.outline_grid_center;
 
-    // let vert_line_end_grid = {
-    //     x: vert_line_start_grid.x,
-    //     y: vert_line_start_grid.y + 1
-    // };
+    // calculate grid points in all directions from center
+    let center_grid_left   = calc_point_translation(shape_grid_center, {x:0, y:0}, {x:1, y:0}, 1);
+    let center_grid_right  = calc_point_translation(shape_grid_center, {x:0, y:0}, {x:-1, y:0}, 1);
+    let center_grid_up     = calc_point_translation(shape_grid_center, {x:0, y:0}, {x:0, y:1}, 1);
+    let center_grid_down   = calc_point_translation(shape_grid_center, {x:0, y:0}, {x:0, y:-1}, 1);
 
-    // // convert the grid coords to stage coords
-    // // let vert_line_start_stage = grid_coords_to_main_stage_coords(vert_line_start_grid);
-    // // let vert_line_end_stage = grid_coords_to_main_stage_coords(vert_line_end_grid);
-    // let vert_line_start_stage = door_grid_coords_to_stage_coords(vert_line_start_grid, building_grid_coords, for_main_stage);
-    // let vert_line_end_stage = door_grid_coords_to_stage_coords(vert_line_end_grid, building_grid_coords, for_main_stage);
+    // calculate stage coords
+    // let shape_stage_center = door_grid_coords_to_stage_coords(shape_grid_center, building_grid_coords, for_main_stage);
+    let center_stage_left  = door_grid_coords_to_stage_coords(center_grid_left, building_grid_coords, for_main_stage);
+    let center_stage_right = door_grid_coords_to_stage_coords(center_grid_right, building_grid_coords, for_main_stage);
+    let center_stage_up    = door_grid_coords_to_stage_coords(center_grid_up, building_grid_coords, for_main_stage);
+    let center_stage_down  = door_grid_coords_to_stage_coords(center_grid_down, building_grid_coords, for_main_stage);
 
-    // // draw horizontal center line
-
-    // let vert_line = new Konva.Line({
-    //     points: [vert_line_start_stage.x, vert_line_start_stage.y, vert_line_end_stage.x, vert_line_end_stage.y],
-    //     stroke: corridor_color,
-    //     strokeWidth: corridor_width
+    // draw all middle pathways
+    // let center_translations = [center_stage_left, center_stage_right, center_stage_up, center_stage_down];
+    // center_translations.forEach(function (center_translation) {
+    //     let center_line = new Konva.Line({
+    //         points: flatten_points([shape_stage_center, center_translation]),
+    //         stroke: corridor_color,
+    //         strokeWidth: corridor_width*1.5
+    //     });
+    //     corridors_group.add(center_line);
     // });
 
-    // corridors_group.add(vert_line);
-
-    // let horz_line_start_grid = {
-    //     x: building_grid_coords.x,
-    //     y: building_grid_coords.y
-    // };
-
-    // let horz_line_end_grid = {
-    //     x: horz_line_start_grid.x + 1,
-    //     y: horz_line_start_grid.y
-    // };
-
-    // // convert the grid coords to stage coords
-    // // let horz_line_start_stage = grid_coords_to_main_stage_coords(horz_line_start_grid);
-    // // let horz_line_end_stage = grid_coords_to_main_stage_coords(horz_line_end_grid);
-    // let horz_line_start_stage = door_grid_coords_to_stage_coords(horz_line_start_grid, building_grid_coords, for_main_stage);
-    // let horz_line_end_stage = door_grid_coords_to_stage_coords(horz_line_end_grid, building_grid_coords, for_main_stage);
-
-    // let horz_line = new Konva.Line({
-    //     points: [horz_line_start_stage.x, horz_line_start_stage.y, horz_line_end_stage.x, horz_line_end_stage.y],
-    //     stroke: corridor_color,
-    //     strokeWidth: corridor_width
-    // });
-
-    // corridors_group.add(horz_line);
-
-
-    let shape_grid_center = cell_info["building_mods"]["outline_grid_center"];
-    let shape_stage_center = door_grid_coords_to_stage_coords(shape_grid_center, building_grid_coords, for_main_stage);
-    // let shape_stage_center = grid_coords_to_main_stage_coords(shape_grid_center);
-
-    // console.log(shape_grid_center, shape_stage_center);
-
-    let test_circle = new Konva.Circle({
-        x: shape_stage_center.x,
-        y: shape_stage_center.y,
-        width: 10,
-        height: 10,
-        radius: door_dims.width/4,
-        fill:"rgba(255,0,0,0.5)"
+    // draw all middle pathways as one big line
+    let center_line = new Konva.Line({
+        points: flatten_points([center_stage_up, center_stage_down, center_stage_right, center_stage_left]),
+        stroke: corridor_color,
+        strokeWidth: corridor_width*1.5
     });
+    corridors_group.add(center_line);
 
-    corridors_group.add(test_circle);
-
+    // draw a corridor for every door
     for (let door_id in door_mods) {
-        // console.log(door_id);
         let door_mod = door_mods[door_id];
 
-        let door_grid_coords = {
-            x: door_mod.data_ref.x - 1,
-            y: door_mod.data_ref.y - 1
-        };
-
-        // let corner = calc_corner_between_points(door_grid_coords, shape_grid_center, true, false);
-        let corner = calc_corner_between_points2(door_grid_coords, shape_grid_center, false);
-        let corner_stage = door_grid_coords_to_stage_coords(corner, building_grid_coords, for_main_stage);
-        let door_stage_coords = door_grid_coords_to_stage_coords(door_grid_coords, building_grid_coords, for_main_stage);
-
-        console.log([door_stage_coords.x, door_stage_coords.y, corner_stage.x, corner_stage.y, shape_stage_center.x, shape_stage_center.y]);
+        let path_to_center = door_grid_path_to_center(building_grid_coords, door_id);
+        let stage_path = path_to_center.map((grid_point) => door_grid_coords_to_stage_coords(grid_point, building_grid_coords, for_main_stage));
 
         let corridor = new Konva.Line({
-            points: [door_stage_coords.x, door_stage_coords.y, corner_stage.x, corner_stage.y, shape_stage_center.x, shape_stage_center.y],
+            points: flatten_points(stage_path),
             stroke: corridor_color,
             strokeWidth: corridor_width
         });
 
         corridors_group.add(corridor);
     }
-    
+
+    if (!building_corridors_enabled) {
+        corridors_group.hide();
+    }
 }
 
 
@@ -1884,7 +2001,7 @@ function draw_selection_overlay(building_grid_coords, parent) {
     let cell_dims = get_cell_dims(true);
 
     // destroy previous background shape if there is one
-    let prev_background = cell_info["shapes"]["main_selection_overlay"];
+    let prev_background = cell_info.shapes["main_selection_overlay"];
     if (prev_background !== null) {
         prev_background.destroy();
     }
@@ -1914,7 +2031,7 @@ function draw_selection_overlay(building_grid_coords, parent) {
     });
     
     // store the background cell for easy access later
-    cell_info["shapes"]["main_selection_overlay"] = background;
+    cell_info.shapes["main_selection_overlay"] = background;
 
     // add the cell to the layer
     parent.add(background);
@@ -2018,7 +2135,7 @@ function draw_road_line(start_grid_point, end_grid_point, is_dashed, is_vertical
     parent.add(road);
 }
 
-// draw a road background for a given cell
+// draw a road rectangle around a given cell to create rounded road corners
 function draw_road_rect(building_grid_coords, parent) {
 
     let cell_dims = get_cell_dims(true);
@@ -2052,7 +2169,287 @@ function draw_road_rect(building_grid_coords, parent) {
 }
 
 
-// draw a road rectangle around a given cell to create rounded road corners
+/* ------------------------------ path drawing ------------------------------ */
+
+
+function test_draw_paths() {
+
+    // reset the path layer
+    path_layer.destroy();
+    path_layer = new Konva.Layer();
+    stage.add(path_layer);
+    
+    draw_internal_path_part({x:0, y:5}, 1, 4, path_layer);
+    draw_external_path_part({x:0, y:5}, 4, {x: 1, y: 3}, 1, path_layer);
+    draw_internal_path_part({x:1, y:3}, 1, 3, path_layer);
+    draw_external_path_part({x:1, y:3}, 3, {x: 3, y: 1}, 3, path_layer);
+    draw_internal_path_part({x:3, y:1}, 3, 2, path_layer);
+    draw_external_path_part({x:3, y:1}, 2, {x: 5, y: 0}, 1, path_layer);
+    draw_internal_path_part({x:5, y:0}, 1, 2, path_layer);
+}
+
+// draw the current paths on the main stage
+function draw_paths() {
+
+    // reset the path layer
+    path_layer.destroy();
+    path_layer = new Konva.Layer();
+    stage.add(path_layer);
+
+    for (let i = 1; i < current_paths.length - 1; i++) {
+
+        let building1 = current_paths[i];
+        let building2 = current_paths[i+1];
+
+        // let building_x = Math.round(building.id / grid.length) + 1;
+        // let building_y = building.id % grid.length + 1;
+        
+        // // x and y values are getting swapped for some reason in path gen
+        // let actual_building_id = (building_y - 1) * grid.length + (building_x - 1);
+
+        // console.log("actual building id", actual_building_id);
+
+        let cell_info1 = grid_object_for_id(building1.id);
+        let cell_info2 = grid_object_for_id(building2.id);
+
+        if (cell_info1 === null || cell_info2 === null) {
+            continue;
+        }
+        
+        let building1_grid_coords = {
+            x: cell_info1.building_data.x - 1,
+            y: cell_info1.building_data.y - 1
+        };
+
+        let building2_grid_coords = {
+            x: cell_info2.building_data.x - 1,
+            y: cell_info2.building_data.y - 1
+        };
+
+        // draw internal path if buildings have the same id
+        if (building1.id === building2.id) {
+            draw_internal_path_part(building1_grid_coords, building1.entrances[0].id, building2.entrances[0].id, path_layer);
+        } else {
+            draw_external_path_part(building1_grid_coords, building1.entrances[0].id, building2_grid_coords, building2.entrances[0].id, path_layer);
+        }
+
+    }
+}
+
+
+// draw external path from a given building to another building
+function draw_external_path_part(building1_grid_coords, door1_id, building2_grid_coords, door2_id, parent) {
+
+    // figuring this method out was way more complicated than it had any right or need to be ...
+
+    let cell_dims = get_cell_dims(true);
+    let door_dims = get_door_dims(true);
+
+    let path_color = "red";
+    let path_width = door_dims.width / 4.5;
+
+    let cell1_info = grid_object_at_coords(building1_grid_coords);
+    let cell2_info = grid_object_at_coords(building2_grid_coords);
+
+    // console.log(cell1_info, cell2_info);
+
+    let door1_mods = cell1_info.building_mods.entrance_mods[door1_id];
+    let door2_mods = cell2_info.building_mods.entrance_mods[door2_id];
+
+    let door1_grid_coords = {x: door1_mods.data_ref.x - 1, y: door1_mods.data_ref.y - 1};
+    let door2_grid_coords = {x: door2_mods.data_ref.x - 1, y: door2_mods.data_ref.y - 1};
+
+    // get different cell corners for building 1 (adjusted to door coordinates)
+    let building1_grid_corners = [
+        {x:building1_grid_coords.x-0.5, y:building1_grid_coords.y-0.5}, 
+        {x:building1_grid_coords.x+0.5, y:building1_grid_coords.y-0.5}, 
+        {x:building1_grid_coords.x+0.5, y:building1_grid_coords.y+0.5},
+        {x:building1_grid_coords.x-0.5, y:building1_grid_coords.y+0.5}
+    ];
+
+    let building2_grid_corners = [
+        {x:building2_grid_coords.x-0.5, y:building2_grid_coords.y-0.5}, 
+        {x:building2_grid_coords.x+0.5, y:building2_grid_coords.y-0.5}, 
+        {x:building2_grid_coords.x+0.5, y:building2_grid_coords.y+0.5},
+        {x:building2_grid_coords.x-0.5, y:building2_grid_coords.y+0.5}
+    ];
+
+    let best_building1_corner = null;
+    let best_building2_corner = null;
+
+    // buildings are on a straight line 
+    if (building1_grid_coords.x === building2_grid_coords.x || building1_grid_coords.y === building2_grid_coords.y) {
+
+        let building1_corner_options = null;
+        
+        // buildings are on the same x coordinate
+        if (building1_grid_coords.x === building2_grid_coords.x) {
+
+            // building 1 is above building 2
+            if (building1_grid_coords.y < building2_grid_coords.y) {
+                building1_corner_options = [building1_grid_corners[2], building1_grid_corners[3]];
+                console.log("building 1 above");
+
+            // building 1 is below building 2
+            } else {
+                building1_corner_options = [building1_grid_corners[0], building1_grid_corners[1]];
+                console.log("building 1 below");
+            }
+
+        // buildings are on the same y coordinate
+        } else {
+
+
+            // building 1 is to the left of building 2
+            if (building1_grid_coords.x < building2_grid_coords.x) {
+                building1_corner_options = [building1_grid_corners[1], building1_grid_corners[2]];
+
+            // building 1 is to the right of building 2
+            } else {
+                building1_corner_options = [building1_grid_corners[3], building1_grid_corners[0]];
+            }
+        }
+
+        // find the corner in the direction of building 2 that is closest to the start door
+        best_building1_corner = calc_closest_point_to_points(building1_corner_options, door1_grid_coords);
+
+        // messy indexing to get matching building 2 corner
+        let building1_corner_index = building1_grid_corners.indexOf(best_building1_corner);
+        let building1_corner_options_index = building1_corner_options.indexOf(best_building1_corner);
+        let building2_corner_index_offset = building1_corner_options_index === 0 ? 3: 1;
+
+        console.log("building1_corner_index: ", building1_corner_index);
+        
+        best_building2_corner = building2_grid_corners[(building1_corner_index + building2_corner_index_offset) % 4];
+
+
+    // buildings are diagonal from each other
+    } else {
+
+        // building 1 is top left of building 2
+        if (building1_grid_coords.x < building2_grid_coords.x && building1_grid_coords.y < building2_grid_coords.y) {
+
+            best_building1_corner = building1_grid_corners[2];
+            best_building2_corner = building2_grid_corners[0];
+
+        // building 1 is bottom left of building 2
+        } else if (building1_grid_coords.x < building2_grid_coords.x && building1_grid_coords.y > building2_grid_coords.y) {
+
+            best_building1_corner = building1_grid_corners[1];
+            best_building2_corner = building2_grid_corners[3];
+            
+        // building 1 is top right of building 2
+        } else if (building1_grid_coords.x > building2_grid_coords.x && building1_grid_coords.y < building2_grid_coords.y) {
+
+            best_building1_corner = building1_grid_corners[3];
+            best_building2_corner = building2_grid_corners[1];
+
+        // building 1 is bottom right of building 2
+        } else {
+
+            best_building1_corner = building1_grid_corners[0];
+            best_building2_corner = building2_grid_corners[2];
+        }
+    }
+
+    // calculate points straight from door to cell border
+    let door1_to_border = door_grid_path_to_border(building1_grid_coords, door1_id)[1];
+    let door2_to_border = door_grid_path_to_border(building2_grid_coords, door2_id)[1];
+
+    // generate both possible corners from the cell outline to the best chosen cell corner and select the one that is another cell corner
+    let door1_border_to_cell_corner1 = calc_corner_between_points(door1_to_border, best_building1_corner, true, false);
+    let door1_border_to_cell_corner2 = calc_corner_between_points(door1_to_border, best_building1_corner, false, false);
+    let door1_border_cell_corner1_is_other_cell_corner = building1_grid_corners.some(function (cell_corner) {
+        return floats_eq(cell_corner.x, door1_border_to_cell_corner1.x) && floats_eq(cell_corner.y, door1_border_to_cell_corner1.y)
+    });
+    let door1_outline_corner_to_cell_corner = door1_border_cell_corner1_is_other_cell_corner ? door1_border_to_cell_corner1 : door1_border_to_cell_corner2;
+
+    // generate both possible corners from the cell outline to the best chosen cell corner and select the one that is another cell corner
+    let door2_border_to_cell_corner1 = calc_corner_between_points(door2_to_border, best_building2_corner, true, false);
+    let door2_border_to_cell_corner2 = calc_corner_between_points(door2_to_border, best_building2_corner, false, false);
+    let door2_border_cell_corner1_is_other_cell_corner = building2_grid_corners.some(function (cell_corner) {
+        return floats_eq(cell_corner.x, door2_border_to_cell_corner1.x) && floats_eq(cell_corner.y, door2_border_to_cell_corner1.y)
+    });
+    let door2_outline_corner_to_cell_corner = door2_border_cell_corner1_is_other_cell_corner ? door2_border_to_cell_corner1 : door2_border_to_cell_corner2;
+
+    // convert points to stage coordinates
+    let door1_stage = door_grid_coords_to_stage_coords(door1_grid_coords, building1_grid_coords, true);
+    let door2_stage = door_grid_coords_to_stage_coords(door2_grid_coords, building2_grid_coords, true);
+    let door1_border_stage = door_grid_coords_to_stage_coords(door1_to_border, building1_grid_coords, true);
+    let door2_border_stage = door_grid_coords_to_stage_coords(door2_to_border, building2_grid_coords, true);
+    let door1_border_corner_stage = door_grid_coords_to_stage_coords(door1_outline_corner_to_cell_corner, building1_grid_coords, true);
+    let door2_border_corner_stage = door_grid_coords_to_stage_coords(door2_outline_corner_to_cell_corner, building2_grid_coords, true);
+    let door1_cell_corner_stage = door_grid_coords_to_stage_coords(best_building1_corner, building1_grid_coords, true);
+    let door2_cell_corner_stage = door_grid_coords_to_stage_coords(best_building2_corner, building2_grid_coords, true);
+
+    // find the final corner between cells (in stage coords since otherwise would be annoying) (also convex vs concave doesn't matter)
+    let cell_corners_corner = calc_corner_between_points(door1_cell_corner_stage, door2_cell_corner_stage, true, false);
+
+    // construct final path
+    let external_stage_path = [door1_stage, door1_border_stage, door1_border_corner_stage, door1_cell_corner_stage, 
+        cell_corners_corner, door2_cell_corner_stage, door2_border_corner_stage, door2_border_stage, door2_stage];
+
+    // create the shape for the external path
+    let external_path_shape = new Konva.Line({
+        points: flatten_points(external_stage_path),
+        stroke: path_color,
+        strokeWidth: path_width
+    });
+
+    parent.add(external_path_shape);
+}
+
+
+// draw internal path from one door to another of a given building
+function draw_internal_path_part(building_grid_coords, door1_id, door2_id, parent) {
+
+    console.log(building_grid_coords, door1_id, door2_id, parent);
+    
+    let cell_info = grid_object_at_coords(building_grid_coords);
+    let cell_dims = get_cell_dims(true);
+    let door_dims = get_door_dims(true);
+
+    let path_color = "green";
+    let path_width = door_dims.width / 4.5;
+
+    // get the path from each door to the center point
+    let door1_to_center = door_grid_path_to_center(building_grid_coords, door1_id);
+    let door2_to_center = door_grid_path_to_center(building_grid_coords, door2_id);
+
+    // extract coordinates into variables for ease of reading
+    let door1_grid_coords = door1_to_center[0];
+    let door1_middle_grid_coords = door1_to_center[1];
+    let door2_grid_coords = door2_to_center[0];
+    let door2_middle_grid_coords = door2_to_center[1];
+    let center_grid_coords = door1_to_center[2]; // doesn't really matter which path it comes from, it's the same
+
+    let full_grid_path = null;
+
+    // check if the lines from the doors to the middle line intersect
+    let door_intersection = calc_lines_intersection([door1_grid_coords, door1_middle_grid_coords], [door2_grid_coords, door2_middle_grid_coords]);
+
+    if (door_intersection !== null) {
+        full_grid_path = [door1_grid_coords, door_intersection, door2_grid_coords];
+
+    // check if either doors' middle coords are in a straight line to the center
+    } else if (points_are_in_straight_line(door1_middle_grid_coords, door2_middle_grid_coords, center_grid_coords) ||
+               points_are_in_straight_line(door2_middle_grid_coords, door1_middle_grid_coords, center_grid_coords)) {
+        full_grid_path = [door1_grid_coords, door1_middle_grid_coords, door2_middle_grid_coords, door2_grid_coords];
+    } else {
+        full_grid_path = [door1_grid_coords, door1_middle_grid_coords, center_grid_coords, door2_middle_grid_coords, door2_grid_coords];
+    }
+
+    // cpnvert internal path to stage coordinates
+    let full_stage_path = full_grid_path.map((grid_point) => door_grid_coords_to_stage_coords(grid_point, building_grid_coords, true));
+
+    let internal_path_shape = new Konva.Line({
+        points: flatten_points(full_stage_path),
+        stroke: path_color,
+        strokeWidth: path_width
+    });
+
+    parent.add(internal_path_shape);
+}
 
 
 
@@ -2281,6 +2678,63 @@ function calc_closest_point_to_lines(lines, point) {
 }
 
 
+// helper method to calculate the point closest to a list of lines
+function calc_closest_line_from_point_to_lines(lines, point) {
+
+    let best_line = null;
+    let best_dist = Number.MAX_SAFE_INTEGER;
+
+    // iterate over every pair of points on the shape border
+    for (let i = 0; i < lines.length; i++) {
+
+        let line = lines[i];
+
+        // find the closest point on the line and its distance
+        let closest_point = calc_closest_point(line[0], line[1], point);
+        let dist = calc_dist(point, closest_point);
+
+        // check if the current line is the best line (closest)
+        if (dist < best_dist) {
+            best_line = line;
+            best_dist = dist;
+        }
+    }
+
+    return best_line
+}
+
+
+// helper method to calculate the point closest to a list of lines
+function calc_closest_line_and_point_from_point_to_lines(lines, point) {
+
+    let best_point = null;
+    let best_line = null;
+    let best_dist = Number.MAX_SAFE_INTEGER;
+
+    // iterate over every pair of points on the shape border
+    for (let i = 0; i < lines.length; i++) {
+
+        let line = lines[i];
+
+        // find the closest point on the line and its distance
+        let closest_point = calc_closest_point(line[0], line[1], point);
+        let dist = calc_dist(point, closest_point);
+
+        // check if the current line is the best line (closest)
+        if (dist < best_dist) {
+            best_point = closest_point;
+            best_line = line;
+            best_dist = dist;
+        }
+    }
+
+    return {
+        point: best_point,
+        line: best_line
+    };
+}
+
+
 // helper method to calculate the point closest to a list of points
 function calc_closest_point_to_points(points_set, point) {
 
@@ -2303,6 +2757,28 @@ function calc_closest_point_to_points(points_set, point) {
     }
 
     return best_point
+}
+
+
+// helper method to determine if a line is vertical or horizontal
+function calc_line_orthogonal_direction(p1, p2) {
+
+    // check if the points are the same
+    if (floats_eq(p1.x, p2.x) && floats_eq(p1.y, p2.y)) {
+        return "same";
+    }
+
+    // check if points are vertical
+    if (floats_eq(p1.x, p2.x)) {
+        return "vertical";
+    }
+
+    // check if points are horizontal
+    if (floats_eq(p1.y, p2.y)) {
+        return "horizontal";
+    }
+
+    return "none";
 }
 
 
@@ -2376,6 +2852,61 @@ function simplify_closed_path(points, tol=0.0001) {
 }
 
 
+// helper function to determine if three points are in a line (only works for horizontal and vertical lines)
+function points_are_in_straight_line(p1, p2, p3, tol=0.0001) {
+
+    // check if points are in a line in the x direction
+    if (floats_eq(p2.x, p1.x, tol) && floats_eq(p1.x, p3.x, tol) && floats_eq(p1.x, p3.x, tol)) {
+        return true;
+    // check if points are in a line in the y direction
+    } else if (floats_eq(p2.y, p1.y, tol) && floats_eq(p2.y, p3.y, tol) && floats_eq(p3.y, p1.y, tol)) {
+        return true;
+    }
+
+    return false;
+}
+
+
+// helper function to calculate the intersection of two lines
+function calc_lines_intersection(l1, l2) {
+
+    let v1 = {
+        x: l1[1].x - l1[0].x,
+        y: l1[1].y - l1[0].y 
+    };
+
+    let v2 = {
+        x: l2[1].x - l2[0].x,
+        y: l2[1].y - l2[0].y 
+    };
+
+    let s = (-v1.y * (l1[0].x - l2[0].x) + v1.x * (l1[0].y - l2[0].y)) / (-v2.x * v1.y + v1.x * v2.y);
+    let t = ( v2.x * (l1[0].y - l2[0].y) - v2.y * (l1[0].x - l2[0].x)) / (-v2.x * v1.y + v1.x * v2.y);
+    
+    // intersection detected
+    if (s >= 0 && s <= 1 && t >= 0 && t <= 1) {
+        return {
+            x: l1[0].x + (t * v1.x),
+            y: l1[0].y + (t * v1.y)
+        };
+    }
+
+    return null;
+}
+
+
+// get the angle in radians of a point around circle
+function calc_point_angle_around_circle(point, circle_center) {
+
+    let angle = Math.atan2(point.y - circle_center.y, point.x - circle_center.x);
+
+    if (angle < 0) {
+        angle += 2 * Math.PI;
+    } 
+
+    return angle;
+}
+
 
 /* ---------------------------- random functions ---------------------------- */
 
@@ -2405,7 +2936,7 @@ function rand_gaussian(mean=0, stdev=1) {
 
 
 /* -------------------------------------------------------------------------- */
-/*                                form controls                               */
+/*                                page controls                               */
 /* -------------------------------------------------------------------------- */
 
 
@@ -2497,9 +3028,48 @@ function submit_config_form() {
 }
 
 
+/* ------------------------- path gen form controls ------------------------- */
+
+
 // attempt to submit the path generation form
 function submit_path_gen_form() {
 
+
+    let path_options = {
+
+    };
+
+    // visualize returned path
+    recommend_path(path_options);
+}
+
+
+/* ----------------------- right sidebar nav controls ----------------------- */
+
+
+// handle the building editor button clicked
+function handle_building_editor_nav_button() {
+
+    // get the container divs on the right sidebar
+    let building_editor_container = document.getElementById("building-editor-container");
+    let path_stats_container = document.getElementById("path-stats-container");
+
+    // show the necessary container and hide the other
+    building_editor_container.style.display = "block";
+    path_stats_container.style.display = "none";
+}
+
+
+// handle the building editor button clicked
+function handle_path_stats_nav_button() {
+
+    // get the container divs on the right sidebar
+    let building_editor_container = document.getElementById("building-editor-container");
+    let path_stats_container = document.getElementById("path-stats-container");
+
+    // show the necessary container and hide the other
+    building_editor_container.style.display = "none";
+    path_stats_container.style.display = "block";
 }
 
 
