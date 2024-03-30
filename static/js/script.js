@@ -154,10 +154,7 @@ function process_graph(buildings, config) {
 function process_building(building) {
 
     // get building x and y coordinates (convert 1-indexed to 0-indexed)
-    let building_grid_coords = {
-        x: building["x"] - 1,
-        y: building["y"] - 1
-    };
+    let building_grid_coords = grid_coords_for_building_or_door(building);
 
     // TODO: improve ordering and organizing of these functions calls?
 
@@ -196,21 +193,14 @@ function grid_object_at_coords(grid_coords) {
 // get the grid object for the provided building
 function grid_object_for_id(building_id) {
 
-    // TODO: can use the id to get the coords directly
-
-    for (let y = 0; y < grid.length; y++) {
-        for (let x = 0; x < grid.length; x++) {
+    // use the id to get the grid coords directly
+    let x = Math.round(building_id / grid.length) - 1;
+    let y = building_id % grid.length - 1;
 
             let cell_info = grid[y][x];
 
-            if (cell_info.building_data === null) {
-                continue;
-            }
-
-            if (cell_info.building_data.id === building_id) {
-                return cell_info;
-            }
-        }
+    if (cell_info.building_data !== null) {
+        return cell_info
     }
 
     return null;
@@ -275,10 +265,7 @@ function init_grid_cell_info(building) {
     let doors = building.entrances;
 
     // get building x and y coordinates (convert 1-indexed to 0-indexed)
-    let building_grid_coords = {
-        x: building["x"] - 1,
-        y: building["y"] - 1
-    };
+    let building_grid_coords = grid_coords_for_building_or_door(building);
 
     // get the grid cell info object associated with the building
     let cell_info = grid_object_at_coords(building_grid_coords);
@@ -462,16 +449,13 @@ function add_new_building_door(building_grid_coords) {
     // generate a new door object
     let door = generate_new_doors(building_grid_coords, 1, door_id)[0];
 
-    let door_grid_coords = {
-        x: door["x"] - 1, // adjust back to 0 indexed coords
-        y: door["y"] - 1
-    };
+    let door_grid_coords = grid_coords_for_building_or_door(door);
 
     // move the door point to the outline of the building
     if (building_mods.outline_grid_path.length > 0) {
         door_grid_coords = calc_closest_point_to_shape(building_mods.outline_grid_path, door_grid_coords);
-        door["x"] = door_grid_coords.x + 1;
-        door["y"] = door_grid_coords.y + 1;
+        door.x = door_grid_coords.x + 1; // convert from 0-indexed to 1-indexed
+        door.y = door_grid_coords.y + 1;
     }
 
     // create a new door modification object
@@ -626,15 +610,8 @@ function create_building_outline_path(building_grid_coords) {
         let door2 = doors[(d + 1) % doors.length];
         
         // get door x and y coordinates (convert 1-indexed to 0-indexed)
-        let door1_grid_coords = {
-            x: door1["x"] - 1,
-            y: door1["y"] - 1
-        };
-
-        let door2_grid_coords = {
-            x: door2["x"] - 1,
-            y: door2["y"] - 1
-        };
+        let door1_grid_coords = grid_coords_for_building_or_door(door1);
+        let door2_grid_coords = grid_coords_for_building_or_door(door2);
 
         // find a corner between the two door coordinates
         let corner = calc_corner_between_points(door1_grid_coords, door2_grid_coords, true, false);
@@ -704,10 +681,7 @@ function update_doors_to_effective_walls(building_grid_coords) {
         let door_mod = door_mods[door.id];
 
         // get the grid coordinate for the door (converts 1-indexed to 0-indexed)
-        let door_grid_coords = {
-            x: door.x - 1,
-            y: door.y - 1
-        };
+        let door_grid_coords = grid_coords_for_building_or_door(door);
 
         // get the closest wall location to the current location
         let best_point_and_line = calc_closest_line_and_point_from_point_to_lines(effective_walls, door_grid_coords);
@@ -745,10 +719,7 @@ function door_grid_path_to_center(building_grid_coords, door_id) {
     let door_mods = cell_info.building_mods.entrance_mods;
     let door_mod = door_mods[door_id];
 
-    let door_grid_coords = {
-        x: door_mod.data_ref.x - 1,
-        y: door_mod.data_ref.y - 1
-    };
+    let door_grid_coords = grid_coords_for_building_or_door(door_mod.data_ref);
 
     // get the calculated center of the building shape
     let shape_grid_center = cell_info.building_mods.outline_grid_center;
@@ -802,6 +773,7 @@ function door_grid_path_to_center(building_grid_coords, door_id) {
     return [door_grid_coords, closest_point, shape_grid_center];
 }
 
+
 // get the door grid path to center coordinate
 function door_grid_path_to_border(building_grid_coords, door_id) {
 
@@ -809,10 +781,7 @@ function door_grid_path_to_border(building_grid_coords, door_id) {
     let door_mods = cell_info.building_mods.entrance_mods;
     let door_mod = door_mods[door_id];
 
-    let door_grid_coords = {
-        x: door_mod.data_ref.x - 1,
-        y: door_mod.data_ref.y - 1
-    };
+    let door_grid_coords = grid_coords_for_building_or_door(door_mod.data_ref);
 
     // adjusted to be door coordinates
     let building_grid_corners = [
@@ -1239,12 +1208,12 @@ function building_open_checkbox_checked(building_grid_coords) {
     let prev_open = building_mods.open;
     let new_open = !prev_open;
 
-    // if closing an open door, remove the door from the building data
+    // if closing an open building, remove the building from the graph data array
     if (prev_open) {
         let building_index = current_graph.indexOf(building);
         current_graph.splice(building_index, 1);
     
-    // add the biulding back to the graph array
+    // add the building back to the graph array
     } else {
         current_graph.push(building);
     }
@@ -1573,10 +1542,7 @@ function draw_buildings(parent) {
         let building = buildings[b];
 
         // get building x and y coordinates (convert 1-indexed to 0-indexed)
-        let building_grid_coords = {
-            x: building["x"] - 1,
-            y: building["y"] - 1
-        };
+        let building_grid_coords = grid_coords_for_building_or_door(building);
 
         // draw the building
         draw_building(building_grid_coords, parent, true) 
@@ -1801,10 +1767,7 @@ function draw_entrances(building_grid_coords, parent, for_main_stage) {
         let door_mod = door_mods[door_id];        
         
         // get door x and y coordinates (convert 1-indexed to 0-indexed)
-        let door_grid_coords_unscaled = {
-            x: door["x"] - 1,
-            y: door["y"] - 1
-        };
+        let door_grid_coords_unscaled = grid_coords_for_building_or_door(door);
 
         // convert grid coordinates to stage coordinates
         let door_stage_coords = door_grid_coords_to_stage_coords(door_grid_coords_unscaled, building_grid_coords, for_main_stage);
@@ -2216,15 +2179,8 @@ function draw_paths() {
             continue;
         }
         
-        let building1_grid_coords = {
-            x: cell_info1.building_data.x - 1,
-            y: cell_info1.building_data.y - 1
-        };
-
-        let building2_grid_coords = {
-            x: cell_info2.building_data.x - 1,
-            y: cell_info2.building_data.y - 1
-        };
+        let building1_grid_coords = grid_coords_for_building_or_door(cell_info1.building_data);
+        let building2_grid_coords = grid_coords_for_building_or_door(cell_info2.building_data);
 
         // draw internal path if buildings have the same id
         if (building1.id === building2.id) {
@@ -2256,8 +2212,8 @@ function draw_external_path_part(building1_grid_coords, door1_id, building2_grid
     let door1_mods = cell1_info.building_mods.entrance_mods[door1_id];
     let door2_mods = cell2_info.building_mods.entrance_mods[door2_id];
 
-    let door1_grid_coords = {x: door1_mods.data_ref.x - 1, y: door1_mods.data_ref.y - 1};
-    let door2_grid_coords = {x: door2_mods.data_ref.x - 1, y: door2_mods.data_ref.y - 1};
+    let door1_grid_coords = grid_coords_for_building_or_door(door1_mods.data_ref);
+    let door2_grid_coords = grid_coords_for_building_or_door(door2_mods.data_ref)
 
     // get different cell corners for building 1 (adjusted to door coordinates)
     let building1_grid_corners = [
@@ -2507,6 +2463,37 @@ function door_stage_coords_to_grid_coords(door_stage_coords, building_grid_coord
     return {
         x: building_grid_coords.x + door_grid_coord_offset.x,
         y: building_grid_coords.y + (invert_y * door_grid_coord_offset.y)
+    };
+}
+
+
+// helper method to get the grid coordinates for a given building id
+function grid_coords_for_building_id(building_id) {
+    return {
+        x: Math.round(building_id / grid.length) - 1,
+        y: building_id % grid.length - 1
+    };
+}
+
+
+// helper method to get the grid coordinates for a given building or door object
+function grid_coords_for_building_or_door(bod) {
+
+    // converts 1-indexed coordinates to 0-indexed
+    return {
+        x: bod.x - 1,
+        y: bod.y - 1
+    };
+}
+
+
+// helper method to get the grid coordinates for a given building or door object
+function building_or_door_coords_for_grid_coords(grid_coords) {
+
+    // converts 0-indexed coordinates to 1-indexed
+    return {
+        x: grid_coords.x + 1,
+        y: grid_coords.y + 1
     };
 }
 
