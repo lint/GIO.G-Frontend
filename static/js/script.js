@@ -90,7 +90,12 @@ let path_layer = null;
 document.addEventListener("DOMContentLoaded", function() { 
 
     // generate a graph with the default config
-    generate_graph(default_config);
+    // generate_graph(default_config);
+    
+    // load a preset graph
+    let preset = "graph_25_0.75.json"
+    update_preset_select_display(preset)
+    load_preset_graph(preset);
     
     // show any necessary values on the config form
     update_config_form_display();
@@ -105,25 +110,20 @@ document.addEventListener("DOMContentLoaded", function() {
 // contact the graph generator with the given config
 function generate_graph(config) {
 
+    // TODO: connect with backend
+
     console.log("generating graph with config: ", config);
-
-    // config = default_config;
-
-    // get the graph and draw its buildings on the response
-    fetch(`static/assets/graph_${config["num_buildings"]}_0.75.json`)
-        .then((res) => res.json())
-        .then((json) => {
-            console.log("graph data: ", json);
-            process_graph(json, config);
-            draw_main_stage();
-        })
-        .catch((e) => console.error(e));
 }
 
 // contact the path recommender with the given options
 function recommend_path(path_options) {
+    
+    // TODO: connect with backend
+
+    console.log("recommending paths with options: ", path_options);
+
     // get the graph and draw its buildings on the response
-    fetch("static/assets/path.json")
+    fetch("/static/assets/path.json")
     .then((res) => res.json())
     .then((json) => {
         console.log("path data: ", json);
@@ -131,6 +131,21 @@ function recommend_path(path_options) {
         draw_paths();
     })
     .catch((e) => console.error(e));
+}
+
+
+// load a local preset graph file
+function load_preset_graph(graph_file) {
+
+    // get the graph and draw its buildings on the response
+    fetch(`/static/assets/${graph_file}`)
+        .then((res) => res.json())
+        .then((json) => {
+            console.log("preset graph data: ", json);
+            process_preset_graph(json);
+            draw_main_stage();
+        })
+        .catch((e) => console.error(e));
 }
 
 
@@ -153,11 +168,47 @@ function process_graph(buildings, config) {
     grid = create_empty_grid(grid_len);
 
     // recalculate any cell dimensions
-    calculate_cell_dims(config);
+    calculate_cell_dims(grid_len);
 
-    // iterate over every building
+    // iterate over every building and process it into the grid
     for (let b = 0; b < buildings.length; b++) {
+        let building = buildings[b];
+        process_building(building);
+    }
+}
 
+
+// processes a preset graph
+function process_preset_graph(buildings) {
+
+    // store current graph data
+    current_graph = buildings;
+
+    let max_grid_len = Number.MIN_SAFE_INTEGER;
+
+    // iterate over every building to find the highest coordinate value
+    for (let b = 0; b < buildings.length; b++) {
+        let building = buildings[b];
+
+        // not converting 1-indexed to 0-indexed here since this is finding the length of the grid, not building index in the grid
+
+        if (building.x > max_grid_len) {
+            max_grid_len = building.x;
+        }
+
+        if (building.y > max_grid_len) {
+            max_grid_len = building.y
+        }
+    }
+
+    // define new empty grid array to store building information
+    grid = create_empty_grid(max_grid_len);
+    
+    // recalculate any cell dimensions
+    calculate_cell_dims(max_grid_len);
+
+    // actually process every building
+    for (let b = 0; b < buildings.length; b++) {
         let building = buildings[b];
         process_building(building);
     }
@@ -1384,10 +1435,7 @@ function handle_add_door_button(building_grid_coords) {
 
 
 // calculate cell dimensions for the main stage and editor stage based on a given config 
-function calculate_cell_dims(config) {
-
-    // get size of grid based on current configuration 
-    let grid_len = calc_grid_bounds(config);
+function calculate_cell_dims(grid_len) {
 
     // get number of spaces between grid cells
     let num_spaces = grid_len - 1;
@@ -2889,6 +2937,34 @@ function rand_gaussian(mean=0, stdev=1) {
 /* -------------------------------------------------------------------------- */
 /*                                page controls                               */
 /* -------------------------------------------------------------------------- */
+
+
+/* ----------------------- preset graph form controls ----------------------- */
+
+
+// handle submit button pressed on load preset graph form
+function submit_load_graph_preset() {
+
+    // get the selected graph file value
+    let graph_select = document.getElementById("preset-graph-select-input");
+    let graph_file = graph_select.value;
+
+    // don't submit empty option
+    if (graph_file === "") {
+        alert("Please select a preset from the list");
+        return;
+    }
+
+    load_preset_graph(graph_file);
+}
+
+
+// ensure that the preset selection resets on page refresh
+function update_preset_select_display(select_value) {
+    
+    let graph_select = document.getElementById("preset-graph-select-input");
+    graph_select.value = select_value;
+}
 
 
 /* -------------------------- config form controls -------------------------- */
