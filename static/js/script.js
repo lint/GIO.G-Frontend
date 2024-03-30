@@ -1656,6 +1656,7 @@ function draw_building_shape(building_grid_coords, parent, for_main_stage) {
         // stroke: 'black',
         // strokeWidth: building_stroke_width,
         closed: true,
+        perfectDrawEnabled: false
     });
     parent.add(building_shape);
 
@@ -1720,7 +1721,8 @@ function draw_building_outline(building_grid_coords, parent, for_main_stage) {
         stroke: outline_color,
         strokeWidth: get_cell_dims(for_main_stage).stroke,
         closed: true,
-        listening: false // needed for the editor layer to allow doors to be dragged
+        listening: false, // needed for the editor layer to allow doors to be dragged
+        perfectDrawEnabled: false
     });
     parent.add(building_outline);
 
@@ -1807,7 +1809,8 @@ function draw_entrances(building_grid_coords, parent, for_main_stage) {
             stroke: door_stroke_color,
             strokeWidth: door_dims.stroke,
             x: door_stage_coords.x - door_dims.width/2, // adjust for rect positioning being top left corner
-            y: door_stage_coords.y - door_dims.height/2
+            y: door_stage_coords.y - door_dims.height/2,
+            perfectDrawEnabled: false
         });
         
         if (for_main_stage) {
@@ -1922,7 +1925,8 @@ function draw_corridors(building_grid_coords, parent, for_main_stage) {
     let center_line = new Konva.Line({
         points: flatten_points([center_stage_up, center_stage_down, center_stage_right, center_stage_left]),
         stroke: corridor_color,
-        strokeWidth: corridor_width*1.5
+        strokeWidth: corridor_width*1.5,
+        perfectDrawEnabled: false
     });
     corridors_group.add(center_line);
 
@@ -1936,7 +1940,8 @@ function draw_corridors(building_grid_coords, parent, for_main_stage) {
         let corridor = new Konva.Line({
             points: flatten_points(stage_path),
             stroke: corridor_color,
-            strokeWidth: corridor_width
+            strokeWidth: corridor_width,
+            perfectDrawEnabled: false
         });
 
         corridors_group.add(corridor);
@@ -1997,7 +2002,8 @@ function draw_selection_overlay(building_grid_coords, parent) {
         strokeWidth: 4,
         cornerRadius: 5,
         x: cell_coords.x,
-        y: cell_coords.y
+        y: cell_coords.y,
+        perfectDrawEnabled: false
     });
 
     // define a function for when the cell is clicked
@@ -2100,7 +2106,8 @@ function draw_road_line(start_grid_point, end_grid_point, is_dashed, is_vertical
         points: path,
         stroke: road_color,
         strokeWidth: stroke_width,
-        closed: false
+        closed: false,
+        perfectDrawEnabled: false
     });
 
     if (is_dashed) {
@@ -2138,6 +2145,7 @@ function draw_road_rect(building_grid_coords, parent) {
         stroke: road_background_color,
         strokeWidth: stroke_width,
         cornerRadius: road_size * 1.5,
+        perfectDrawEnabled: false
     });
 
     parent.add(road);
@@ -2361,7 +2369,8 @@ function draw_external_path_part(building1_grid_coords, door1_id, building2_grid
     let external_path_shape = new Konva.Line({
         points: flatten_points(external_stage_path),
         stroke: path_color,
-        strokeWidth: path_width
+        strokeWidth: path_width,
+        perfectDrawEnabled: false
     });
 
     parent.add(external_path_shape);
@@ -2413,7 +2422,8 @@ function draw_internal_path_part(building_grid_coords, door1_id, door2_id, paren
     let internal_path_shape = new Konva.Line({
         points: flatten_points(full_stage_path),
         stroke: path_color,
-        strokeWidth: path_width
+        strokeWidth: path_width,
+        perfectDrawEnabled: false
     });
 
     parent.add(internal_path_shape);
