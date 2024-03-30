@@ -17,18 +17,32 @@ let current_paths = null;
 let grid = null;
 
 // allows access to the previously selected building
-let last_selected_cell_info = null;
+let editor_selected_cell_info = null;
+let editor_selected_building_grid_coords = null;
 
 // stage display variables
 let main_cell_dims = null;
 let editor_cell_dims = null;
 let door_len_ratio = 0.1;
 let cell_spacing = 10; // TODO: max spacing value? based on the size of the stage
+let should_invert_door_y = false;
 let road_size_ratio = 0.05;
 let road_dashes_per_cell = 15;
 let building_clipping_enabled = true;
 let building_corridors_enabled = true;
-let should_invert_door_y = false;
+let building_con_colors_enabled = true;
+const building_con_colors = {
+    low: "#CAFFBF", // pale green
+    med: "#FFD6A5", // pale orange
+    high: "#FFADAD", // pale red
+    constant: "#A9DEF9" // pale blue
+}
+const corridor_con_colors = {
+    low: "#B4D9AC",
+    med: "#D9BC9A",
+    high: "#D9A0A0",
+    constant: "#93B8C4"
+}
 
 // variables to support panning on the main stage
 let pan_start_pointer_pos = null;
@@ -197,7 +211,7 @@ function grid_object_for_id(building_id) {
     let x = Math.round(building_id / grid.length) - 1;
     let y = building_id % grid.length - 1;
 
-            let cell_info = grid[y][x];
+    let cell_info = grid[y][x];
 
     if (cell_info.building_data !== null) {
         return cell_info
@@ -278,7 +292,7 @@ function init_grid_cell_info(building) {
     cell_info.building_mods.entrance_mods = {};
     cell_info.building_mods.orig_entrances = building.entrances.map(a => {return {...a}});
     cell_info.building_mods.next_new_door_id = doors.length + 1;
-    cell_info.building_mods.con_level = determine_con_level(building["congestion"]);
+    cell_info.building_mods.con_level = determine_con_level(building.congestion);
 
     // iterate over every door in the building
     for (let d = 0; d < doors.length; d++) {
@@ -919,17 +933,18 @@ function select_building(building_grid_coords) {
     reset_building_editor();
 
     // clear last selected cell highlight
-    if (last_selected_cell_info !== null) {
-        last_selected_cell_info.shapes["main_selection_overlay"].stroke("");
+    if (editor_selected_cell_info !== null) {
+        editor_selected_cell_info.shapes["main_selection_overlay"].stroke("");
     }
 
     // unselect if clicked same building (by doing nothing)
-    if (last_selected_cell_info === cell_info) {
+    if (editor_selected_cell_info === cell_info) {
         // TODO: fix this unselecting the cell when deleting a building
-        // last_selected_cell_info = null;
+        // editor_selected_cell_info = null;
         // return;
     } else {
-        last_selected_cell_info = cell_info;
+        editor_selected_cell_info = cell_info;
+        editor_selected_building_grid_coords = building_grid_coords;
     }
 
     // highlight the selected building in the main stage
@@ -1239,8 +1254,11 @@ function building_con_radio_checked(building_grid_coords, con_level) {
     let new_con = generate_congestion(current_config, con_level);
 
     // update building data
-    building["congestion"] = new_con;
+    building.congestion = new_con;
     building_mods.con_level = con_level;
+
+    // redraw the building to reflect the changes in congestion
+    redraw_selected_building(building_grid_coords);
 }
 
 
@@ -1362,78 +1380,6 @@ function handle_add_door_button(building_grid_coords) {
 /* -------------------------------------------------------------------------- */
 
 
-/* ----------------------------- display options ---------------------------- */
-
-
-// buildings visibility toggle
-function handle_buildings_visible_button() {
-
-    if (building_layer.visible()) {
-        building_layer.hide();
-    } else {
-        building_layer.show();
-    }
-}
-
-
-// roads visibility toggle
-function handle_roads_visible_button() {
-    if (road_layer.visible()) {
-        road_layer.hide();
-    } else {
-        road_layer.show();
-    }
-}
-
-
-// paths visibility toggle
-function handle_paths_visible_button() {
-    if (path_layer.visible()) {
-        path_layer.hide();
-    } else {
-        path_layer.show();
-    }
-}
-
-
-// building clipping toggle
-function handle_clipping_visible_button() {
-
-    // TODO: probably a better way to do this, but it's just a test method so..
-
-    // toggle the clipping boolean
-    building_clipping_enabled = !building_clipping_enabled;
-
-    // redraw the main stage
-    reset_building_editor();
-    draw_main_stage();
-}
-
-// building corridors toggle
-function handle_corridors_visible_button() {
-    
-    // find the corridor group of every building and toggle it visible or not visible
-    for (let x = 0; x < grid.length; x++) {
-        for (let y = 0; y < grid.length; y++) {
-            
-            let cell_info = grid[y][x];
-            if (cell_info.building_data === null) {
-                continue;
-            }
-            
-            let corridors_group = cell_info.shapes.corridors_group;
-            if (building_corridors_enabled) {
-                corridors_group.hide();
-            } else {
-                corridors_group.show();
-            }
-        }
-    }
-
-    building_corridors_enabled = !building_corridors_enabled;
-}
-
-
 /* --------------------------- drawing dimensions --------------------------- */
 
 
@@ -1553,8 +1499,14 @@ function draw_buildings(parent) {
 // redraw the selected building on the main stage and the editor stage
 function redraw_selected_building(building_grid_coords) {
 
+    if (building_grid_coords === null) {
+        return;
+    }
+
     let cell_info = grid_object_at_coords(building_grid_coords);
-    let building = cell_info.building_data;
+    if (cell_info.building_data === null) {
+        return;
+    }
 
     // clear the editor stage
     editor_stage.destroyChildren();
@@ -1563,17 +1515,11 @@ function redraw_selected_building(building_grid_coords) {
     let editor_layer = new Konva.Layer();
     editor_stage.add(editor_layer);
 
-    if (building !== null) {
-        // draw the building on the editor stage
-        draw_building(building_grid_coords, editor_layer, false);
-    
-        // get previous building group and the layer it was drawn on
-        let prev_building_group = cell_info.shapes.building_group;
-        let main_building_layer = prev_building_group.getLayer();
-        
-        // draw the building on the main stage
-        draw_building(building_grid_coords, main_building_layer, true);
-    }
+    // draw the building on the editor stage
+    draw_building(building_grid_coords, editor_layer, false);
+
+    // draw the building on the main stage
+    draw_building(building_grid_coords, building_layer, true);
 }
 
 
@@ -1586,7 +1532,6 @@ function draw_building(building_grid_coords, parent, for_main_stage) {
 
     // create a group to contain the building and its entrances
     let building_group = new Konva.Group();
-    parent.add(building_group);
     
     if (for_main_stage) {
 
@@ -1601,7 +1546,7 @@ function draw_building(building_grid_coords, parent, for_main_stage) {
     let building_shape = draw_building_shape(building_grid_coords, building_group, for_main_stage);
     let points = building_shape.points();
     
-    // TODO: move to separate method
+    // TODO: remove entirely
     // add a clipping function to the building group to hide doors from appearing outside of building
     if (building_clipping_enabled) {
         building_group.clipFunc(function(ctx) {
@@ -1629,6 +1574,9 @@ function draw_building(building_grid_coords, parent, for_main_stage) {
     if (for_main_stage) {
         cell_info.shapes.building_group = building_group;
     }
+
+    // add the building group to the parent group / layer
+    parent.add(building_group);
 }
 
 
@@ -1651,10 +1599,12 @@ function draw_building_shape(building_grid_coords, parent, for_main_stage) {
     let stage_shape_path = grid_shape_path.map((point) => door_grid_coords_to_stage_coords(point, building_grid_coords, for_main_stage));
     stage_shape_path = flatten_points(stage_shape_path);
 
+    let building_color = building_con_colors_enabled ? building_con_colors[cell_info.building_mods.con_level] : building_con_colors["constant"];
+
     // construct a building shape given the door coordinates and calculated corners
     let building_shape = new Konva.Line({
         points: stage_shape_path,
-        fill: 'lightblue',
+        fill: building_color,
         // stroke: 'black',
         // strokeWidth: building_stroke_width,
         closed: true,
@@ -1668,6 +1618,32 @@ function draw_building_shape(building_grid_coords, parent, for_main_stage) {
 
     return building_shape;
 }
+
+
+// update the building shape color to a new color
+function update_building_colors(building_grid_coords) {
+
+    let cell_info = grid_object_at_coords(building_grid_coords);
+    let building_shape = cell_info.shapes.building;
+    let corridors_group = cell_info.shapes.corridors_group;
+
+    // update the building fill color
+    if (building_shape !== null) {
+        let building_color = building_con_colors_enabled ? building_con_colors[cell_info.building_mods.con_level] : building_con_colors["constant"];
+        building_shape.fill(building_color);
+    }
+
+    // update the corridors color
+    if (corridors_group !== null) {
+        let corridors_color = building_con_colors_enabled ? corridor_con_colors[cell_info.building_mods.con_level] : corridor_con_colors["constant"];
+        let corridors = corridors_group.getChildren();
+
+        for (let i = 0; i < corridors.length; i++) {
+            corridors[i].stroke(corridors_color);
+        }
+    }
+}
+
 
 // draw the building outline for the building at the given coordinates
 function draw_building_outline(building_grid_coords, parent, for_main_stage) {
@@ -1861,14 +1837,11 @@ function draw_corridors(building_grid_coords, parent, for_main_stage) {
     let door_dims = get_door_dims(for_main_stage);
     let door_mods = cell_info.building_mods.entrance_mods;
 
-    // let corridor_color = "rgba(0,0,0,0.5)";
-    // let corridor_color = "#c2dee6";
-    let corridor_color = "#93B8C4";
+    let corridor_color = building_con_colors_enabled ? corridor_con_colors[cell_info.building_mods.con_level] : corridor_con_colors["constant"];
     let corridor_width = door_dims.width / 3;
 
     // create new corridors group
     let corridors_group = new Konva.Group();
-    parent.add(corridors_group);
 
     // remove previous corridors shapes if they exist
     if (for_main_stage) {
@@ -1897,17 +1870,6 @@ function draw_corridors(building_grid_coords, parent, for_main_stage) {
     let center_stage_up    = door_grid_coords_to_stage_coords(center_grid_up, building_grid_coords, for_main_stage);
     let center_stage_down  = door_grid_coords_to_stage_coords(center_grid_down, building_grid_coords, for_main_stage);
 
-    // draw all middle pathways
-    // let center_translations = [center_stage_left, center_stage_right, center_stage_up, center_stage_down];
-    // center_translations.forEach(function (center_translation) {
-    //     let center_line = new Konva.Line({
-    //         points: flatten_points([shape_stage_center, center_translation]),
-    //         stroke: corridor_color,
-    //         strokeWidth: corridor_width*1.5
-    //     });
-    //     corridors_group.add(center_line);
-    // });
-
     // draw all middle pathways as one big line
     let center_line = new Konva.Line({
         points: flatten_points([center_stage_up, center_stage_down, center_stage_right, center_stage_left]),
@@ -1935,6 +1897,8 @@ function draw_corridors(building_grid_coords, parent, for_main_stage) {
     if (!building_corridors_enabled) {
         corridors_group.hide();
     }
+
+    parent.add(corridors_group);
 }
 
 
@@ -3057,6 +3021,114 @@ function handle_path_stats_nav_button() {
     // show the necessary container and hide the other
     building_editor_container.style.display = "none";
     path_stats_container.style.display = "block";
+}
+
+
+/* ----------------------------- display options ---------------------------- */
+
+
+// buildings visibility toggle
+function handle_buildings_visible_button() {
+
+    if (building_layer.visible()) {
+        building_layer.hide();
+    } else {
+        building_layer.show();
+    }
+}
+
+
+// roads visibility toggle
+function handle_roads_visible_button() {
+    if (road_layer.visible()) {
+        road_layer.hide();
+    } else {
+        road_layer.show();
+    }
+}
+
+
+// paths visibility toggle
+function handle_paths_visible_button() {
+    if (path_layer.visible()) {
+        path_layer.hide();
+    } else {
+        path_layer.show();
+    }
+}
+
+
+// building clipping toggle
+function handle_clipping_visible_button() {
+
+    // TODO: probably a better way to do this, but it's just a test method so..
+
+    // toggle the clipping boolean
+    building_clipping_enabled = !building_clipping_enabled;
+
+    // redraw every building on the main stage
+    for (let x = 0; x < grid.length; x++) {
+        for (let y = 0; y < grid.length; y++) {
+            
+            let cell_info = grid[y][x];
+            if (cell_info.building_data === null) {
+                continue;
+            }
+            
+            draw_building({x:x, y:y}, building_layer, true);
+        }
+    }
+
+    // redraw the building in the editor
+    redraw_selected_building(editor_selected_building_grid_coords);
+}
+
+
+// building corridors toggle
+function handle_corridors_visible_button() {
+    
+    // find the corridor group of every building and toggle it visible or not visible
+    for (let x = 0; x < grid.length; x++) {
+        for (let y = 0; y < grid.length; y++) {
+            
+            let cell_info = grid[y][x];
+            if (cell_info.building_data === null) {
+                continue;
+            }
+            
+            let corridors_group = cell_info.shapes.corridors_group;
+            if (building_corridors_enabled) {
+                corridors_group.hide();
+            } else {
+                corridors_group.show();
+            }
+        }
+    }
+
+    building_corridors_enabled = !building_corridors_enabled;
+}
+
+
+// congestion colors visibility toggle
+function handle_congestion_colors_button() {
+
+    // toggle the colors boolean
+    building_con_colors_enabled = !building_con_colors_enabled;
+
+    // update the building color for every current building
+    for (let x = 0; x < grid.length; x++) {
+        for (let y = 0; y < grid.length; y++) {
+            
+            let cell_info = grid[y][x];
+            if (cell_info.building_data === null) {
+                continue;
+            }
+            
+            update_building_colors({x:x, y:y});
+        }
+    }
+
+    redraw_selected_building(editor_selected_building_grid_coords);
 }
 
 
