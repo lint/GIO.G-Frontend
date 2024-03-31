@@ -3110,7 +3110,7 @@ document.getElementById("config-form-container").addEventListener("input", funct
 function update_config_form_display() {
 
     let config_form = document.getElementById("config-form-container");
-    let range_inputs = config_form.querySelectorAll('input[type=range]');
+    let range_inputs = config_form.querySelectorAll("input[type=range]");
 
     // iterate over every range input in the form
     for (let i = 0; i < range_inputs.length; i++) {
@@ -3153,14 +3153,14 @@ function submit_config_form() {
     // check the number of buildings
     if (num_buildings_value <= 0 || isNaN(num_buildings_value)) {
         has_error = true;
-        error_message += "Number of buildings must be at least 1\n";
+        error_message += "ERROR: Number of buildings must be at least 1\n";
     }
 
     // verify that the congestion values sum to one
     let con_sum = high_con_value + med_con_value + low_con_value;
     if (Math.abs(con_sum - 1) > 0.00001) {
         has_error = true;
-        error_message += "High, Medium, and Low congestion values must sum to 100%\n";
+        error_message += "ERROR: High, Medium, and Low congestion values must sum to 100%\n";
     }
 
     // display the error
@@ -3191,9 +3191,61 @@ function submit_config_form() {
 // attempt to submit the path generation form
 function submit_path_gen_form() {
 
+    let path_gen_form = document.getElementById("path-gen-form-container");
+    let alg_chkboxes = path_gen_form.querySelectorAll("input[type=checkbox]");
+    let access_radio_value = path_gen_form.querySelector("input[name=accessibility-type]:checked").value;
 
+    let selected_algs = [];
+    let start_id = null;
+    let end_id = null;
+
+    // iterate over every checkbox in the form and return the value of selected algs
+    for (let i = 0; i < alg_chkboxes.length; i++) {
+    
+        let chkbox = alg_chkboxes[i];
+        
+        if (chkbox.checked) {
+            selected_algs.push(chkbox.value);
+        }
+    }
+
+    let error_message = "";
+    let has_error = false;
+
+    // check that at least one algorithm is selected
+    if (selected_algs.length === 0) {
+        error_message += "ERROR: Select at least one algorithm\n";
+        has_error = true;
+    }
+
+    // check if there is a selected start cell
+    if (path_start_selected_grid_coords === null) {
+        error_message += "ERROR: Select a start cell\n";
+        has_error = true;
+    } else {
+        start_id = grid_cell_id_for_coords(path_start_selected_grid_coords);
+    }
+
+    // check if there is a selected end cell
+    if (path_end_selected_grid_coords === null) {
+        error_message += "ERROR: Select an end cell\n"
+        has_error = true;
+    } else {
+        end_id = grid_cell_id_for_coords(path_end_selected_grid_coords);
+    }
+
+    // check if an error has been detected
+    if (has_error) {
+        alert(error_message);
+        return;
+    }
+
+    // create an object containing the path recommendation options
     let path_options = {
-
+        algs: selected_algs,
+        accessible: access_radio_value === "accessible",
+        start_id: start_id,
+        end_id: end_id
     };
 
     // visualize returned path
