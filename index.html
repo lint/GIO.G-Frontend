@@ -21,8 +21,7 @@
       <div class="title">Load Preset Graph</div>
 
       <div class="options-input-container">
-        <label for="preset-graph-select-input">Preset:</label>
-        <br>
+        <div>Preset:</div>
         <select id="preset-graph-select-input">
           <option value="" selected disabled hidden>Select Preset</option>
           <option value="graph_25_0.75.json">graph_25_0.75.json</option>
@@ -33,6 +32,30 @@
 
       <div class="options-submit-container button-container">
         <button type="button" onclick="submit_load_graph_preset()">Submit</button>
+      </div>
+    </div>
+
+    <div class="options-section">
+      <div class="title">Import/Export Graph</div>
+
+      <div class="options-input-container">
+        <div>Import Graph:</div>
+        <input id="import-graph-input" type="file"/>
+      </div>
+
+      <div class="options-submit-container button-container">
+        <button type="button" onclick="submit_uploaded_graph()">Submit</button>
+      </div>
+
+      <div class="options-input-container">
+        <div>Export Graph:</div>
+        <div class="options-input-container">
+          <input type="checkbox" id="export-pretty-cb">
+          <label for="export-pretty-cb">Prettify</label>
+        </div>
+        <div class="button-container">
+          <button type="button" onclick="download_graph_export()">Download</button>
+        </div>
       </div>
     </div>
 

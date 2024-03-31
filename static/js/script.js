@@ -125,8 +125,11 @@ document.addEventListener("DOMContentLoaded", function() {
 
 
 /* -------------------------------------------------------------------------- */
-/*                               API connections                              */
+/*                                 connections                                */
 /* -------------------------------------------------------------------------- */
+
+
+/* --------------------------- controller connections ----------------------- */
 
 
 // contact the graph generator with the given config
@@ -142,7 +145,11 @@ function recommend_path(path_options) {
     
     // TODO: connect with backend
 
+    // get a filtered version of the graph
+    let filtered_graph = filter_current_graph(false, false);
+
     console.log("recommending paths with options: ", path_options);
+    console.log("filtered graph: ", filtered_graph);
 
     // get the graph and draw its buildings on the response
     fetch("/static/assets/path.json")
@@ -154,6 +161,9 @@ function recommend_path(path_options) {
     })
     .catch((e) => console.error(e));
 }
+
+
+/* ---------------------------- local connections --------------------------- */
 
 
 // load a local preset graph file
@@ -168,6 +178,52 @@ function load_preset_graph(graph_file) {
             draw_main_stage();
         })
         .catch((e) => console.error(e));
+}
+
+
+/* ----------------------------- preparing data ----------------------------- */
+
+
+// prepare a filtered version of the current graph 
+function filter_current_graph(include_closed_doors_and_buildings, include_few_doors_buildings) {
+    
+    let filtered_graph = [];
+
+    // iterate over every grid cell
+    for (let y = 0; y < grid.length; y++) {
+        for (let x = 0; x < grid.length; x++) {
+
+            let grid_coords = {x:x, y:y};
+            let cell_info = grid_object_at_coords(grid_coords);
+            let building_mods = cell_info.building_mods;
+            let door_mods = building_mods.entrance_mods;
+
+            // do not add the building to the list if it does not exist or if it is closed
+            if (cell_info.building_data === null || (!building_mods.open && !include_closed_doors_and_buildings)) {
+                continue;
+            }
+
+            let building = {
+                ...cell_info.building_data
+            };
+
+            // filter the entrances to only include open ones
+            let filtered_entrances = building.entrances.filter(function (door) {
+                let door_mod = door_mods[door.id];
+                return door_mod.open || (!door_mod.open && include_closed_doors_and_buildings);
+            });
+            building.entrances = filtered_entrances;
+
+            // do not include buildings that have too few doors
+            if (filtered_entrances.length < 2 && !include_few_doors_buildings) {
+                continue;
+            }
+
+            filtered_graph.push(building);
+        }
+    }
+
+    return filtered_graph;
 }
 
 
@@ -600,7 +656,7 @@ function add_new_building(building_grid_coords) {
     // initialize data structures used by and need by the building
     process_building(building);
 
-    // add the new door to the graph data
+    // add the new building to the graph data
     current_graph.push(building);
 }
 
@@ -1341,22 +1397,8 @@ function building_open_checkbox_checked(building_grid_coords) {
     let building = cell_info.building_data;
     let building_mods = cell_info.building_mods;
 
-    // get the previous open status
-    let prev_open = building_mods.open;
-    let new_open = !prev_open;
-
-    // if closing an open building, remove the building from the graph data array
-    if (prev_open) {
-        let building_index = current_graph.indexOf(building);
-        current_graph.splice(building_index, 1);
-    
-    // add the building back to the graph array
-    } else {
-        current_graph.push(building);
-    }
-    
-    // assign the new open status to the door
-    building_mods.open = new_open;
+    // assign the new open status to the building
+    building_mods.open = !building_mods.open;
     
     // redraw the building to reflect the changes in accessibility
     redraw_selected_building(building_grid_coords);
@@ -1405,11 +1447,11 @@ function selected_door_moved(building_grid_coords, door_id, editor_door_shape) {
     let new_door_grid_coords = door_stage_coords_to_grid_coords(new_door_stage_coords, building_grid_coords, false);
 
     // set the door's new coordinates (convert back from 0-indexed to 1-indexed)
-    door["x"] = new_door_grid_coords.x + 1;
-    door["y"] = new_door_grid_coords.y + 1;
+    door.x = new_door_grid_coords.x + 1;
+    door.y = new_door_grid_coords.y + 1;
 
     // log this door as being the last dragged door for this building (so it is drawn on top of other doors)
-    door_mod["last_drag_time"] = Date.now();
+    door_mod.last_drag_time = Date.now();
     
     // redraw the building to reflect the changes in position
     redraw_selected_building(building_grid_coords);
@@ -1424,22 +1466,8 @@ function door_open_checkbox_checked(building_grid_coords, door_id) {
     let doors = cell_info.building_data.entrances;
     let door_mod = cell_info.building_mods.entrance_mods[door_id];
 
-    // get the previous open status
-    let prev_open = door_mod.open;
-    let new_open = !prev_open;
-
-    // if closing an open door, remove the door from the building data
-    if (prev_open) {
-        let door_index = doors.indexOf(door);
-        doors.splice(door_index, 1);
-    
-    // add the door back to the entrances array in the building data
-    } else {
-        doors.push(door);
-    }
-
-    // assign the new open status to the door
-    door_mod.open = new_open;
+    // toggle the door's open status
+    door_mod.open = !door_mod.open;
     
     // redraw the building to reflect the changes in accessibility
     redraw_selected_building(building_grid_coords);
@@ -1845,7 +1873,7 @@ function draw_entrances(building_grid_coords, parent, for_main_stage) {
     // add doors to the draw order
     for (let door_id in door_mods) {
         let door_mod = door_mods[door_id];
-        door_draw_order.push([door_mod["last_drag_time"], door_mod["data_ref"]]);
+        door_draw_order.push([door_mod.last_drag_time, door_mod["data_ref"]]);
     }
 
     // sort by last dragged timestamp to ensure the most last repositioned doors appear on top of other doors
@@ -3104,6 +3132,70 @@ function update_preset_select_display(select_value) {
     
     let graph_select = document.getElementById("preset-graph-select-input");
     graph_select.value = select_value;
+}
+
+
+/* ----------------------- import/export form controls ---------------------- */
+
+
+// process a graph file from user input
+function submit_uploaded_graph() {
+
+    let import_input = document.getElementById("import-graph-input");
+
+    // check if a file has been selected
+    if (import_input.files.length === 0) {
+        alert("ERROR: Choose a file to upload");
+    }
+
+    let file = import_input.files[0];
+
+    // set up the file reader
+    let reader = new FileReader();
+    reader.onload = event => process_uploaded_graph(event.target.result)
+    // reader.onerror = error => reject(error)
+
+    // read the uploaded file
+    reader.readAsText(file)
+}
+
+
+// process the uploaded file
+function process_uploaded_graph(graph_text) {
+
+    // convert the data to a json object
+    let json = JSON.parse(graph_text);
+
+    // TODO: input validation?
+
+    process_preset_graph(json);
+    draw_main_stage();
+}
+
+
+// download an export file of the current graph
+function download_graph_export() {
+
+    // determine whether or not to prettify the export data
+    let pretty_chkbox = document.getElementById("export-pretty-cb");
+    let json_spaces = pretty_chkbox.checked ? 2 : 0;
+
+    // get the current graph data (includes closed doors and buildings, as well as buildings with < 2 doors)
+    let filtered_graph = filter_current_graph(true, true);
+
+    // setup the file data and name
+    let data = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(filtered_graph, null, json_spaces));
+    let file_name = "graph_export.json";
+
+    // create e temporary link node
+    let download_node = document.createElement('a');
+    download_node.setAttribute("href", data);
+    download_node.setAttribute("download", file_name);
+    document.body.appendChild(download_node);
+    
+    // click the node to download the file, then remove the node from the body
+    download_node.click();
+    download_node.remove();
 }
 
 
