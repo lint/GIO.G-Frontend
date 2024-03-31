@@ -1024,7 +1024,7 @@ function process_paths(paths) {
 
 
 // handler for when a given grid cell has been clicked
-function select_grid_cell(grid_coords) {
+function select_grid_cell(grid_coords, can_unselect) {
 
     // do not select when currently panning
     if (grid === null || is_panning) {
@@ -1038,11 +1038,11 @@ function select_grid_cell(grid_coords) {
 
     // determine the selection to make based on the current system state
     if (is_selecting_path_start) {
-        select_path_endpoint(grid_coords, true);
+        select_path_endpoint(grid_coords, true, can_unselect);
     } else if (is_selecting_path_end) {
-        select_path_endpoint(grid_coords, false);
+        select_path_endpoint(grid_coords, false, can_unselect);
     } else {
-        select_building_to_edit(grid_coords);
+        select_building_to_edit(grid_coords, can_unselect);
     }
 
     // set highlight of current selections
@@ -1053,13 +1053,27 @@ function select_grid_cell(grid_coords) {
 
 
 // handle a path or end point being selected
-function select_path_endpoint(grid_coords, is_start) {
+function select_path_endpoint(grid_coords, is_start, can_unselect) {
 
     // set the new selected grid coords
     if (is_start) {
-        path_start_selected_grid_coords = grid_coords;
+
+        // unselect if clicked same building
+        if (path_start_selected_grid_coords !== null && coords_eq(grid_coords, path_start_selected_grid_coords) && can_unselect) {
+            path_start_selected_grid_coords = null;
+        } else {
+            path_start_selected_grid_coords = grid_coords;
+        }
+    
+    // set the new selected grid coords
     } else {
-        path_end_selected_grid_coords = grid_coords;
+
+        // unselect if clicked same building
+        if (path_end_selected_grid_coords !== null && coords_eq(grid_coords, path_end_selected_grid_coords) && can_unselect) {
+            path_end_selected_grid_coords = null;
+        } else {
+            path_end_selected_grid_coords = grid_coords;
+        }
     }
 
     // after selection is made, neither selection type should be active
@@ -1104,7 +1118,7 @@ function reset_building_editor() {
 
 
 // select a building at the given coordinates and open it in the editor
-function select_building_to_edit(building_grid_coords) {
+function select_building_to_edit(building_grid_coords, can_unselect) {
 
     console.log("selecting cell to edit: ", building_grid_coords);
 
@@ -1118,13 +1132,10 @@ function select_building_to_edit(building_grid_coords) {
     reset_building_editor();
 
     // unselect if clicked same building (by doing nothing)
-    // if (editor_selected_cell_info === cell_info) {
-    //     // TODO: fix this unselecting the cell when deleting a building
-    //     // editor_selected_cell_info = null;
-    //     // return;
-    // } else {
-    //     editor_selected_grid_coords = building_grid_coords;
-    // }
+    if (editor_selected_grid_coords !== null && coords_eq(building_grid_coords, editor_selected_grid_coords) && can_unselect) {
+        editor_selected_grid_coords = null;
+        return;
+    }
 
     // set the currently selected editor selected grid cell
     editor_selected_grid_coords = building_grid_coords;
@@ -1370,7 +1381,7 @@ function handle_delete_building_button(building_grid_coords) {
     delete_building(building_grid_coords);
 
     // reselect the empty cell
-    select_grid_cell(building_grid_coords);
+    select_grid_cell(building_grid_coords, false);
 }
 
 // handle the selected empty grid cell add button click
@@ -1385,7 +1396,7 @@ function handle_add_building_button(building_grid_coords) {
     draw_building(building_grid_coords, building_layer, true);
 
     // reselect the filled cell
-    select_grid_cell(building_grid_coords);
+    select_grid_cell(building_grid_coords, false);
 }
 
 
@@ -1583,6 +1594,10 @@ function get_door_dims(for_main_stage) {
 
 // initialize and draw all elements for the main stage
 function draw_main_stage() {
+
+    // reset stage scale and position
+    stage.scale({x:1, y:1});
+    stage.position({x:0, y:0});
 
     // reset cell selections
     reset_cell_selections();
@@ -2112,7 +2127,7 @@ function draw_selection_overlay(building_grid_coords, parent) {
 
     // define a function for when the cell is clicked
     overlay.on("mouseup", function (e) {
-        select_grid_cell(building_grid_coords);
+        select_grid_cell(building_grid_coords, true);
     });
     
     // store the overlay cell for easy access later
@@ -3717,6 +3732,9 @@ stage.on("mousemove", (e) => {
         }
     }
 
+    // set the move cursor pointer
+    stage.container().style.cursor = "move";
+
     let scale = stage.scaleX();
 
     // convert the end pointer position to local coordinates
@@ -3746,6 +3764,7 @@ stage.on("mouseout", (e) => {
     // }
 
     // TODO: causes weird behavior when going over shapes / layers (mouseout is triggered for some reason, find a way to prevent this)
+    stage.container().style.cursor = "default";
 });
 
 
@@ -3762,6 +3781,8 @@ stage.on("mouseup", (e) => {
         is_panning = false;
         is_pan_attempted = false;
     }
+
+    stage.container().style.cursor = "default";
 });
 
 
