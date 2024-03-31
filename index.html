@@ -2,13 +2,16 @@
 <html>
 <head>
   <title>GIO.G</title>
+
+  <link rel="stylesheet" href="/static/vendor/nouislider@15.7.1/nouislider.min.css">
   <link rel="stylesheet" href="/static/css/styles.css">
 
   <script type="text/javascript" src="/static/vendor/konva@9.3.6/konva.min.js"></script>
   <script type="text/javascript" src="/static/vendor/tinyqueue@2.0.3/tinyqueue.min.js"></script>
   <script type="text/javascript" src="/static/vendor/polylabel@1.1.0/polylabel.js"></script>
-</head>
+  <script type="text/javascript" src="/static/vendor/nouislider@15.7.1/nouislider.min.js"></script>
 
+</head>
 <body>
 
 <div id="page">
@@ -38,52 +41,48 @@
       <div id="config-form-container" class="options-form-container">
 
         <div class="options-input-container">
-          <label for="num-buildings-input">Number of Buildings:</label>
-          <br>
+          <div>Number of Buildings:</div>
           <input type="text" id="num-buildings-input" name="num_buildings" required minlength="1" maxlength="8" size="10" value="25" placeholder="e.g. 25"
             oninput="this.value = this.value.replace(/\D/g, '');"/>
         </div>
 
         <div class="options-input-container">
-          <label for="coverage-input">Building Coverage:</label>
-          <br>
+          <div>Building Coverage:</div>
           <input type="range" id="coverage-input" name="coverage" min="0" max="1" step="0.01" value="0.75"/>
           <span id="coverage-value"></span>
         </div>
 
         <div class="options-input-container">
-          <label for="clustering-input">Building Clustering:</label>
-          <br>
+          <div>Building Clustering:</div>
           <input type="range" id="clustering-input" name="clustering" min="0" max="0.5" step="0.01" value="0"/>
           <span id="clustering-value"></span>
         </div>
 
         <div class="options-input-container">
-          <label for="constant-congestion-input">Constant Congestion:</label>
-          <br>
+          <div>Constant Congestion:</div>
           <input type="checkbox" id="constant-congestion-input" name="constant_con"/>
           <label for="constant-congestion-input">Enabled</label><br>
         </div>
 
         <div class="options-input-container">
-          <label for="high-congestion-input">High Congestion:</label>
-          <br>
-          <input type="range" id="high-congestion-input" name="high_con" min="0" max="1" step="0.01" value="0.3"/>
-          <span id="high-congestion-value"></span>
-        </div>
-
-        <div class="options-input-container">
-          <label for="med-congestion-input">Medium Congestion:</label>
-          <br>
-          <input type="range" id="med-congestion-input" name="med_con" min="0" max="1" step="0.01" value="0.4"/>
-          <span id="med-congestion-value"></span>
-        </div>
-
-        <div class="options-input-container">
-          <label for="med-congestion-input">Low Congestion:</label>
-          <br>
-          <input type="range" id="low-congestion-input" name="low_con" min="0" max="1" step="0.01" value="0.3"/>
-          <span id="low-congestion-value"></span>
+          <div id="congestion-slider-label">Congestion Levels:</div>
+          <div id="congestion-slider-container">
+            <div id="congestion-slider" disabled></div>
+          </div>
+          <div id="congestion-labels-values-container">
+            <div class="congestion-value-container">
+              <span>Low Congestion:</span>
+              <span id="low-con-value" class="congestion-value-percent"></span>
+            </div>
+            <div class="congestion-value-container">
+              <span>Medium Congestion:</span>
+              <span id="med-con-value" class="congestion-value-percent"></span>
+            </div>
+            <div class="congestion-value-container">
+              <span>High Congestion:</span>
+              <span id="high-con-value" class="congestion-value-percent"></span>
+            </div>
+          </div>
         </div>
 
         <div class="options-submit-container button-container">

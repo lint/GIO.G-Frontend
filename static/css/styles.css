@@ -67,6 +67,76 @@ html, body {
     color: blue;
 }
 
+#congestion-slider-container {
+    margin: 5px 0 5px 0;
+}
+
+#congestion-slider {
+    height: 10px;
+    border: solid 1px gray;
+    border-radius: 15px;
+}
+
+#congestion-slider .noUi-handle {
+    height: 20px;
+    width: 20px;
+    /* top: -5px; */
+    right: -10px;
+    border-radius: 10px;
+    border: solid 2px white;
+    padding: 2px;
+    background: gray;
+    box-shadow: 0px 1px 1px #8a8a8a;
+}
+
+#congestion-slider .noUi-handle:hover:enabled {
+    background: #484851;
+}
+
+#congestion-slider .noUi-handle:active:enabled {
+    background: #2374ff;
+}
+
+#congestion-slider .noUi-handle::before,
+#congestion-slider .noUi-handle::after {
+    display: none;
+}
+
+.low-con-color { 
+    background: #CAFFBF; 
+}
+
+.low-con-text-color { 
+    color: #CAFFBF;
+}
+
+.med-con-color { 
+    background: #FFD6A5; 
+}
+
+.med-con-text-color { 
+    color: #FFD6A5; 
+}
+
+.high-con-color { 
+    background: #FFADAD; 
+}
+
+.high-con-text-color { 
+    color: #FFADAD; 
+}
+
+
+.congestion-value-percent {
+    text-align: right;
+    float: right;
+}
+
+.congestion-value-container {
+    
+}
+
+
 /* ----------------------------- graph elements ----------------------------- */
 
 #graph-section {

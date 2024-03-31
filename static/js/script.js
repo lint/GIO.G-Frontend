@@ -10,6 +10,13 @@ const default_config = {
     low_con: 0.3 
 };
 
+// store the next configuration's congestion values whenever they are updated
+let next_config_con_values = {
+    low: 0.3,
+    med: 0.4,
+    high: 0.3
+};
+
 // store data about the current graph
 let current_config = default_config;
 let current_graph = null;
@@ -105,6 +112,9 @@ document.addEventListener("DOMContentLoaded", function() {
     let preset = "graph_25_0.75.json"
     update_preset_select_display(preset)
     load_preset_graph(preset);
+
+    // create congestion multi thumb slider
+    create_congestion_slider();
     
     // show any necessary values on the config form
     update_config_form_display();
@@ -3120,6 +3130,22 @@ function update_config_form_display() {
         let perc_label = range_input.nextElementSibling;
         perc_label.innerHTML = Math.round(range_input.value * 100) + "%";
     }
+
+    // enable or disable the congestion slider depending on if constant congestion is enabled
+    let constant_con_input = document.getElementById("constant-congestion-input");
+    let con_slider = document.getElementById("congestion-slider");
+    let con_levels_labels_container = document.getElementById("congestion-labels-values-container");
+    let con_slider_label = document.getElementById("congestion-slider-label");
+
+    if (constant_con_input.checked) {
+        con_slider.setAttribute("disabled", "");
+        con_levels_labels_container.style.opacity = "0.5";
+        con_slider_label.style.opacity = "0.5";
+    } else {
+        con_slider.removeAttribute("disabled");
+        con_levels_labels_container.style.opacity = "1";
+        con_slider_label.style.opacity = "1";
+    }
 }
 
 
@@ -3130,11 +3156,7 @@ function submit_config_form() {
     let num_buildings_input = document.getElementById("num-buildings-input");
     let coverage_input = document.getElementById("coverage-input");
     let clustering_input = document.getElementById("clustering-input");
-
     let constant_con_input = document.getElementById("constant-congestion-input");
-    let high_con_input = document.getElementById("high-congestion-input");
-    let med_con_input = document.getElementById("med-congestion-input");
-    let low_con_input = document.getElementById("low-congestion-input");
 
     // convert input elements to proper types
     let num_buildings_value = parseInt(num_buildings_input.value, 10);
@@ -3142,9 +3164,9 @@ function submit_config_form() {
     let clustering_value = parseFloat(clustering_input.value);
 
     let constant_con_value = constant_con_input.checked;
-    let high_con_value = parseFloat(high_con_input.value);
-    let med_con_value = parseFloat(med_con_input.value);
-    let low_con_value = parseFloat(low_con_input.value);
+    let high_con_value = next_config_con_values.high / 100;
+    let med_con_value = next_config_con_values.med / 100;
+    let low_con_value = next_config_con_values.low / 100;
 
     // perform basic input validation
     let has_error = false;
@@ -3182,6 +3204,59 @@ function submit_config_form() {
 
     // generate a new graph with the given config
     generate_graph(new_config);
+}
+
+
+// create the multi thumb slider for congestion levels
+function create_congestion_slider() {
+    
+    let con_slider = document.getElementById("congestion-slider");
+
+    // create the noUiSlider 
+    noUiSlider.create(con_slider, {
+        start: [30, 70],
+        range: { min: [0], max: [100] },
+        step: 1,
+        connect: [true, true, true]
+    });
+
+    // update display and current congestion values whenver a value has changed
+    con_slider.noUiSlider.on("update", function (values, handle) {
+        update_config_con_labels(values);
+    });
+    
+    // color the different connections of the slider
+    let connect = con_slider.querySelectorAll('.noUi-connect');
+    let classes = ["low-con-color", "med-con-color", "high-con-color"];
+
+    for (let i = 0; i < connect.length; i++) {
+        connect[i].classList.add(classes[i]);
+    }
+}
+
+
+// update the labels for congestion level %s
+function update_config_con_labels(handle_values) {
+
+    // calculate each of the congestion values
+    let low_val = parseInt(handle_values[0]);
+    let high_val = 100 - parseInt(handle_values[1]);
+    let med_val = 100 - (high_val + low_val);
+
+    // get the labels for each of the congestion levels
+    let low_label = document.getElementById("low-con-value");
+    let med_label = document.getElementById("med-con-value");
+    let high_label = document.getElementById("high-con-value");
+
+    // set the values of the labels
+    low_label.innerHTML = low_val + "%";
+    med_label.innerHTML = med_val + "%";
+    high_label.innerHTML = high_val + "%";
+
+    // store the congestion values
+    next_config_con_values.low = low_val;
+    next_config_con_values.med = med_val;
+    next_config_con_values.high = high_val;
 }
 
 
