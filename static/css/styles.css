@@ -63,6 +63,10 @@ html, body {
     margin: 5px 10px 5px 0px;
 }
 
+.path-endpoints-button-active {
+    color: blue;
+}
+
 /* ----------------------------- graph elements ----------------------------- */
 
 #graph-section {

@@ -97,7 +97,7 @@
           
         <div class="options-input-container">
           <div>Algorithms:</div>
-          <input type="checkbox" id="path-gen-astro-cb">
+          <input type="checkbox" id="path-gen-astro-cb" checked>
           <label for="path-gen-astro-cb">Astro</label>
           <br>
           <input type="checkbox" id="path-gen-astrog-cb">
@@ -116,18 +116,20 @@
         <div class="options-input-container button-container">
           <label>Door Accessibility:</label>
           <br>
-          <input type="radio" id="standard-input" name="standard" value="standard" checked="true">
+          <input type="radio" id="standard-input" name="accessibility-type" value="standard" checked>
           <label for="standard-input">Standard</label>
           <br>
-          <input type="radio" id="accessibility-input" name="accessibility" value="accessible">
+          <input type="radio" id="accessibility-input" name="accessibility-type" value="accessible">
           <label for="accessibility-input">Accessible Only</label>
         </div>
 
         <div class="options-input-container button-container">
-          <button type="button" onclick="">Select Start Point</button>
+          <button id="select-path-start-button" type="button" onclick="handle_select_start_building_button()">Select Start Point</button>
+          <span id="path-start-building-info"></span>
         </div>
         <div class="options-input-container button-container">
-          <button type="button" onclick="">Select End Point</button>
+          <button id="select-path-end-button" type="button" onclick="handle_select_end_building_button()">Select End Point</button>
+          <span id="path-end-building-info"></span>
         </div>
         
         <div class="options-submit-container button-container">
@@ -158,6 +160,10 @@
 
         <div class="options-input-container button-container">
           <button type="button" onclick="handle_congestion_colors_button()">Toggle Congestion Colors</button>
+        </div>
+
+        <div class="options-input-container button-container">
+          <button type="button" onclick="handle_cell_highlights_visible_button()">Toggle Selection Highlights</button>
         </div>
       </div>        
     </div>

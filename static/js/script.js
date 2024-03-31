@@ -16,9 +16,18 @@ let current_graph = null;
 let current_paths = null;
 let grid = null;
 
-// allows access to the previously selected building
-let editor_selected_cell_info = null;
-let editor_selected_building_grid_coords = null;
+// building selection variables
+let editor_selected_grid_coords = null;
+let path_start_selected_grid_coords = null;
+let path_end_selected_grid_coords = null;
+let is_selecting_path_start = false;
+let is_selecting_path_end = false;
+let highlight_colors_enabled = true;
+const selection_colors = {
+    editing: "rgba(0,0,255,0.5)",
+    path_start: "rgba(0,255,0,0.5)",
+    path_end: "rgba(255,0,0,0.5)"
+};
 
 // stage display variables
 let main_cell_dims = null;
@@ -99,6 +108,9 @@ document.addEventListener("DOMContentLoaded", function() {
     
     // show any necessary values on the config form
     update_config_form_display();
+
+    // set the initial values for the path selection buttons
+    update_path_select_labels();
 });
 
 
@@ -259,8 +271,8 @@ function grid_object_at_coords(grid_coords) {
 function grid_object_for_id(building_id) {
 
     // use the id to get the grid coords directly
-    let x = Math.round(building_id / grid.length) - 1;
-    let y = building_id % grid.length - 1;
+    let x = Math.round(building_id / grid.length);
+    let y = building_id % grid.length;
 
     let cell_info = grid[y][x];
 
@@ -295,9 +307,9 @@ function create_empty_grid(length) {
             let cell_info = {
                 building_data: null,
                 shapes: {
-                    building: null, // stores the building 
+                    building: null,
                     building_outline: null,
-                    main_selection_overlay: null,
+                    selection_overlay: null,
                     entrances: {},
                     building_group: null,
                     entrances_group: null,
@@ -942,6 +954,66 @@ function process_paths(paths) {
 }
 
 
+/* ---------------------- building selection management --------------------- */
+
+
+// handler for when a given grid cell has been clicked
+function select_grid_cell(grid_coords) {
+
+    // do not select when currently panning
+    if (grid === null || is_panning) {
+        return;
+    }
+
+    // reset the highlight of all previous selections
+    set_overlay_highlight(path_start_selected_grid_coords, "");
+    set_overlay_highlight(path_end_selected_grid_coords, "");
+    set_overlay_highlight(editor_selected_grid_coords, "");
+
+    // determine the selection to make based on the current system state
+    if (is_selecting_path_start) {
+        select_path_endpoint(grid_coords, true);
+    } else if (is_selecting_path_end) {
+        select_path_endpoint(grid_coords, false);
+    } else {
+        select_building_to_edit(grid_coords);
+    }
+
+    // set highlight of current selections
+    set_overlay_highlight(path_start_selected_grid_coords, null);
+    set_overlay_highlight(path_end_selected_grid_coords, null);
+    set_overlay_highlight(editor_selected_grid_coords, null);
+}
+
+
+// handle a path or end point being selected
+function select_path_endpoint(grid_coords, is_start) {
+
+    // set the new selected grid coords
+    if (is_start) {
+        path_start_selected_grid_coords = grid_coords;
+    } else {
+        path_end_selected_grid_coords = grid_coords;
+    }
+
+    // after selection is made, neither selection type should be active
+    is_selecting_path_start = false;
+    is_selecting_path_end = false;
+
+    // update the path options display
+    update_path_select_labels();
+    update_path_select_buttons_active();
+}
+
+
+// reset all selected coordinates
+function reset_cell_selections() {
+    path_start_selected_grid_coords = null;
+    path_end_selected_grid_coords = null;
+    editor_selected_grid_coords = null;
+}
+
+
 /* -------------------------------------------------------------------------- */
 /*                               building editor                              */
 /* -------------------------------------------------------------------------- */
@@ -966,13 +1038,9 @@ function reset_building_editor() {
 
 
 // select a building at the given coordinates and open it in the editor
-function select_building(building_grid_coords) {
+function select_building_to_edit(building_grid_coords) {
 
-    console.log("selecting building: ", building_grid_coords);
-
-    if (grid === null || is_panning) {
-        return;
-    }
+    console.log("selecting cell to edit: ", building_grid_coords);
 
     // get the info object for the building at the given coords
     let cell_info = grid_object_at_coords(building_grid_coords);
@@ -983,25 +1051,18 @@ function select_building(building_grid_coords) {
     // reset the building editor elements
     reset_building_editor();
 
-    // clear last selected cell highlight
-    if (editor_selected_cell_info !== null) {
-        editor_selected_cell_info.shapes["main_selection_overlay"].stroke("");
-    }
-
     // unselect if clicked same building (by doing nothing)
-    if (editor_selected_cell_info === cell_info) {
-        // TODO: fix this unselecting the cell when deleting a building
-        // editor_selected_cell_info = null;
-        // return;
-    } else {
-        editor_selected_cell_info = cell_info;
-        editor_selected_building_grid_coords = building_grid_coords;
-    }
+    // if (editor_selected_cell_info === cell_info) {
+    //     // TODO: fix this unselecting the cell when deleting a building
+    //     // editor_selected_cell_info = null;
+    //     // return;
+    // } else {
+    //     editor_selected_grid_coords = building_grid_coords;
+    // }
 
-    // highlight the selected building in the main stage
-    let background_cell = cell_info.shapes["main_selection_overlay"];
-    background_cell.stroke("green");
-    
+    // set the currently selected editor selected grid cell
+    editor_selected_grid_coords = building_grid_coords;
+
     // get container elements to build elements into
     let info_div = document.getElementById("selected-building-info");
     let doors_list_container = document.getElementById("selected-building-doors-container");
@@ -1243,7 +1304,7 @@ function handle_delete_building_button(building_grid_coords) {
     delete_building(building_grid_coords);
 
     // reselect the empty cell
-    select_building(building_grid_coords);
+    select_grid_cell(building_grid_coords);
 }
 
 // handle the selected empty grid cell add button click
@@ -1254,11 +1315,11 @@ function handle_add_building_button(building_grid_coords) {
     // create a new building object
     add_new_building(building_grid_coords);
 
-    // TODO: better way to add the building to the stage without redrawing all of them (this method should be reserved for the first draw)
-    draw_main_stage();
+    // draw the building on the main stage
+    draw_building(building_grid_coords, building_layer, true);
 
     // reselect the filled cell
-    select_building(building_grid_coords);
+    select_grid_cell(building_grid_coords);
 }
 
 
@@ -1484,7 +1545,13 @@ function get_door_dims(for_main_stage) {
 
 // initialize and draw all elements for the main stage
 function draw_main_stage() {
-    
+
+    // reset cell selections
+    reset_cell_selections();
+
+    // clear the building editor
+    reset_building_editor();
+
     // clear any previous layers
     stage.destroyChildren();
 
@@ -1960,6 +2027,7 @@ function draw_corridors(building_grid_coords, parent, for_main_stage) {
 
 // draws an overlay over every grid cell so you can select buildings
 function draw_selection_overlays(parent) {
+    
     // create background layer grid cells
     for (let x = 0; x < grid.length; x++) {
         for (let y = 0; y < grid.length; y++) {
@@ -1981,7 +2049,7 @@ function draw_selection_overlay(building_grid_coords, parent) {
     let cell_dims = get_cell_dims(true);
 
     // destroy previous background shape if there is one
-    let prev_background = cell_info.shapes["main_selection_overlay"];
+    let prev_background = cell_info.shapes.selection_overlay;
     if (prev_background !== null) {
         prev_background.destroy();
     }
@@ -1994,12 +2062,10 @@ function draw_selection_overlay(building_grid_coords, parent) {
     }
 
     // create the cell
-    let background = new Konva.Rect({
+    let overlay = new Konva.Rect({
         width: cell_dims.width + cell_spacing,
         height: cell_dims.height + cell_spacing,
-        // fill: 'white',
-        // stroke: 'black',
-        strokeWidth: 4,
+        strokeWidth: cell_dims.width / 20,
         cornerRadius: 5,
         x: cell_coords.x,
         y: cell_coords.y,
@@ -2007,15 +2073,59 @@ function draw_selection_overlay(building_grid_coords, parent) {
     });
 
     // define a function for when the cell is clicked
-    background.on("mouseup", function (e) {
-        select_building(building_grid_coords);
+    overlay.on("mouseup", function (e) {
+        select_grid_cell(building_grid_coords);
     });
     
-    // store the background cell for easy access later
-    cell_info.shapes["main_selection_overlay"] = background;
+    // store the overlay cell for easy access later
+    cell_info.shapes.selection_overlay = overlay;
+
+    // set the color of the overlay
+    set_overlay_highlight(building_grid_coords, null);
 
     // add the cell to the layer
-    parent.add(background);
+    parent.add(overlay);
+}
+
+
+// set the highlight color of an overlay cell
+function set_overlay_highlight(grid_coords, highlight_color_override) {
+
+    if (grid_coords === null) {
+        return;
+    }
+
+    let highlight_color = "";
+
+    // check if highlight colors are enabled as a whole
+    if (!highlight_colors_enabled) {
+        highlight_color = "";
+
+    // check if a highlight color override has been provided
+    } else if (highlight_color_override !== null) {
+        highlight_color = highlight_color_override;
+
+    // no override provided, check if grid cell is currently selected
+    } else {
+
+        // check if the building is currently selected for editing
+        if (editor_selected_grid_coords !== null && coords_eq(grid_coords, editor_selected_grid_coords)) {
+            highlight_color = selection_colors.editing;
+        // check if the building is currently selected as the path start
+        } else if (path_start_selected_grid_coords !== null && coords_eq(grid_coords, path_start_selected_grid_coords)) {
+            highlight_color = selection_colors.path_start;
+        // check if the building is currently selected as the path end
+        } else if (path_end_selected_grid_coords !== null && coords_eq(grid_coords, path_end_selected_grid_coords)) {
+            highlight_color = selection_colors.path_end;
+        }
+    }
+
+    let cell_info = grid_object_at_coords(grid_coords);
+    let overlay_shape = cell_info.shapes.selection_overlay;
+
+    if (overlay_shape !== null) {
+        overlay_shape.stroke(highlight_color);
+    }
 }
 
 
@@ -2179,7 +2289,7 @@ function draw_paths() {
     path_layer = new Konva.Layer();
     stage.add(path_layer);
 
-    for (let i = 1; i < current_paths.length - 1; i++) {
+    for (let i = 1; i < current_paths.length - 2; i++) {
 
         let building1 = current_paths[i];
         let building2 = current_paths[i+1];
@@ -2380,8 +2490,6 @@ function draw_external_path_part(building1_grid_coords, door1_id, building2_grid
 // draw internal path from one door to another of a given building
 function draw_internal_path_part(building_grid_coords, door1_id, door2_id, parent) {
 
-    console.log(building_grid_coords, door1_id, door2_id, parent);
-    
     let cell_info = grid_object_at_coords(building_grid_coords);
     let cell_dims = get_cell_dims(true);
     let door_dims = get_door_dims(true);
@@ -2492,9 +2600,15 @@ function door_stage_coords_to_grid_coords(door_stage_coords, building_grid_coord
 // helper method to get the grid coordinates for a given building id
 function grid_coords_for_building_id(building_id) {
     return {
-        x: Math.round(building_id / grid.length) - 1,
-        y: building_id % grid.length - 1
+        x: Math.floor(building_id / grid.length),
+        y: building_id % grid.length
     };
+}
+
+
+// helper function to get a grid cell ID based on coordinates
+function grid_cell_id_for_coords(grid_coords) {
+    return grid_coords.x * grid.length + grid_coords.y;
 }
 
 
@@ -2810,6 +2924,12 @@ function floats_eq(f1, f2, tol=0.0001) {
 }
 
 
+// helper method to determine if coordinates are equal
+function coords_eq(p1, p2, tol=0.0001) {
+    return floats_eq(p1.x, p2.x, tol) && floats_eq(p1.y, p2.y, tol);
+}
+
+
 // remove points from path list that are in a straight line with neighboring points
 function simplify_closed_path(points, tol=0.0001) {
 
@@ -3081,6 +3201,71 @@ function submit_path_gen_form() {
 }
 
 
+// update the path start and end selection info text
+function update_path_select_labels() {
+
+    let start_text = "Selected ID: ";
+    let end_text = "Selected ID: ";
+    
+    // get the id of the currently selected start cell
+    if (path_start_selected_grid_coords !== null) {
+        let start_cell_id = grid_cell_id_for_coords(path_start_selected_grid_coords);
+        start_text += start_cell_id;
+    }
+
+    // get the id of the currently selected end cell
+    if (path_end_selected_grid_coords !== null) {
+        let end_cell_id = grid_cell_id_for_coords(path_end_selected_grid_coords);
+        end_text += end_cell_id;
+    }
+    
+    document.getElementById("path-start-building-info").innerHTML = start_text;
+    document.getElementById("path-end-building-info").innerHTML = end_text;
+}
+
+
+// update the path start and end selection buttons to be active or not
+function update_path_select_buttons_active() {
+
+    let start_button = document.getElementById("select-path-start-button");
+    let end_button = document.getElementById("select-path-end-button");
+
+    if (is_selecting_path_start) {
+        start_button.classList.add("path-endpoints-button-active");
+    } else {
+        start_button.classList.remove("path-endpoints-button-active");
+    }
+
+    if (is_selecting_path_end) {
+        end_button.classList.add("path-endpoints-button-active");
+    } else {
+        end_button.classList.remove("path-endpoints-button-active");
+    }
+}
+
+
+// begin selecting path start cell
+function handle_select_start_building_button() {
+
+    // toggle the variables for currently selecting start / end
+    is_selecting_path_start = !is_selecting_path_start;
+    is_selecting_path_end = false;
+
+    update_path_select_buttons_active();
+}
+
+
+// begin selecting path end cell
+function handle_select_end_building_button() {
+    
+    // toggle the variables for currently selecting start / end
+    is_selecting_path_end = !is_selecting_path_end;
+    is_selecting_path_start = false;
+
+    update_path_select_buttons_active();
+}
+
+
 /* ----------------------- right sidebar nav controls ----------------------- */
 
 
@@ -3166,7 +3351,7 @@ function handle_clipping_visible_button() {
     }
 
     // redraw the building in the editor
-    redraw_selected_building(editor_selected_building_grid_coords);
+    redraw_selected_building(editor_selected_grid_coords);
 }
 
 
@@ -3192,6 +3377,8 @@ function handle_corridors_visible_button() {
     }
 
     building_corridors_enabled = !building_corridors_enabled;
+
+    redraw_selected_building(editor_selected_grid_coords);
 }
 
 
@@ -3214,7 +3401,28 @@ function handle_congestion_colors_button() {
         }
     }
 
-    redraw_selected_building(editor_selected_building_grid_coords);
+    redraw_selected_building(editor_selected_grid_coords);
+}
+
+
+// selected cell highlight colors visibility toggle
+function handle_cell_highlights_visible_button() {
+
+    // toggle the highlight color boolean
+    highlight_colors_enabled = !highlight_colors_enabled;
+
+    // update the highlight color for every cell
+    for (let x = 0; x < grid.length; x++) {
+        for (let y = 0; y < grid.length; y++) {
+            
+            let cell_info = grid[y][x];
+            if (cell_info.shapes.selection_overlay === null) {
+                continue;
+            }
+
+            set_overlay_highlight({x:x, y:y}, null);
+        }
+    }
 }
 
 
