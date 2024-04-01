@@ -10,6 +10,7 @@ html, body {
 
 #page {
     height: 100%;
+    height: calc(100vh - 64px); /* calculates height minus fixed nav bar height */
     width: 100%;
     display: grid;
     grid-template-columns: 0.2fr 0.6fr 0.2fr;
@@ -28,6 +29,64 @@ html, body {
     overflow-y:scroll;
     /* background-color: #8ecae6; */
     grid-column: 3;
+}
+
+#navbar {
+    height: 64px;
+    padding: 10px 20px 10px 20px;
+    background-color: #343A40;
+    box-sizing: border-box;
+    display:flex;
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+    gap: 100px;
+}
+
+/* ----------------------------- navbar elements ---------------------------- */
+
+#navbar-title-container {
+    position: absolute;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    flex-direction: row;
+    gap: 5px;
+    align-items: baseline;
+}
+
+#navbar-title-name {
+    font-size: 18px;
+    font-weight: bold;
+}
+
+#navbar-title-separator {
+    font-size: 18px;
+    font-weight: bold;
+}
+
+#navbar-title-expanded {
+    font-size: 16px;
+}
+
+#navbar-admt-container {
+    display:flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 15px;
+}
+
+#navbar-admt-title {
+    font-size: 18px;
+    font-weight: bold;
+}
+
+.navbar-text {
+    color: white;
+}
+
+#navbar-logos a:visited, a:hover, a:active {
+    color: none;
 }
 
 /* ----------------------------- left sidebar elements ----------------------------- */
@@ -342,3 +401,7 @@ html, body {
     height: 24px;
     fill: red;
 }
+
+a, a:visited, a:hover, a:active {
+    color: inherit;
+  }
