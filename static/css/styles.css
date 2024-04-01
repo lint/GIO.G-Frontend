@@ -2,6 +2,8 @@ html, body {
     height: 100%;
     margin: 0;
     padding: 0;
+    font-family: sans-serif;
+    font-size: 14px;
 }
 
 /* ---------------------------- main page layout ---------------------------- */
@@ -16,7 +18,7 @@ html, body {
 
 #left-sidebar {
     height: 100%;
-    width: 18%;
+    width: 20%;
     position: fixed;
     top: 0;
     left: 0;
@@ -31,7 +33,7 @@ html, body {
     top: 0; 
     right: 0;
     height: 100%;
-    width: 18%;
+    width: 20%;
     position:fixed;
     overflow-y:scroll;
 }
@@ -41,13 +43,46 @@ html, body {
     border-bottom: solid 2px black;
 }
 
-/* ----------------------------- input elements ----------------------------- */
+/* ----------------------------- left sidebar elements ----------------------------- */
+
+.accordion-button {
+    background-color: #eee;
+    cursor: pointer;
+    padding: 18px;
+    width: 100%;
+    border: none;
+    text-align: left;
+    outline: none;
+    transition: 0.5s;
+    margin: 10px 0 0px 0;
+}
+
+.accordion-active, .accordion-button:hover {
+    background-color: #ccc;
+  }
+  
+.accordion-button:after {
+    content: '\002B';
+    color: #777;
+    font-weight: bold;
+    float: right;
+    margin-left: 5px;
+}
+
+.accordion-active:after {
+    content: "\2212";
+}
 
 .options-section {
-    border: solid 2px black;
-    /* min-width: 20%; */
     padding: 10px;
-    margin: 5px 0 5px 0;
+    /* margin: 5px 0 5px 0; */
+
+    /* panel */
+    padding: 0 18px;
+    background-color: #eee;
+    max-height: 0;
+    overflow: hidden;
+    /* transition: max-height 0.3s ease-out; */
 }
 
 .options-form-container {
@@ -61,6 +96,10 @@ html, body {
 
 .options-submit-container {
     margin: 5px 10px 5px 0px;
+}
+
+.options-short-group {
+    display: inline-block;
 }
 
 .path-endpoints-button-active {
@@ -107,7 +146,8 @@ html, body {
 }
 
 .low-con-text-color { 
-    color: #CAFFBF;
+    color: #557f4c;
+    accent-color: #557f4c;
 }
 
 .med-con-color { 
@@ -115,7 +155,8 @@ html, body {
 }
 
 .med-con-text-color { 
-    color: #FFD6A5; 
+    color: #b98b59;
+    accent-color: #b98b59;
 }
 
 .high-con-color { 
@@ -123,9 +164,9 @@ html, body {
 }
 
 .high-con-text-color { 
-    color: #FFADAD; 
+    color: #935a5a; 
+    accent-color: #935a5a;
 }
-
 
 .congestion-value-percent {
     text-align: right;
@@ -133,7 +174,7 @@ html, body {
 }
 
 .congestion-value-container {
-    
+
 }
 
 
@@ -156,11 +197,22 @@ html, body {
     display: block;
 }
 
-#selected-building-stage-container {
+#building-editor-stage-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    margin: 10px 0 10px 0;
+}
+
+#building-editor-stage {
     border: solid 2px black;
 }
 
 #selected-building-doors-container {
+    margin: 10px 0 10px 0;
+}
+
+#selected-building-actions-container {
     margin: 10px 0 10px 0;
 }
 
@@ -186,7 +238,18 @@ html, body {
 /* ---------------------------------- misc ---------------------------------- */
 
 .title {
-    font-size:20px;
+    color: #444;
+    font-size: 18px;
+    font-weight: bold;
+}
+
+.subtitle {
+    font-size: 16px;
+    font-weight: bold;
+}
+
+.subsubtitle {
+    font-size: 14px;
     font-weight: bold;
 }
 

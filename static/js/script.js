@@ -60,6 +60,12 @@ const corridor_con_colors = {
     constant: "#93B8C4"
 }
 
+const con_text_color_classes = {
+    low: "low-con-text-color",
+    med: "med-con-text-color",
+    high: "high-con-text-color"
+};
+
 // variables to support panning on the main stage
 let pan_start_pointer_pos = null;
 let pan_start_stage_pos = null;
@@ -89,7 +95,7 @@ let stage = new Konva.Stage({
 });
 
 let editor_stage = new Konva.Stage({
-    container: "selected-building-stage-container",
+    container: "building-editor-stage",
     width: 300,
     height: 300
 });
@@ -118,6 +124,9 @@ document.addEventListener("DOMContentLoaded", function() {
     
     // show any necessary values on the config form
     update_config_form_display();
+
+    // update sidebar accordion cell heights
+    update_accordion_heights();
 
     // set the initial values for the path selection buttons
     update_path_select_labels();
@@ -1103,14 +1112,16 @@ function reset_cell_selections() {
 function reset_building_editor() {
 
     // get selected building elements
-    let info_div = document.getElementById("selected-building-info");
+    let info_container = document.getElementById("selected-cell-info-container");
     let doors_list_container = document.getElementById("selected-building-doors-container");
     let building_options_container = document.getElementById("selected-building-options-container");
+    let building_actions_container = document.getElementById("selected-building-actions-container");
 
     // clear elements relevant to the previous selected building
-    info_div.innerHTML = '';
+    info_container.innerHTML = '';
     doors_list_container.innerHTML = '';
     building_options_container.innerHTML = '';
+    building_actions_container.innerHTML = '';
 
     // clear the editor stage
     editor_stage.destroyChildren();
@@ -1141,22 +1152,39 @@ function select_building_to_edit(building_grid_coords, can_unselect) {
     editor_selected_grid_coords = building_grid_coords;
 
     // get container elements to build elements into
-    let info_div = document.getElementById("selected-building-info");
+    let info_container = document.getElementById("selected-cell-info-container");
     let doors_list_container = document.getElementById("selected-building-doors-container");
     let building_options_container = document.getElementById("selected-building-options-container");
+    let building_actions_container = document.getElementById("selected-building-actions-container");
 
-    let info = `Grid Cell: (${building_grid_coords.x + 1}, ${building_grid_coords.y + 1})`;
+    // create content for the current selected grid cell
+    let cell_info_label = document.createElement("span");
+    cell_info_label.classList.add("subsubtitle");
+    cell_info_label.innerHTML = "Grid Cell: ";
+    info_container.appendChild(cell_info_label);
+
+    let cell_info_content = document.createElement("span");
+    cell_info_content.innerHTML = `(${building_grid_coords.x + 1}, ${building_grid_coords.y + 1})  `;
+    info_container.appendChild(cell_info_content);
     
     if (cell_info.building_data !== null) {
 
         let building_id = cell_info.building_data["id"];
         let doors = cell_info.building_data.entrances;
 
-        info += `<BR>Building ID: ${building_id}`
-        
+        // create a span to show the building id
+        let building_info_label = document.createElement("span");
+        building_info_label.classList.add("subsubtitle");
+        building_info_label.innerHTML = "Building ID:  ";
+        info_container.appendChild(building_info_label);
+    
+        let building_info_content = document.createElement("span");
+        building_info_content.innerHTML = building_id;
+        info_container.appendChild(building_info_content);
+
         // create a title for the edit doors list
         let edit_doors_list_title = document.createElement("div");
-        edit_doors_list_title.id="edit-doors-list-title";
+        edit_doors_list_title.classList.add("subsubtitle");
         edit_doors_list_title.innerHTML = "Doors:";
         doors_list_container.appendChild(edit_doors_list_title);
         
@@ -1181,7 +1209,7 @@ function select_building_to_edit(building_grid_coords, can_unselect) {
 
         // create title element for the options section
         let building_options_title = document.createElement("div");
-        building_options_title.id="edit-doors-list-title";
+        building_options_title.classList.add("subsubtitle");
         building_options_title.innerHTML = "Options:";
         building_options_container.appendChild(building_options_title);
 
@@ -1210,6 +1238,7 @@ function select_building_to_edit(building_grid_coords, can_unselect) {
 
             // create labels and input radios to select building congestion level
             let building_con_label = document.createElement("label");
+            building_con_label.classList.add("subsubtitle");
             building_con_label.innerHTML = "Congestion Level:";
             building_con_container.appendChild(building_con_label);
 
@@ -1223,12 +1252,6 @@ function select_building_to_edit(building_grid_coords, can_unselect) {
             building_con_container.appendChild(high_con_radio);
         }
 
-        
-        // create a container to hold the buttons for the building
-        let building_options_actions_container = document.createElement("div");
-        building_options_actions_container.id = "building-options-actions-container";
-        building_options_container.appendChild(building_options_actions_container);
-
         // create a button to delete the current building
         let delete_building_button = document.createElement("button");
         delete_building_button.innerHTML = "Delete Building";
@@ -1236,7 +1259,7 @@ function select_building_to_edit(building_grid_coords, can_unselect) {
             handle_delete_building_button(building_grid_coords);
         });
 
-        building_options_actions_container.appendChild(delete_building_button);
+        building_actions_container.appendChild(delete_building_button);
         
 
     } else {
@@ -1247,11 +1270,8 @@ function select_building_to_edit(building_grid_coords, can_unselect) {
         add_building_button.addEventListener("click", function (e) {
             handle_add_building_button(building_grid_coords);
         });
-        building_options_container.appendChild(add_building_button);
+        building_actions_container.appendChild(add_building_button);
     }
-
-    // set the info text
-    info_div.innerHTML = info;
 
     // redraw the selected building in both the editor stage and main stage
     if (cell_info.building_data !== null) {
@@ -1344,6 +1364,7 @@ function create_con_radio(building_grid_coords, con_level) {
     // create the radio button 
     let con_radio = document.createElement("input");
     con_radio.type = "radio";
+    con_radio.classList.add(con_text_color_classes[con_level]);
     con_radio.id = con_radio_id;
     con_radio.checked = building_mods.con_level === con_level;
     con_radio.name = "con_level";
@@ -3221,6 +3242,40 @@ function download_graph_export() {
 document.getElementById("config-form-container").addEventListener("input", function (e) {
     update_config_form_display();
 });
+
+// add event listeners to each accordion button
+Array.from(document.getElementsByClassName("accordion-button")).forEach(function (button) {
+    button.addEventListener("click", function() {
+        this.classList.toggle("accordion-active");
+        let panel = this.nextElementSibling;
+
+        // set panel transition here so that it animates every time except for initially expanded nodes on page load
+        panel.style.transition = "max-height 0.3s ease-out";
+
+        if (panel.style.maxHeight) {
+          panel.style.maxHeight = null;
+        } else {
+          panel.style.maxHeight = panel.scrollHeight + "px";
+        } 
+    });
+});
+
+
+// update all accordion heights 
+function update_accordion_heights() {
+
+    Array.from(document.getElementsByClassName("accordion-button")).forEach(function (button) {
+        
+        let panel = button.nextElementSibling;
+
+        // set the max height of the panel
+        if (button.classList.contains("accordion-active")) {
+            panel.style.maxHeight = panel.scrollHeight + "px";
+        } else {
+            panel.style.maxHeight = null;
+        } 
+    });
+}
 
 
 // update config form visuals based on the input values

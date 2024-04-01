@@ -17,93 +17,51 @@
 <div id="page">
   <div id="left-sidebar">
 
+    <button class="accordion-button title accordion-active">Graph Generator</button>
     <div class="options-section">
-      <div class="title">Load Preset Graph</div>
-
-      <div class="options-input-container">
-        <div>Preset:</div>
-        <select id="preset-graph-select-input">
-          <option value="" selected disabled hidden>Select Preset</option>
-          <option value="graph_25_0.75.json">graph_25_0.75.json</option>
-          <option value="graph_50_0.75.json">graph_50_0.75.json</option>
-          <option value="graph_100_0.75.json">graph_100_0.75.json</option>
-        </select>
-      </div>
-
-      <div class="options-submit-container button-container">
-        <button type="button" onclick="submit_load_graph_preset()">Submit</button>
-      </div>
-    </div>
-
-    <div class="options-section">
-      <div class="title">Import/Export Graph</div>
-
-      <div class="options-input-container">
-        <div>Import Graph:</div>
-        <input id="import-graph-input" type="file"/>
-      </div>
-
-      <div class="options-submit-container button-container">
-        <button type="button" onclick="submit_uploaded_graph()">Submit</button>
-      </div>
-
-      <div class="options-input-container">
-        <div>Export Graph:</div>
-        <div class="options-input-container">
-          <input type="checkbox" id="export-pretty-cb">
-          <label for="export-pretty-cb">Prettify</label>
-        </div>
-        <div class="button-container">
-          <button type="button" onclick="download_graph_export()">Download</button>
-        </div>
-      </div>
-    </div>
-
-    <div class="options-section">
-      <div class="title">Graph Generator</div>
       <div id="config-form-container" class="options-form-container">
 
         <div class="options-input-container">
-          <div>Number of Buildings:</div>
+          <div class="subsubtitle">Number of Buildings:</div>
           <input type="text" id="num-buildings-input" name="num_buildings" required minlength="1" maxlength="8" size="10" value="25" placeholder="e.g. 25"
             oninput="this.value = this.value.replace(/\D/g, '');"/>
         </div>
 
         <div class="options-input-container">
-          <div>Building Coverage:</div>
+          <div class="subsubtitle">Building Coverage:</div>
           <input type="range" id="coverage-input" name="coverage" min="0" max="1" step="0.01" value="0.75"/>
           <span id="coverage-value"></span>
         </div>
 
         <div class="options-input-container">
-          <div>Building Clustering:</div>
+          <div class="subsubtitle">Building Clustering:</div>
           <input type="range" id="clustering-input" name="clustering" min="0" max="0.5" step="0.01" value="0"/>
           <span id="clustering-value"></span>
         </div>
 
         <div class="options-input-container">
-          <div>Constant Congestion:</div>
+          <span class="subsubtitle">Constant Congestion:</span>
           <input type="checkbox" id="constant-congestion-input" name="constant_con"/>
           <label for="constant-congestion-input">Enabled</label><br>
         </div>
 
         <div class="options-input-container">
-          <div id="congestion-slider-label">Congestion Levels:</div>
+          <div id="congestion-slider-label" class="subsubtitle">Congestion Levels:</div>
           <div id="congestion-slider-container">
             <div id="congestion-slider" disabled></div>
           </div>
           <div id="congestion-labels-values-container">
             <div class="congestion-value-container">
               <span>Low Congestion:</span>
-              <span id="low-con-value" class="congestion-value-percent"></span>
+              <span id="low-con-value" class="congestion-value-percent low-con-text-color"></span>
             </div>
             <div class="congestion-value-container">
               <span>Medium Congestion:</span>
-              <span id="med-con-value" class="congestion-value-percent"></span>
+              <span id="med-con-value" class="congestion-value-percent med-con-text-color"></span>
             </div>
             <div class="congestion-value-container">
               <span>High Congestion:</span>
-              <span id="high-con-value" class="congestion-value-percent"></span>
+              <span id="high-con-value" class="congestion-value-percent high-con-text-color"></span>
             </div>
           </div>
         </div>
@@ -114,12 +72,12 @@
       </div>
     </div>
 
+    <button class="accordion-button title accordion-active">Path Recommendation</button>
     <div class="options-section">
-      <div class="title">Path Recommendation</div>
       <div id="path-gen-form-container" class="options-form-container">
           
         <div class="options-input-container">
-          <div>Algorithms:</div>
+          <div class="subsubtitle">Algorithms:</div>
           <input type="checkbox" id="path-gen-astro-cb" value="astro" checked>
           <label for="path-gen-astro-cb">Astro</label>
           <br>
@@ -137,13 +95,13 @@
         </div>  
 
         <div class="options-input-container button-container">
-          <label>Door Accessibility:</label>
-          <br>
-          <input type="radio" id="standard-input" name="accessibility-type" value="standard" checked>
-          <label for="standard-input">Standard</label>
-          <br>
-          <input type="radio" id="accessibility-input" name="accessibility-type" value="accessible">
-          <label for="accessibility-input">Accessible Only</label>
+          <label class="subsubtitle">Usable Doors:</label>
+          <div class="options-short-group">
+            <input type="radio" id="standard-input" name="accessibility-type" value="standard" checked>
+            <label for="standard-input">All</label>
+            <input type="radio" id="accessibility-input" name="accessibility-type" value="accessible">
+            <label for="accessibility-input">Accessible</label>
+          </div>
         </div>
 
         <div class="options-input-container button-container">
@@ -161,8 +119,49 @@
       </div>
     </div>
 
+    <button class="accordion-button title">Load Graph Presets</button>
     <div class="options-section">
-      <div class="title">Display Options</div>
+      <div class="options-input-container">
+        <div class="subsubtitle">Select Preset:</div>
+        <select id="preset-graph-select-input">
+          <option value="" selected disabled hidden>Select Preset</option>
+          <option value="graph_25_0.75.json">graph_25_0.75.json</option>
+          <option value="graph_50_0.75.json">graph_50_0.75.json</option>
+          <option value="graph_100_0.75.json">graph_100_0.75.json</option>
+        </select>
+      </div>
+
+      <div class="options-submit-container button-container">
+        <button type="button" onclick="submit_load_graph_preset()">Submit</button>
+      </div>
+    </div>
+
+    <button class="accordion-button title">Import/Export Graph</button>
+    <div class="options-section">
+      <div class="options-input-container">
+        <div class="subsubtitle">Import Graph:</div>
+        <input id="import-graph-input" type="file"/>
+      </div>
+
+      <div class="options-submit-container button-container">
+        <button type="button" onclick="submit_uploaded_graph()">Submit</button>
+      </div>
+
+      <div class="options-input-container">
+        <div class="subsubtitle">Export Graph:</div>
+        <div class="options-input-container">
+          <button type="button" onclick="download_graph_export()">Download</button>
+          <input type="checkbox" id="export-pretty-cb">
+          <label for="export-pretty-cb">Prettify</label>
+        </div>
+        <div class="button-container">
+          
+        </div>
+      </div>
+    </div>
+
+    <button class="accordion-button title">Display Options</button>
+    <div class="options-section">
       <div class="options-form-container">
         
         <div class="options-input-container button-container">
@@ -191,8 +190,8 @@
       </div>        
     </div>
 
+    <button class="accordion-button title">Dev Options</button>
     <div class="options-section">
-      <div class="title">Dev Options</div>
       <div class="options-form-container">       
 
         <div class="options-input-container button-container">
@@ -204,7 +203,6 @@
         </div>
       </div>
     </div>
-
   </div>
   
   <div id="graph-section">
@@ -223,8 +221,11 @@
     <div id="building-editor-container"> 
     
       <div class="title">Building Editor</div>
-      <div id="selected-building-stage-container"></div>
-      <div id="selected-building-info"></div>
+      <div id="building-editor-stage-container">
+        <div id="building-editor-stage"></div>
+      </div>
+      <div id="selected-cell-info-container"></div>
+      <div id="selected-building-actions-container"></div>
       <div id="selected-building-options-container"></div>
       <div id="selected-building-doors-container"></div>
 
