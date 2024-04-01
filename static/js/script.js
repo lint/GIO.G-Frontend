@@ -161,7 +161,7 @@ function recommend_path(path_options) {
     console.log("filtered graph: ", filtered_graph);
 
     // get the graph and draw its buildings on the response
-    fetch("/static/assets/path.json")
+    fetch("/static/assets/graphs/path.json")
     .then((res) => res.json())
     .then((json) => {
         console.log("path data: ", json);
@@ -179,7 +179,7 @@ function recommend_path(path_options) {
 function load_preset_graph(graph_file) {
 
     // get the graph and draw its buildings on the response
-    fetch(`/static/assets/${graph_file}`)
+    fetch(`/static/assets/graphs/${graph_file}`)
         .then((res) => res.json())
         .then((json) => {
             console.log("preset graph data: ", json);
