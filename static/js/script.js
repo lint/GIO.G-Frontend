@@ -1,4 +1,10 @@
 
+
+/* -------------------------------------------------------------------------- */
+/*                      variable and constant definitions                     */
+/* -------------------------------------------------------------------------- */
+
+
 // default configuation values defined in GraphGenerator.scala
 const default_config = {
     num_buildings: 25,
@@ -53,11 +59,11 @@ const building_con_colors = {
     high: "#FFADAD", // pale red
     constant: "#A9DEF9" // pale blue
 }
-const corridor_con_colors = {
+const corridor_con_colors = { // associated background congestion color with 0.5 opacity black overlay
     low: "#B4D9AC",
     med: "#D9BC9A",
     high: "#D9A0A0",
-    constant: "#93B8C4"
+    constant: "#9ECBDF"
 }
 
 const con_text_color_classes = {
@@ -107,6 +113,10 @@ let road_layer = null;
 let path_layer = null;
 
 
+/* -------------------------------------------------------------------------- */
+/*                            main event listeners                            */
+/* -------------------------------------------------------------------------- */
+
 
 // execute when the document is ready
 document.addEventListener("DOMContentLoaded", function() { 
@@ -131,6 +141,15 @@ document.addEventListener("DOMContentLoaded", function() {
     // set the initial values for the path selection buttons
     update_path_select_labels();
 });
+
+
+// execute when the window is resized
+window.addEventListener("resize", function(event) {
+
+    // update sidebar accordion cell heights
+    update_accordion_heights();
+
+}, true);
 
 
 /* -------------------------------------------------------------------------- */
@@ -1207,26 +1226,26 @@ function select_building_to_edit(building_grid_coords, can_unselect) {
         }
         doors_list_container.appendChild(edit_doors_list);
 
-        // create title element for the options section
-        let building_options_title = document.createElement("div");
-        building_options_title.classList.add("subsubtitle");
-        building_options_title.innerHTML = "Options:";
-        building_options_container.appendChild(building_options_title);
+
+        // create label and radio buttons to represent open or closed status for the building
+        let building_open_container = document.createElement("div");
+        building_options_container.appendChild(building_open_container);
+
+        let building_open_title = document.createElement("span");
+        building_open_title.classList.add("subsubtitle");
+        building_open_title.innerHTML = "Availability: ";
+        building_open_container.appendChild(building_open_title);
+
+        // create span wrapped radios and label for each congestion level
+        let open_radio = create_open_radio(building_grid_coords, "open");
+        let closed_radio = create_open_radio(building_grid_coords, "closed");
+        building_open_container.appendChild(open_radio);
+        building_open_container.appendChild(closed_radio);
 
         // create label and input checkbox to represent whether the building is open or closed (i.e. usable or not)        
         let building_open_label = document.createElement("label");
         building_open_label.innerHTML = "Open";
         building_open_label.htmlFor = "building-open-cb";
-
-        let buildling_open_chkbox = document.createElement("input");
-        buildling_open_chkbox.type = "checkbox";
-        buildling_open_chkbox.id = "building-open-cb";
-        buildling_open_chkbox.checked = building_mods.open;
-        buildling_open_chkbox.addEventListener("change", function(e) {
-            building_open_checkbox_checked(building_grid_coords);
-        });
-        building_options_container.appendChild(buildling_open_chkbox);
-        building_options_container.appendChild(building_open_label);
 
         // only show congestion radio if the graph does not use constant congestion
         if (!current_config["constant_con"]) {
@@ -1355,6 +1374,7 @@ function create_con_radio(building_grid_coords, con_level) {
     
     // create container for the radio and label
     let span = document.createElement("span");
+    span.classList.add("options-short-group");
 
     // create label for the radio
     let con_label = document.createElement("label");
@@ -1381,6 +1401,42 @@ function create_con_radio(building_grid_coords, con_level) {
     return span;
 }
 
+
+// creates a radio option and label for building openness status
+function create_open_radio(building_grid_coords, openness) {
+
+    let cell_info = grid_object_at_coords(building_grid_coords);
+    let building_mods = cell_info.building_mods;
+
+    let openness_id = `building-availability-${openness}`;
+
+    // create container for the radio and label
+    let span = document.createElement("span");
+    span.classList.add("options-short-group");
+
+    // create label for the radio
+    let label = document.createElement("label");
+    label.htmlFor = openness_id;
+    label.innerHTML = openness.charAt(0).toUpperCase() + openness.slice(1);;
+
+    // create the radio button 
+    let radio = document.createElement("input");
+    radio.type = "radio";
+    radio.id = openness_id;
+    radio.checked = (building_mods.open && openness === "open") || (!building_mods.open && openness === "closed");
+    radio.name = "building-availability";
+    radio.addEventListener("change", function(e) {
+        if (this.checked) {
+            building_open_radio_changed(building_grid_coords, openness);
+        }
+    });
+
+    // add radio button and text to the label
+    span.appendChild(radio);
+    span.appendChild(label);
+
+    return span;
+}
 
 /* ------------------------ building options handlers ----------------------- */
 
@@ -1422,7 +1478,7 @@ function handle_add_building_button(building_grid_coords) {
 
 
 // handle the selected building open checkbox being changed
-function building_open_checkbox_checked(building_grid_coords) {
+function building_open_radio_changed(building_grid_coords, openness) {
 
     // get the information for the given building
     let cell_info = grid_object_at_coords(building_grid_coords);
@@ -1430,7 +1486,7 @@ function building_open_checkbox_checked(building_grid_coords) {
     let building_mods = cell_info.building_mods;
 
     // assign the new open status to the building
-    building_mods.open = !building_mods.open;
+    building_mods.open = openness === "open";
     
     // redraw the building to reflect the changes in accessibility
     redraw_selected_building(building_grid_coords);
@@ -3255,7 +3311,7 @@ Array.from(document.getElementsByClassName("accordion-button")).forEach(function
         if (panel.style.maxHeight) {
           panel.style.maxHeight = null;
         } else {
-          panel.style.maxHeight = panel.scrollHeight + "px";
+          panel.style.maxHeight = panel.scrollHeight + panel.offsetHeight + "px";
         } 
     });
 });
@@ -3561,6 +3617,10 @@ function handle_select_end_building_button() {
 // handle the building editor button clicked
 function handle_building_editor_nav_button() {
 
+    // get the buttons in the navbar
+    let building_editor_button = document.getElementById("navbar-building-editor-button");
+    let path_stats_button = document.getElementById("navbar-path-stats-button");
+
     // get the container divs on the right sidebar
     let building_editor_container = document.getElementById("building-editor-container");
     let path_stats_container = document.getElementById("path-stats-container");
@@ -3568,11 +3628,19 @@ function handle_building_editor_nav_button() {
     // show the necessary container and hide the other
     building_editor_container.style.display = "block";
     path_stats_container.style.display = "none";
+
+    // set the currently selected item to be active
+    building_editor_button.classList.add("navbar-item-active");
+    path_stats_button.classList.remove("navbar-item-active");
 }
 
 
 // handle the building editor button clicked
 function handle_path_stats_nav_button() {
+
+    // get the buttons in the navbar
+    let building_editor_button = document.getElementById("navbar-building-editor-button");
+    let path_stats_button = document.getElementById("navbar-path-stats-button");
 
     // get the container divs on the right sidebar
     let building_editor_container = document.getElementById("building-editor-container");
@@ -3581,6 +3649,10 @@ function handle_path_stats_nav_button() {
     // show the necessary container and hide the other
     building_editor_container.style.display = "none";
     path_stats_container.style.display = "block";
+
+    // set the currently selected item to be active
+    building_editor_button.classList.remove("navbar-item-active");
+    path_stats_button.classList.add("navbar-item-active");
 }
 
 

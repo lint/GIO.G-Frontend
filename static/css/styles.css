@@ -22,25 +22,21 @@ html, body {
     position: fixed;
     top: 0;
     left: 0;
-    border-right: solid 2px black;
+    border-right: solid 2px #444;
     padding: 10px;
     overflow-y: scroll;
     box-sizing: border-box;
 }
 
 #right-sidebar {
-    border-left: solid 2px black;
+    border-left: solid 2px #444;
     top: 0; 
     right: 0;
     height: 100%;
     width: 20%;
     position:fixed;
     overflow-y:scroll;
-}
-
-#right-sidebar-navbar {
-    padding: 10px;
-    border-bottom: solid 2px black;
+    /* background-color: #8ecae6; */
 }
 
 /* ----------------------------- left sidebar elements ----------------------------- */
@@ -59,7 +55,7 @@ html, body {
 
 .accordion-active, .accordion-button:hover {
     background-color: #ccc;
-  }
+}
   
 .accordion-button:after {
     content: '\002B';
@@ -74,15 +70,15 @@ html, body {
 }
 
 .options-section {
-    padding: 10px;
-    /* margin: 5px 0 5px 0; */
-
-    /* panel */
-    padding: 0 18px;
+    padding: 0 10px;
     background-color: #eee;
     max-height: 0;
     overflow: hidden;
     /* transition: max-height 0.3s ease-out; */
+}
+
+.options-section-inner-container {
+    padding: 10px 0px;
 }
 
 .options-form-container {
@@ -100,6 +96,16 @@ html, body {
 
 .options-short-group {
     display: inline-block;
+}
+
+.options-slider-container {
+    display:flex;
+    flex-direction:row;
+    align-items:center;
+}
+
+.options-slider-value {
+    padding-left: 5px;
 }
 
 .path-endpoints-button-active {
@@ -178,6 +184,40 @@ html, body {
 }
 
 
+/* --------------------- right siderbar navbar elements --------------------- */
+
+
+#right-sidebar-navbar {
+    /* padding: 10px; */
+    border-bottom: solid 2px #444;
+    background-color: #eee;
+}
+
+.navbar-item {
+    padding: 10px;
+    height:100%;
+    cursor: pointer;
+    color: #444;
+    background-color: #eee;
+    display: inline-block;
+    margin-right: -4px; /* fix inline block spacing */
+    font-weight: bold;
+    border-right: solid 2px #ccc;
+}
+
+.navbar-item.navbar-item-active {
+    background-color: #ccc;
+}
+
+.navbar-item:hover:not(.navbar-item-active) {
+    background-color: #ddd;
+}
+
+.navbar-item:active:not(.navbar-item-active) {
+    background-color: #ccc;
+}
+
+
 /* ----------------------------- graph elements ----------------------------- */
 
 #graph-section {
@@ -187,7 +227,7 @@ html, body {
 }
 
 #graph-container {
-    border: solid 2px black;
+    border: solid 2px #444;
 }
 
 /* ----------------------------- building editor ---------------------------- */
@@ -201,23 +241,14 @@ html, body {
     display: flex;
     justify-content: center;
     align-items: center;
-    margin: 10px 0 10px 0;
+    background-color: #eee;
+    padding: 10px;
+    margin-top: 10px;
 }
 
 #building-editor-stage {
-    border: solid 2px black;
-}
-
-#selected-building-doors-container {
-    margin: 10px 0 10px 0;
-}
-
-#selected-building-actions-container {
-    margin: 10px 0 10px 0;
-}
-
-#selected-building-options-container {
-    margin: 10px 0 10px 0;
+    border: solid 2px #444;
+    background-color: white;
 }
 
 #edit-doors-list {
@@ -226,6 +257,23 @@ html, body {
     margin: 0;
 }
 
+.building-editor-section {
+    background-color: #eee;
+    padding: 10px;
+    margin: 5px 0 5px 0;
+}
+
+#selected-cell-info-controls-container {
+    display: flex;
+    flex-direction: row;
+    flex-wrap: wrap;
+    gap: 10px;
+    text-align: center;
+}
+
+#selected-cell-info-container span {
+    vertical-align: middle;
+}
 
 /* ----------------------------- path statistics ---------------------------- */
 
@@ -261,4 +309,10 @@ html, body {
     border: solid 2px black;
     padding: 10px;
     margin-top: 10px;
+}
+
+.trashcan-icon {
+    width: 24px;
+    height: 24px;
+    fill: red;
 }
