@@ -140,6 +140,9 @@ document.addEventListener("DOMContentLoaded", function() {
 
     // set the initial values for the path selection buttons
     update_path_select_labels();
+
+    // clear necessary content in the building editor
+    reset_building_editor();
 });
 
 
@@ -1131,16 +1134,22 @@ function reset_cell_selections() {
 function reset_building_editor() {
 
     // get selected building elements
-    let info_container = document.getElementById("selected-cell-info-container");
+    let info_container = document.getElementById("selected-cell-info-controls-container");
+    let info_text_container = document.getElementById("selected-cell-info-text-container");
     let doors_list_container = document.getElementById("selected-building-doors-container");
     let building_options_container = document.getElementById("selected-building-options-container");
     let building_actions_container = document.getElementById("selected-building-actions-container");
 
     // clear elements relevant to the previous selected building
-    info_container.innerHTML = '';
-    doors_list_container.innerHTML = '';
-    building_options_container.innerHTML = '';
-    building_actions_container.innerHTML = '';
+    info_text_container.innerHTML = "";
+    doors_list_container.innerHTML = "";
+    building_options_container.innerHTML = "";
+    building_actions_container.innerHTML = "";
+
+    info_container.style.display = "none";
+    doors_list_container.style.display = "none";
+    building_options_container.style.display = "none";
+    // building_actions_container.style.display = "none";
 
     // clear the editor stage
     editor_stage.destroyChildren();
@@ -1171,22 +1180,28 @@ function select_building_to_edit(building_grid_coords, can_unselect) {
     editor_selected_grid_coords = building_grid_coords;
 
     // get container elements to build elements into
-    let info_container = document.getElementById("selected-cell-info-container");
+    let info_container = document.getElementById("selected-cell-info-controls-container");
+    let info_text_container = document.getElementById("selected-cell-info-text-container");
     let doors_list_container = document.getElementById("selected-building-doors-container");
     let building_options_container = document.getElementById("selected-building-options-container");
     let building_actions_container = document.getElementById("selected-building-actions-container");
+
+    info_container.style.display = "flex";
 
     // create content for the current selected grid cell
     let cell_info_label = document.createElement("span");
     cell_info_label.classList.add("subsubtitle");
     cell_info_label.innerHTML = "Grid Cell: ";
-    info_container.appendChild(cell_info_label);
+    info_text_container.appendChild(cell_info_label);
 
     let cell_info_content = document.createElement("span");
     cell_info_content.innerHTML = `(${building_grid_coords.x + 1}, ${building_grid_coords.y + 1})  `;
-    info_container.appendChild(cell_info_content);
+    info_text_container.appendChild(cell_info_content);
     
     if (cell_info.building_data !== null) {
+
+        doors_list_container.style.display = "block";
+        building_options_container.style.display = "block";
 
         let building_id = cell_info.building_data["id"];
         let doors = cell_info.building_data.entrances;
@@ -1195,17 +1210,26 @@ function select_building_to_edit(building_grid_coords, can_unselect) {
         let building_info_label = document.createElement("span");
         building_info_label.classList.add("subsubtitle");
         building_info_label.innerHTML = "Building ID:  ";
-        info_container.appendChild(building_info_label);
+        info_text_container.appendChild(building_info_label);
     
         let building_info_content = document.createElement("span");
         building_info_content.innerHTML = building_id;
-        info_container.appendChild(building_info_content);
+        info_text_container.appendChild(building_info_content);
+
+        // create a div to contain the title and add doors button
+        let edit_doors_title_container = document.createElement("div");
+        doors_list_container.appendChild(edit_doors_title_container);
 
         // create a title for the edit doors list
-        let edit_doors_list_title = document.createElement("div");
+        let edit_doors_list_title = document.createElement("span");
         edit_doors_list_title.classList.add("subsubtitle");
         edit_doors_list_title.innerHTML = "Doors:";
-        doors_list_container.appendChild(edit_doors_list_title);
+        edit_doors_title_container.appendChild(edit_doors_list_title);
+
+        // create container for the add door button
+        let add_door_button_container = document.createElement("span");
+        add_door_button_container.id = "edit-doors-add-button-container";
+        edit_doors_title_container.appendChild(add_door_button_container);
         
         // create a button that adds a door to the current building
         let add_door_button = document.createElement("button");
@@ -1213,7 +1237,7 @@ function select_building_to_edit(building_grid_coords, can_unselect) {
         add_door_button.addEventListener("click", function (e) {
             handle_add_door_button(building_grid_coords);
         });
-        doors_list_container.appendChild(add_door_button);
+        add_door_button_container.appendChild(add_door_button);
 
         // create list to store door info in
         let edit_doors_list = document.createElement("ul");
@@ -1226,14 +1250,13 @@ function select_building_to_edit(building_grid_coords, can_unselect) {
         }
         doors_list_container.appendChild(edit_doors_list);
 
-
         // create label and radio buttons to represent open or closed status for the building
         let building_open_container = document.createElement("div");
         building_options_container.appendChild(building_open_container);
 
         let building_open_title = document.createElement("span");
         building_open_title.classList.add("subsubtitle");
-        building_open_title.innerHTML = "Availability: ";
+        building_open_title.innerHTML = "Availability:";
         building_open_container.appendChild(building_open_title);
 
         // create span wrapped radios and label for each congestion level
@@ -1250,15 +1273,18 @@ function select_building_to_edit(building_grid_coords, can_unselect) {
         // only show congestion radio if the graph does not use constant congestion
         if (!current_config["constant_con"]) {
 
+            // TODO: still show for constant congestion? since you want to be able to edit it?
+            // or at least update how you check for this, since if you import a graph or use a preset it will not match the current config
+
             // create a container for the congestion radio element
             let building_con_container = document.createElement("div");
             building_con_container.id = "building-con-container";
             building_options_container.appendChild(building_con_container);
 
             // create labels and input radios to select building congestion level
-            let building_con_label = document.createElement("label");
+            let building_con_label = document.createElement("span");
             building_con_label.classList.add("subsubtitle");
-            building_con_label.innerHTML = "Congestion Level:";
+            building_con_label.innerHTML = "Congestion:";
             building_con_container.appendChild(building_con_label);
 
             // create span wrapped radios and label for each congestion level
@@ -1270,7 +1296,7 @@ function select_building_to_edit(building_grid_coords, can_unselect) {
             building_con_container.appendChild(med_con_radio);
             building_con_container.appendChild(high_con_radio);
         }
-
+        
         // create a button to delete the current building
         let delete_building_button = document.createElement("button");
         delete_building_button.innerHTML = "Delete Building";
@@ -1311,13 +1337,30 @@ function create_door_list_item(building_grid_coords, door_id) {
     li.classList.add("edit-doors-list-item");
     li.id = `door-${door_id}-list-item`
 
-    // label to identify each door
-    let door_label = document.createElement("label");
-    door_label.innerHTML = `ID: ${door_id}`;
+    // ID label to identify each door
+    let door_label = document.createElement("span");
+    door_label.innerHTML = "ID: ";
+    door_label.classList.add("bold-text");
+
+    let door_label_value = document.createElement("span");
+    door_label_value.innerHTML = door_id;
 
     // define ids for different checkboxes
     let open_chkbox_id = `door-${door_id}-open-cb`;
     let access_chkbox_id = `door-${door_id}-accessible-cb`;
+
+    // define span to group parts of the list item
+    let open_span = document.createElement("span");
+    open_span.classList.add("options-short-group");
+    open_span.classList.add("edit-doors-list-item-control");
+
+    let access_span = document.createElement("span");
+    access_span.classList.add("options-short-group");
+    access_span.classList.add("edit-doors-list-item-control");
+
+    let delete_span = document.createElement("span");
+    delete_span.classList.add("options-short-group");
+    delete_span.classList.add("edit-doors-list-item-control");
     
     // create label and input checkbox to represent whether a door is open or closed (i.e. usable or not)        
     let open_label = document.createElement("label");
@@ -1348,17 +1391,22 @@ function create_door_list_item(building_grid_coords, door_id) {
     // create button to delete the door
     let delete_button = document.createElement("button");
     delete_button.innerHTML = "Delete";
+    delete_button.classList.add("edit-doors-list-item-control");
     delete_button.addEventListener("click", function (e) {
         handle_delete_door_button(building_grid_coords, door_id);
     });
 
     // add created items as children to the list item
     li.appendChild(door_label);
-    li.appendChild(open_chkbox);
-    li.appendChild(open_label);
-    li.appendChild(access_chkbox);
-    li.appendChild(access_label);
-    li.appendChild(delete_button);
+    li.appendChild(door_label_value);
+    open_span.appendChild(open_chkbox);
+    open_span.appendChild(open_label);
+    li.appendChild(open_span);
+    access_span.appendChild(access_chkbox);
+    access_span.appendChild(access_label);
+    li.appendChild(access_span);
+    delete_span.appendChild(delete_button);
+    li.appendChild(delete_span);
 
     return li;
 }
@@ -2122,7 +2170,7 @@ function draw_corridors(building_grid_coords, parent, for_main_stage) {
     let center_line = new Konva.Line({
         points: flatten_points([center_stage_up, center_stage_down, center_stage_right, center_stage_left]),
         stroke: corridor_color,
-        strokeWidth: corridor_width*1.5,
+        strokeWidth: corridor_width,
         perfectDrawEnabled: false
     });
     corridors_group.add(center_line);
@@ -3354,6 +3402,7 @@ function update_config_form_display() {
     let con_slider = document.getElementById("congestion-slider");
     let con_levels_labels_container = document.getElementById("congestion-labels-values-container");
     let con_slider_label = document.getElementById("congestion-slider-label");
+    let con_levels_percents = con_levels_labels_container.querySelectorAll(".congestion-value-percent");
 
     if (constant_con_input.checked) {
         con_slider.setAttribute("disabled", "");
@@ -3364,6 +3413,14 @@ function update_config_form_display() {
         con_levels_labels_container.style.opacity = "1";
         con_slider_label.style.opacity = "1";
     }
+
+    Array.from(con_levels_percents).forEach(function (percent_label) {
+        if (constant_con_input.checked) {
+            percent_label.classList.add("black-text-color");
+        } else {
+            percent_label.classList.remove("black-text-color");
+        }
+    });
 }
 
 

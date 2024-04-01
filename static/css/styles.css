@@ -11,32 +11,23 @@ html, body {
 #page {
     height: 100%;
     width: 100%;
-    display: flex;
-    justify-content: center;
-    gap: 20px;
+    display: grid;
+    grid-template-columns: 0.2fr 0.6fr 0.2fr;
 }
 
 #left-sidebar {
-    height: 100%;
-    width: 20%;
-    position: fixed;
-    top: 0;
-    left: 0;
     border-right: solid 2px #444;
-    padding: 10px;
+    padding: 0px 10px 10px 10px;
     overflow-y: scroll;
     box-sizing: border-box;
+    grid-column: 1;
 }
 
 #right-sidebar {
     border-left: solid 2px #444;
-    top: 0; 
-    right: 0;
-    height: 100%;
-    width: 20%;
-    position:fixed;
     overflow-y:scroll;
     /* background-color: #8ecae6; */
+    grid-column: 3;
 }
 
 /* ----------------------------- left sidebar elements ----------------------------- */
@@ -44,7 +35,7 @@ html, body {
 .accordion-button {
     background-color: #eee;
     cursor: pointer;
-    padding: 18px;
+    padding: 12px;
     width: 100%;
     border: none;
     text-align: left;
@@ -86,12 +77,12 @@ html, body {
     flex-direction: column;
 }
 
-.options-input-container {
-    margin: 5px 10px 5px 10px;
+.options-category-container {
+    margin: 2px 10px 2px 0;
 }
 
-.options-submit-container {
-    margin: 5px 10px 5px 0px;
+.options-input-container {
+    padding: 2px 5px 0px 5px;
 }
 
 .options-short-group {
@@ -102,6 +93,10 @@ html, body {
     display:flex;
     flex-direction:row;
     align-items:center;
+}
+
+.options-slider {
+    width: 100%;
 }
 
 .options-slider-value {
@@ -174,6 +169,11 @@ html, body {
     accent-color: #935a5a;
 }
 
+.black-text-color {
+    color: black;
+    accent-color: black;
+}
+
 .congestion-value-percent {
     text-align: right;
     float: right;
@@ -183,6 +183,13 @@ html, body {
 
 }
 
+#display-options-buttons-container {
+    display: flex;
+    flex-direction: row;
+    flex-wrap: wrap;
+    gap: 5px;
+}
+
 
 /* --------------------- right siderbar navbar elements --------------------- */
 
@@ -190,7 +197,7 @@ html, body {
 #right-sidebar-navbar {
     /* padding: 10px; */
     border-bottom: solid 2px #444;
-    background-color: #eee;
+    /* background-color: #eee; */
 }
 
 .navbar-item {
@@ -202,7 +209,7 @@ html, body {
     display: inline-block;
     margin-right: -4px; /* fix inline block spacing */
     font-weight: bold;
-    border-right: solid 2px #ccc;
+    border-right: solid 2px #444;
 }
 
 .navbar-item.navbar-item-active {
@@ -221,13 +228,14 @@ html, body {
 /* ----------------------------- graph elements ----------------------------- */
 
 #graph-section {
+    grid-column: 2;
     display: flex;
     justify-content: center;
     align-items: center;
 }
 
 #graph-container {
-    border: solid 2px #444;
+    /* border: solid 2px #444; */
 }
 
 /* ----------------------------- building editor ---------------------------- */
@@ -243,7 +251,6 @@ html, body {
     align-items: center;
     background-color: #eee;
     padding: 10px;
-    margin-top: 10px;
 }
 
 #building-editor-stage {
@@ -257,10 +264,12 @@ html, body {
     margin: 0;
 }
 
-.building-editor-section {
-    background-color: #eee;
-    padding: 10px;
-    margin: 5px 0 5px 0;
+.edit-doors-list-item {
+    padding-top: 2px;
+}
+
+#edit-doors-add-button-container {
+    padding-left: 10px;
 }
 
 #selected-cell-info-controls-container {
@@ -268,11 +277,28 @@ html, body {
     flex-direction: row;
     flex-wrap: wrap;
     gap: 10px;
+    /* text-align: center; */
+}
+
+#selected-cell-info-text-container {
+}
+
+#selected-cell-info-text-container span {
+    display:inline-block;
+    vertical-align: middle;
+    padding-right:5px;
     text-align: center;
 }
 
-#selected-cell-info-container span {
-    vertical-align: middle;
+.building-editor-section {
+    background-color: #eee;
+    padding: 10px;
+    margin: 5px 0 5px 0;
+    /* display: none; hide initally, changed to "block" in js  */
+}
+
+.edit-doors-list-item-control {
+    padding-left: 5px;
 }
 
 /* ----------------------------- path statistics ---------------------------- */
@@ -301,8 +327,8 @@ html, body {
     font-weight: bold;
 }
 
-.button-container {
-
+.bold-text {
+    font-weight: bold;
 }
 
 #test-container {

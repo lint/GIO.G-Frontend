@@ -22,58 +22,69 @@
       <div class="options-section-inner-container">
       <div id="config-form-container" class="options-form-container">
 
-        <div class="options-input-container">
+        <div class="options-category-container">
           <div class="subsubtitle">Number of Buildings:</div>
-          <input type="text" id="num-buildings-input" name="num_buildings" required minlength="1" maxlength="8" size="10" value="25" placeholder="e.g. 25"
-            oninput="this.value = this.value.replace(/\D/g, '');"/>
+          <div class="options-input-container">
+            <input type="text" id="num-buildings-input" name="num_buildings" required minlength="1" maxlength="8" size="10" value="25" placeholder="e.g. 25"
+              oninput="this.value = this.value.replace(/\D/g, '');"/>
+          </div>
         </div>
 
-        <div class="options-input-container">
+        <div class="options-category-container">
           <div class="subsubtitle">Grid Coverage:</div>
-          <div class="options-slider-container">
-            <input type="range" id="coverage-input" name="coverage" min="0" max="1" step="0.01" value="0.75"/>
-            <span id="coverage-value" class="options-slider-value"></span>
+          <div class="options-input-container">
+            <div class="options-slider-container">
+              <input class="options-slider" type="range" id="coverage-input" name="coverage" min="0" max="1" step="0.01" value="0.75"/>
+              <span id="coverage-value" class="options-slider-value"></span>
+            </div>
           </div>
         </div>
 
-        <div class="options-input-container">
+        <div class="options-category-container">
           <div class="subsubtitle">Building Clustering:</div>
-          <div class="options-slider-container">
-            <input type="range" id="clustering-input" name="clustering" min="0" max="0.5" step="0.01" value="0"/>
-            <span id="clustering-value" class="options-slider-value"></span>
+          <div class="options-input-container">
+            <div class="options-slider-container">
+              <input class="options-slider" type="range" id="clustering-input" name="clustering" min="0" max="0.5" step="0.01" value="0"/>
+              <span id="clustering-value" class="options-slider-value"></span>
+            </div>
           </div>
         </div>
 
-        <div class="options-input-container">
+        <div class="options-category-container">
           <span class="subsubtitle">Constant Congestion:</span>
-          <span class="options-short-group">
-            <input type="checkbox" id="constant-congestion-input" name="constant_con"/>
-            <label for="constant-congestion-input">Enabled</label>
+          <span class="options-input-container">
+            <span class="options-short-group">
+              <input type="checkbox" id="constant-congestion-input" name="constant_con"/>
+              <label for="constant-congestion-input">Enabled</label>
+            </span>
           </span>
         </div>
 
-        <div class="options-input-container">
+        <div class="options-category-container">
           <div id="congestion-slider-label" class="subsubtitle">Congestion Levels:</div>
-          <div id="congestion-slider-container">
-            <div id="congestion-slider" disabled></div>
-          </div>
-          <div id="congestion-labels-values-container">
-            <div class="congestion-value-container">
-              <span>Low Congestion:</span>
-              <span id="low-con-value" class="congestion-value-percent low-con-text-color"></span>
+          
+          <div class="options-input-container">
+            <div id="congestion-slider-container">
+              <div id="congestion-slider" disabled></div>
             </div>
-            <div class="congestion-value-container">
-              <span>Medium Congestion:</span>
-              <span id="med-con-value" class="congestion-value-percent med-con-text-color"></span>
-            </div>
-            <div class="congestion-value-container">
-              <span>High Congestion:</span>
-              <span id="high-con-value" class="congestion-value-percent high-con-text-color"></span>
+            <div id="congestion-labels-values-container">
+              <div class="congestion-value-container">
+                <span>Low Congestion:</span>
+                <span id="low-con-value" class="congestion-value-percent low-con-text-color"></span>
+              </div>
+              <div class="congestion-value-container">
+                <span>Medium Congestion:</span>
+                <span id="med-con-value" class="congestion-value-percent med-con-text-color"></span>
+              </div>
+              <div class="congestion-value-container">
+                <span>High Congestion:</span>
+                <span id="high-con-value" class="congestion-value-percent high-con-text-color"></span>
+              </div>
             </div>
           </div>
         </div>
 
-        <div class="options-input-container button-container">
+        <div class="options-category-container">
           <button type="button" onclick="submit_config_form()">Submit</button>
         </div>
       </div>
@@ -84,27 +95,30 @@
     <div class="options-section">
       <div class="options-section-inner-container">
         <div id="path-gen-form-container" class="options-form-container">
-            
-          <div class="options-input-container">
+
+          <div class="options-category-container">
             <div class="subsubtitle">Algorithms:</div>
-            <input type="checkbox" id="path-gen-astro-cb" value="astro" checked>
-            <label for="path-gen-astro-cb">Astro</label>
-            <br>
-            <input type="checkbox" id="path-gen-astrog-cb" value="astrog">
-            <label for="path-gen-astrog-cb">AstroG</label>
-            <br>
-            <input type="checkbox" id="path-gen-dijkstra-cb" value="dijkstra">
-            <label for="path-gen-dijkstra-cb">Dijkstra</label>
-            <br>
-            <input type="checkbox" id="path-gen-dijkstra-con-cb" value="dijkstra_con">
-            <label for="path-gen-dijkstra-con-cb">Dijkstra Congestion</label>
-            <br>
-            <input type="checkbox" id="path-gen-greedy-cb" value="greedy">
-            <label for="path-gen-greedy-cb">Greedy</label>
+            <div class="options-input-container">
+              <input type="checkbox" id="path-gen-astro-cb" value="astro" checked>
+              <label for="path-gen-astro-cb">Astro</label>
+              <br>
+              <input type="checkbox" id="path-gen-astrog-cb" value="astrog">
+              <label for="path-gen-astrog-cb">AstroG</label>
+              <br>
+              <input type="checkbox" id="path-gen-dijkstra-cb" value="dijkstra">
+              <label for="path-gen-dijkstra-cb">Dijkstra</label>
+              <br>
+              <input type="checkbox" id="path-gen-dijkstra-con-cb" value="dijkstra_con">
+              <label for="path-gen-dijkstra-con-cb">Dijkstra Congestion</label>
+              <br>
+              <input type="checkbox" id="path-gen-greedy-cb" value="greedy">
+              <label for="path-gen-greedy-cb">Greedy</label>
+            </div>
           </div>  
 
-          <div class="options-input-container button-container">
+          <div class="options-category-container">
             <span class="subsubtitle">Usable Doors:</span>
+            <span class="options-input-container">
               <span class="options-short-group">
                 <input type="radio" id="standard-input" name="accessibility-type" value="standard" checked>
                 <label for="standard-input">All</label>
@@ -113,63 +127,66 @@
                 <input type="radio" id="accessibility-input" name="accessibility-type" value="accessible">
                 <label for="accessibility-input">Accessible</label>
               </span>
+            </span>
           </div>
 
-          <div class="options-input-container button-container">
-            <button id="select-path-start-button" type="button" onclick="handle_select_start_building_button()">Select Start Point</button>
-            <span id="path-start-building-info"></span>
-          </div>
-          <div class="options-input-container button-container">
-            <button id="select-path-end-button" type="button" onclick="handle_select_end_building_button()">Select End Point</button>
-            <span id="path-end-building-info"></span>
+          <div class="options-category-container">
+            <span class="subsubtitle">Points:</span>
+            <div class="options-input-container">
+              <button id="select-path-start-button" type="button" onclick="handle_select_start_building_button()">Select Start Point</button>
+              <span id="path-start-building-info"></span>
+            </div>
+            <div class="options-input-container">
+              <button id="select-path-end-button" type="button" onclick="handle_select_end_building_button()">Select End Point</button>
+              <span id="path-end-building-info"></span>
+            </div>
           </div>
           
-          <div class="options-input-container button-container">
+          <div class="options-category-container">
             <button type="button" onclick="submit_path_gen_form()">Submit</button>
           </div>
         </div>
       </div>
     </div>
 
-    <button class="accordion-button title">Load Graph Presets</button>
+    <button class="accordion-button title">Manage Graph Data</button>
     <div class="options-section">
       <div class="options-section-inner-container">
-        <div class="options-input-container">
-          <div class="subsubtitle">Select Preset:</div>
-          <select id="preset-graph-select-input">
-            <option value="" selected disabled hidden>Select Preset</option>
-            <option value="graph_25_0.75.json">graph_25_0.75.json</option>
-            <option value="graph_50_0.75.json">graph_50_0.75.json</option>
-            <option value="graph_100_0.75.json">graph_100_0.75.json</option>
-          </select>
-        </div>
+        <div class="options-form-container">
+          <div class="options-category-container">
+            <div class="subsubtitle">Select Graph Preset:</div>
+            <div class="options-input-container">
+              <select id="preset-graph-select-input">
+                <option value="" selected disabled hidden>Select Preset</option>
+                <option value="graph_25_0.75.json">graph_25_0.75.json</option>
+                <option value="graph_50_0.75.json">graph_50_0.75.json</option>
+                <option value="graph_100_0.75.json">graph_100_0.75.json</option>
+              </select>
+            </div>
+            <div class="options-input-container">
+              <button type="button" onclick="submit_load_graph_preset()">Submit</button>
+            </div>
+          </div>
 
-        <div class="options-input-container button-container">
-          <button type="button" onclick="submit_load_graph_preset()">Submit</button>
-        </div>
-      </div>
-    </div>
+          <div class="options-category-container">
+            <div class="subsubtitle">Import Graph:</div>
+            <div class="options-input-container">
+              <input id="import-graph-input" type="file"/>
+            </div>
+            <div class="options-input-container">
+              <button type="button" onclick="submit_uploaded_graph()">Submit</button>
+            </div>
+          </div>
 
-    <button class="accordion-button title">Import/Export Graph</button>
-    <div class="options-section">
-      <div class="options-section-inner-container">
-        <div class="options-input-container">
-          <div class="subsubtitle">Import Graph:</div>
-          <input id="import-graph-input" type="file"/>
-        </div>
-
-        <div class="options-input-container button-container">
-          <button type="button" onclick="submit_uploaded_graph()">Submit</button>
-        </div>
-
-        <div class="options-input-container">
-          <div class="subsubtitle">Export Graph:</div>
-          <div class="options-input-container">
-            <button type="button" onclick="download_graph_export()">Download</button>
-            <span class="options-short-group">
-              <input type="checkbox" id="export-pretty-cb">
-              <label for="export-pretty-cb">Prettify</label>
-            </span>
+          <div class="options-category-container">
+            <div class="subsubtitle">Export Graph:</div>
+            <div class="options-input-container">
+              <button type="button" onclick="download_graph_export()">Download</button>
+              <span class="options-short-group">
+                <input type="checkbox" id="export-pretty-cb">
+                <label for="export-pretty-cb">Prettify</label>
+              </span>
+            </div>
           </div>
         </div>
       </div>
@@ -180,27 +197,12 @@
       <div class="options-section-inner-container">
         <div class="options-form-container">
           
-          <div class="options-input-container button-container">
+          <div class="options-category-container" id="display-options-buttons-container">
             <button type="button" onclick="handle_buildings_visible_button()">Toggle Buildings</button>
-          </div>
-
-          <div class="options-input-container button-container">
             <button type="button" onclick="handle_corridors_visible_button()">Toggle Corridors</button>
-          </div>
-
-          <div class="options-input-container button-container">
             <button type="button" onclick="handle_paths_visible_button()">Toggle Paths</button>
-          </div>
-
-          <div class="options-input-container button-container">
             <button type="button" onclick="handle_roads_visible_button()">Toggle Roads</button>
-          </div>
-
-          <div class="options-input-container button-container">
             <button type="button" onclick="handle_congestion_colors_button()">Toggle Congestion Colors</button>
-          </div>
-
-          <div class="options-input-container button-container">
             <button type="button" onclick="handle_cell_highlights_visible_button()">Toggle Selection Highlights</button>
           </div>
         </div>     
@@ -212,11 +214,11 @@
       <div class="options-section-inner-container">
         <div class="options-form-container">
 
-          <div class="options-input-container button-container">
+          <div class="options-category-container">
             <button type="button" onclick="test_draw_paths()">Test Path Drawing</button>
           </div>
 
-          <div class="options-input-container button-container">
+          <div class="options-category-container">
             <button type="button" onclick="handle_clipping_visible_button()">Toggle Building Clipping</button>
           </div>
         </div>
@@ -231,22 +233,23 @@
   </div>
 
   <div id="right-sidebar">
-    
+
     <div id="right-sidebar-navbar">
       <div id="navbar-building-editor-button" class="navbar-item navbar-item-active" onclick="handle_building_editor_nav_button()">Building Editor</div>
       <div id="navbar-path-stats-button" class="navbar-item" onclick="handle_path_stats_nav_button()">Path Statistics</div>
     </div>
 
     <div id="building-editor-container"> 
-    
-      <div class="title">Building Editor</div>
-
-      <div id="building-editor-stage-container">
-        <div id="building-editor-stage"></div>
+      
+      <div class="building-editor-section">
+        <div class="title">Building Editor</div>
+        <div id="building-editor-stage-container">
+          <div id="building-editor-stage"></div>
+        </div>
       </div>
 
       <div id="selected-cell-info-controls-container" class="building-editor-section">
-        <div id="selected-cell-info-container"></div>
+        <div id="selected-cell-info-text-container"></div>
         <div id="selected-building-actions-container"></div>
       </div>
 
