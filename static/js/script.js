@@ -46,10 +46,10 @@ const selection_colors = {
 let main_cell_dims = null;
 let editor_cell_dims = null;
 let door_len_ratio = 0.1;
-let cell_spacing = 10; // TODO: max spacing value? based on the size of the stage
+let cell_spacing_ratio = 0.1;
 let should_invert_door_y = false;
 let road_size_ratio = 0.05;
-let road_dashes_per_cell = 15;
+let road_dashes_per_cell = 10;
 let main_stage_scale_by = 1.05;
 let building_clipping_enabled = true;
 let building_corridors_enabled = true;
@@ -72,6 +72,37 @@ const con_text_color_classes = {
     med: "med-con-text-color",
     high: "high-con-text-color"
 };
+
+const path_type_options = {
+    solid: {
+        dash: null,
+        exterior_offset: 1,
+        color: "red", // Konva.Util.getRandomColor()
+    }, 
+    dotted: {
+        dash: [0.00001, 0.05],
+        exterior_offset: 5,
+        color: "fuchsia", // Konva.Util.getRandomColor()
+    },
+    dotdashed: {
+        dash: [0.00001, 0.05, 0.1, 0.05],
+        exterior_offset: 4,
+        color: "green", // Konva.Util.getRandomColor()
+    },
+    dashed: {
+        dash: [0.1, 0.1],
+        exterior_offset: 3,
+        color: "cyan", //Konva.Util.getRandomColor()
+    },
+    longdashed: {
+        dash: [0.2, 0.05],
+        exterior_offset: 2,
+        color: "purple", //Konva.Util.getRandomColor()
+    }
+};
+let path_line_cap = "round"; // round, square, or butt
+let path_line_join = "round"; // round, mite, or bevel
+let show_path_type_color = true;
 
 // variables to support panning on the main stage
 let pan_start_pointer_pos = null;
@@ -951,13 +982,20 @@ function door_grid_path_to_center(building_grid_coords, door_id) {
 
 
 // get the door grid path to center coordinate
-function door_grid_path_to_border(building_grid_coords, door_id) {
+function door_grid_path_to_border(building_grid_coords, door_id, outline_offset, door_offset) {
 
     let cell_info = grid_object_at_coords(building_grid_coords);
     let door_mods = cell_info.building_mods.entrance_mods;
     let door_mod = door_mods[door_id];
 
     let door_grid_coords = grid_coords_for_building_or_door(door_mod.data_ref);
+
+    // offset door grid coords
+    if (door_mod.wall_direction === "vertical") {
+        door_grid_coords.y += door_offset;
+    } else {
+        door_grid_coords.x += door_offset;
+    }
 
     // adjusted to be door coordinates
     let building_grid_corners = [
@@ -1007,7 +1045,11 @@ function door_grid_path_to_border(building_grid_coords, door_id) {
             }
         });
 
-        best_point = left_intersections < right_intersections ? to_left_point : to_right_point;
+        if (left_intersections < right_intersections) {
+            best_point = calc_line_extend_point(door_grid_coords, to_left_point, -1 * outline_offset);
+        } else {
+            best_point = calc_line_extend_point(door_grid_coords, to_right_point, -1 * outline_offset);
+        }
     
     // door is horizontal
     } else {
@@ -1037,7 +1079,11 @@ function door_grid_path_to_border(building_grid_coords, door_id) {
             }
         });
 
-        best_point = top_intersections < bottom_intersections ? to_top_point : to_bottom_point;
+        if (top_intersections < bottom_intersections) {
+            best_point = calc_line_extend_point(door_grid_coords, to_top_point, -1 * outline_offset);
+        } else {
+            best_point = calc_line_extend_point(door_grid_coords, to_bottom_point, -1 * outline_offset);
+        }
     }
 
     return [door_grid_coords, best_point];
@@ -1677,7 +1723,10 @@ function calculate_cell_dims(grid_len) {
     // get number of spaces between grid cells
     let num_spaces = grid_len - 1;
 
-    // calculate the dimensions of each building cell
+    let no_spacing_main_width = stage.width() / grid_len;
+    let cell_spacing = cell_spacing_ratio * no_spacing_main_width;
+
+    // calculate the dimensions of each building cell including spacing
     let main_cell_width = (stage.width() - num_spaces * cell_spacing) / grid_len;
 
     main_cell_dims = {
@@ -2233,14 +2282,14 @@ function draw_selection_overlay(building_grid_coords, parent) {
     // find the coordinates to draw the cell at
     let cell_coords = grid_coords_to_main_stage_coords(building_grid_coords);
     cell_coords = {
-        x: cell_coords.x - cell_spacing/2,
-        y: cell_coords.y - cell_spacing/2
+        x: cell_coords.x - cell_dims.spacing/2,
+        y: cell_coords.y - cell_dims.spacing/2
     }
 
     // create the cell
     let overlay = new Konva.Rect({
-        width: cell_dims.size + cell_spacing,
-        height: cell_dims.size + cell_spacing,
+        width: cell_dims.size + cell_dims.spacing,
+        height: cell_dims.size + cell_dims.spacing,
         strokeWidth: cell_dims.size / 20,
         cornerRadius: 5,
         x: cell_coords.x,
@@ -2312,13 +2361,13 @@ function set_overlay_highlight(grid_coords, highlight_color_override) {
 function draw_roads(parent) {
 
     // draw roads squares around each grid cell
-    for (let y = 0; y < grid.length; y++) {
-        for (let x = 0; x < grid.length; x++) {
+    // for (let y = 0; y < grid.length; y++) {
+    //     for (let x = 0; x < grid.length; x++) {
 
-            let grid_coords = {x: x, y: y};
-            draw_road_rect(grid_coords, parent);
-        }
-    }
+    //         let grid_coords = {x: x, y: y};
+    //         draw_road_rect(grid_coords, parent);
+    //     }
+    // }
 
     // draw horizontal and vertical roads
     for (let i = 0; i <= 1; i++) {
@@ -2350,10 +2399,11 @@ function draw_roads(parent) {
 function draw_road_line(start_grid_point, end_grid_point, is_dashed, is_vertical, parent) {
 
     let cell_dims = get_cell_dims(true);
-    let road_size = (cell_dims.size + cell_spacing) * road_size_ratio;
+    // let road_size = (cell_dims.size + cell_dims.spacing) * road_size_ratio;
+    let road_size = cell_dims.spacing;
 
     let dash_spacing = road_size / 2;
-    let dash_size = ((cell_dims.size + cell_spacing) - ((road_dashes_per_cell ) * dash_spacing)) / road_dashes_per_cell;
+    let dash_size = ((cell_dims.size + cell_dims.spacing) - ((road_dashes_per_cell ) * dash_spacing)) / road_dashes_per_cell;
 
     // get amount to offset dash in certain direction based on input (creates pluses at intersections)
     let dash_size_offset = is_dashed ? dash_size / 2 : 0;
@@ -2366,13 +2416,13 @@ function draw_road_line(start_grid_point, end_grid_point, is_dashed, is_vertical
 
     // adjust stage coords to be in the middle of spacing
     start_stage_point = {
-        x: start_stage_point.x - cell_spacing/2 - dash_size_offset_x,
-        y: start_stage_point.y - cell_spacing/2 - dash_size_offset_y
+        x: start_stage_point.x - cell_dims.spacing/2 - dash_size_offset_x,
+        y: start_stage_point.y - cell_dims.spacing/2 - dash_size_offset_y
     };
 
     end_stage_point = {
-        x: end_stage_point.x - cell_spacing/2,
-        y: end_stage_point.y - cell_spacing/2
+        x: end_stage_point.x - cell_dims.spacing/2,
+        y: end_stage_point.y - cell_dims.spacing/2
     };
 
     let path = flatten_points([start_stage_point, end_stage_point]);
@@ -2385,7 +2435,7 @@ function draw_road_line(start_grid_point, end_grid_point, is_dashed, is_vertical
 
     // determine drawing values
     let road_color = is_dashed ? road_dash_color : road_background_color;
-    let stroke_width = is_dashed ?  road_size / 5 : road_size;
+    let stroke_width = is_dashed ?  road_size / 6 : road_size;
 
     // create new road path
     let road = new Konva.Line({
@@ -2407,27 +2457,27 @@ function draw_road_line(start_grid_point, end_grid_point, is_dashed, is_vertical
 function draw_road_rect(building_grid_coords, parent) {
 
     let cell_dims = get_cell_dims(true);
-    let road_size = cell_dims.size * road_size_ratio;
+    // let road_size = cell_dims.size * road_size_ratio;
+    let road_size = cell_dims.spacing;
 
     // convert the given grid coords to stage coords
     let stage_coords = grid_coords_to_main_stage_coords(building_grid_coords);
 
     stage_coords = {
-        x: stage_coords.x - cell_spacing/2,
-        y: stage_coords.y - cell_spacing/2
+        x: stage_coords.x - cell_dims.spacing/2,
+        y: stage_coords.y - cell_dims.spacing/2
     };
 
     // google maps road color 
     let road_background_color = "#AAB9C9";
     let stroke_width = road_size;
 
-
     // create new road rect
     let road = new Konva.Rect({
         x: stage_coords.x,
         y: stage_coords.y,
-        width: cell_dims.size + cell_spacing,
-        height: cell_dims.size + cell_spacing,
+        width: cell_dims.size + cell_dims.spacing,
+        height: cell_dims.size + cell_dims.spacing,
         stroke: road_background_color,
         strokeWidth: stroke_width,
         cornerRadius: road_size * 1.5,
@@ -2447,14 +2497,54 @@ function test_draw_paths() {
     path_layer.destroy();
     path_layer = new Konva.Layer();
     stage.add(path_layer);
-    
-    draw_internal_path_part({x:0, y:5}, 1, 4, path_layer);
-    draw_external_path_part({x:0, y:5}, 4, {x: 1, y: 3}, 1, path_layer);
-    draw_internal_path_part({x:1, y:3}, 1, 3, path_layer);
-    draw_external_path_part({x:1, y:3}, 3, {x: 3, y: 1}, 3, path_layer);
-    draw_internal_path_part({x:3, y:1}, 3, 2, path_layer);
-    draw_external_path_part({x:3, y:1}, 2, {x: 5, y: 0}, 1, path_layer);
-    draw_internal_path_part({x:5, y:0}, 1, 2, path_layer);
+
+    try {
+    draw_internal_path_part({x:0, y:5}, 1, 4, path_layer, "dashed");
+    draw_internal_path_part({x:1, y:3}, 1, 3, path_layer, "dashed");
+    draw_internal_path_part({x:3, y:1}, 3, 2, path_layer, "dashed");
+    draw_internal_path_part({x:5, y:0}, 1, 2, path_layer, "dashed");
+    draw_external_path_part({x:0, y:5}, 4, {x:1, y:3}, 1, path_layer, "dashed");
+    draw_external_path_part({x:1, y:3}, 3, {x:3, y:1}, 3, path_layer, "dashed");
+    draw_external_path_part({x:3, y:1}, 2, {x:5, y:0}, 1, path_layer, "dashed");
+    } catch(e){console.log(e);}
+
+    try {
+    draw_internal_path_part({x:0, y:5}, 1, 5, path_layer, "dotted");
+    draw_external_path_part({x:0, y:5}, 5, {x:3, y:5}, 2, path_layer, "dotted");
+    draw_internal_path_part({x:3, y:5}, 2, 4, path_layer, "dotted");
+    draw_external_path_part({x:3, y:5}, 4, {x:4, y:3}, 1, path_layer, "dotted");
+    draw_internal_path_part({x:4, y:3}, 1, 4, path_layer, "dotted");
+    draw_external_path_part({x:4, y:3}, 4, {x:5, y:0}, 1, path_layer, "dotted");
+    draw_internal_path_part({x:5, y:0}, 1, 2, path_layer, "dotted");
+    } catch(e){console.log(e);}
+
+    try {
+    draw_internal_path_part({x:0, y:5}, 1, 3, path_layer, "solid");
+    draw_external_path_part({x:0, y:5}, 3, {x:0, y:4}, 3, path_layer, "solid");
+    draw_internal_path_part({x:0, y:4}, 3, 2, path_layer, "solid");
+    draw_external_path_part({x:0, y:4}, 2, {x:1, y:1}, 1, path_layer, "solid");
+    draw_internal_path_part({x:1, y:1}, 1, 2, path_layer, "solid");
+    draw_external_path_part({x:1, y:1}, 2, {x:5, y:0}, 1, path_layer, "solid");
+    draw_internal_path_part({x:5, y:0}, 1, 2, path_layer, "solid");
+    } catch(e){console.log(e);}
+
+    try {
+    draw_internal_path_part({x:0, y:5}, 1, 4, path_layer, "dotdashed");
+    draw_external_path_part({x:0, y:5}, 4, {x:4, y:1}, 1, path_layer, "dotdashed");
+    draw_internal_path_part({x:4, y:1}, 1, 3, path_layer, "dotdashed");
+    draw_external_path_part({x:4, y:1}, 3, {x:5, y:0}, 1, path_layer, "dotdashed");
+    draw_internal_path_part({x:5, y:0}, 1, 2, path_layer, "dotdashed");
+    } catch(e){console.log(e);}
+
+    try {
+    draw_internal_path_part({x:0, y:5}, 1, 4, path_layer, "longdashed");
+    draw_external_path_part({x:0, y:5}, 4, {x:2, y:4}, 3, path_layer, "longdashed");
+    draw_internal_path_part({x:2, y:4}, 3, 2, path_layer, "longdashed");
+    draw_external_path_part({x:2, y:4}, 2, {x:3, y:2}, 1, path_layer, "longdashed");
+    draw_internal_path_part({x:3, y:2}, 1, 4, path_layer, "longdashed");
+    draw_external_path_part({x:3, y:2}, 4, {x:5, y:0}, 1, path_layer, "longdashed");
+    draw_internal_path_part({x:5, y:0}, 1, 2, path_layer, "longdashed");
+    } catch(e){console.log(e);}
 }
 
 // draw the current paths on the main stage
@@ -2464,6 +2554,8 @@ function draw_paths() {
     path_layer.destroy();
     path_layer = new Konva.Layer();
     stage.add(path_layer);
+
+    let path_type = "dashed";
 
     for (let i = 1; i < current_paths.length - 2; i++) {
 
@@ -2490,50 +2582,66 @@ function draw_paths() {
 
         // draw internal path if buildings have the same id
         if (building1.id === building2.id) {
-            draw_internal_path_part(building1_grid_coords, building1.entrances[0].id, building2.entrances[0].id, path_layer);
+            draw_internal_path_part(building1_grid_coords, building1.entrances[0].id, building2.entrances[0].id, path_layer, path_type);
         } else {
-            draw_external_path_part(building1_grid_coords, building1.entrances[0].id, building2_grid_coords, building2.entrances[0].id, path_layer);
+            draw_external_path_part(building1_grid_coords, building1.entrances[0].id, building2_grid_coords, building2.entrances[0].id, path_layer, path_type);
         }
 
     }
 }
 
 
+// path type options to useable stage coordinates
+function get_main_stage_path_dash(path_type) {
+
+    let path_options = path_type_options[path_type];
+    let door_dims = get_door_dims(true);
+    let cell_dims = get_cell_dims(true);
+
+    if (path_options.dash === null) {
+        return null;
+    }
+
+    return path_options.dash.map((dash_part) => dash_part * cell_dims.size);
+}
+
+
 // draw external path from a given building to another building
-function draw_external_path_part(building1_grid_coords, door1_id, building2_grid_coords, door2_id, parent) {
+function draw_external_path_part(building1_grid_coords, door1_id, building2_grid_coords, door2_id, parent, path_type) {
 
     // figuring this method out was way more complicated than it had any right or need to be ...
 
     let cell_dims = get_cell_dims(true);
     let door_dims = get_door_dims(true);
 
-    let path_color = "red";
-    let path_width = door_dims.size / 4.5;
+    // get path drawing options 
+    let path_options = path_type_options[path_type];
+    let path_color = show_path_type_color ? path_options.color : "red";
+    let path_width = door_dims.size / 5;
+    let path_grid_offset = path_options.exterior_offset * (path_width / cell_dims.size * 1.25);
+    let door_grid_offset = (path_options.exterior_offset - 3) * (path_width / cell_dims.size);
 
     let cell1_info = grid_object_at_coords(building1_grid_coords);
     let cell2_info = grid_object_at_coords(building2_grid_coords);
-
-    // console.log(cell1_info, cell2_info);
-
     let door1_mods = cell1_info.building_mods.entrance_mods[door1_id];
     let door2_mods = cell2_info.building_mods.entrance_mods[door2_id];
 
     let door1_grid_coords = grid_coords_for_building_or_door(door1_mods.data_ref);
-    let door2_grid_coords = grid_coords_for_building_or_door(door2_mods.data_ref)
+    let door2_grid_coords = grid_coords_for_building_or_door(door2_mods.data_ref);
 
     // get different cell corners for building 1 (adjusted to door coordinates)
     let building1_grid_corners = [
-        {x:building1_grid_coords.x-0.5, y:building1_grid_coords.y-0.5}, 
-        {x:building1_grid_coords.x+0.5, y:building1_grid_coords.y-0.5}, 
-        {x:building1_grid_coords.x+0.5, y:building1_grid_coords.y+0.5},
-        {x:building1_grid_coords.x-0.5, y:building1_grid_coords.y+0.5}
+        {x:building1_grid_coords.x-0.5+path_grid_offset, y:building1_grid_coords.y-0.5+path_grid_offset}, 
+        {x:building1_grid_coords.x+0.5-path_grid_offset, y:building1_grid_coords.y-0.5+path_grid_offset}, 
+        {x:building1_grid_coords.x+0.5-path_grid_offset, y:building1_grid_coords.y+0.5-path_grid_offset},
+        {x:building1_grid_coords.x-0.5+path_grid_offset, y:building1_grid_coords.y+0.5-path_grid_offset}
     ];
 
     let building2_grid_corners = [
-        {x:building2_grid_coords.x-0.5, y:building2_grid_coords.y-0.5}, 
-        {x:building2_grid_coords.x+0.5, y:building2_grid_coords.y-0.5}, 
-        {x:building2_grid_coords.x+0.5, y:building2_grid_coords.y+0.5},
-        {x:building2_grid_coords.x-0.5, y:building2_grid_coords.y+0.5}
+        {x:building2_grid_coords.x-0.5+path_grid_offset, y:building2_grid_coords.y-0.5+path_grid_offset}, 
+        {x:building2_grid_coords.x+0.5-path_grid_offset, y:building2_grid_coords.y-0.5+path_grid_offset}, 
+        {x:building2_grid_coords.x+0.5-path_grid_offset, y:building2_grid_coords.y+0.5-path_grid_offset},
+        {x:building2_grid_coords.x-0.5+path_grid_offset, y:building2_grid_coords.y+0.5-path_grid_offset}
     ];
 
     let best_building1_corner = null;
@@ -2550,17 +2658,14 @@ function draw_external_path_part(building1_grid_coords, door1_id, building2_grid
             // building 1 is above building 2
             if (building1_grid_coords.y < building2_grid_coords.y) {
                 building1_corner_options = [building1_grid_corners[2], building1_grid_corners[3]];
-                console.log("building 1 above");
 
             // building 1 is below building 2
             } else {
                 building1_corner_options = [building1_grid_corners[0], building1_grid_corners[1]];
-                console.log("building 1 below");
             }
 
         // buildings are on the same y coordinate
         } else {
-
 
             // building 1 is to the left of building 2
             if (building1_grid_coords.x < building2_grid_coords.x) {
@@ -2580,10 +2685,7 @@ function draw_external_path_part(building1_grid_coords, door1_id, building2_grid
         let building1_corner_options_index = building1_corner_options.indexOf(best_building1_corner);
         let building2_corner_index_offset = building1_corner_options_index === 0 ? 3: 1;
 
-        console.log("building1_corner_index: ", building1_corner_index);
-        
         best_building2_corner = building2_grid_corners[(building1_corner_index + building2_corner_index_offset) % 4];
-
 
     // buildings are diagonal from each other
     } else {
@@ -2615,20 +2717,26 @@ function draw_external_path_part(building1_grid_coords, door1_id, building2_grid
     }
 
     // calculate points straight from door to cell border
-    let door1_to_border = door_grid_path_to_border(building1_grid_coords, door1_id)[1];
-    let door2_to_border = door_grid_path_to_border(building2_grid_coords, door2_id)[1];
+    let door1_to_border_results = door_grid_path_to_border(building1_grid_coords, door1_id, path_grid_offset, door_grid_offset);
+    let door2_to_border_results = door_grid_path_to_border(building2_grid_coords, door2_id, path_grid_offset, door_grid_offset);
+
+    // extract the offsetted door coordinates the the border point from the results
+    let offset_door1 = door1_to_border_results[0];
+    let offset_door2 = door2_to_border_results[0];
+    let offset_door1_to_border = door1_to_border_results[1];
+    let offset_door2_to_border = door2_to_border_results[1];
 
     // generate both possible corners from the cell outline to the best chosen cell corner and select the one that is another cell corner
-    let door1_border_to_cell_corner1 = calc_corner_between_points(door1_to_border, best_building1_corner, true, false);
-    let door1_border_to_cell_corner2 = calc_corner_between_points(door1_to_border, best_building1_corner, false, false);
+    let door1_border_to_cell_corner1 = calc_corner_between_points(offset_door1_to_border, best_building1_corner, true, false);
+    let door1_border_to_cell_corner2 = calc_corner_between_points(offset_door1_to_border, best_building1_corner, false, false);
     let door1_border_cell_corner1_is_other_cell_corner = building1_grid_corners.some(function (cell_corner) {
         return floats_eq(cell_corner.x, door1_border_to_cell_corner1.x) && floats_eq(cell_corner.y, door1_border_to_cell_corner1.y)
     });
     let door1_outline_corner_to_cell_corner = door1_border_cell_corner1_is_other_cell_corner ? door1_border_to_cell_corner1 : door1_border_to_cell_corner2;
 
     // generate both possible corners from the cell outline to the best chosen cell corner and select the one that is another cell corner
-    let door2_border_to_cell_corner1 = calc_corner_between_points(door2_to_border, best_building2_corner, true, false);
-    let door2_border_to_cell_corner2 = calc_corner_between_points(door2_to_border, best_building2_corner, false, false);
+    let door2_border_to_cell_corner1 = calc_corner_between_points(offset_door2_to_border, best_building2_corner, true, false);
+    let door2_border_to_cell_corner2 = calc_corner_between_points(offset_door2_to_border, best_building2_corner, false, false);
     let door2_border_cell_corner1_is_other_cell_corner = building2_grid_corners.some(function (cell_corner) {
         return floats_eq(cell_corner.x, door2_border_to_cell_corner1.x) && floats_eq(cell_corner.y, door2_border_to_cell_corner1.y)
     });
@@ -2637,8 +2745,10 @@ function draw_external_path_part(building1_grid_coords, door1_id, building2_grid
     // convert points to stage coordinates
     let door1_stage = door_grid_coords_to_stage_coords(door1_grid_coords, building1_grid_coords, true);
     let door2_stage = door_grid_coords_to_stage_coords(door2_grid_coords, building2_grid_coords, true);
-    let door1_border_stage = door_grid_coords_to_stage_coords(door1_to_border, building1_grid_coords, true);
-    let door2_border_stage = door_grid_coords_to_stage_coords(door2_to_border, building2_grid_coords, true);
+    let door1_offset_stage = door_grid_coords_to_stage_coords(offset_door1, building1_grid_coords, true);
+    let door2_offset_stage = door_grid_coords_to_stage_coords(offset_door2, building2_grid_coords, true);
+    let door1_offset_border_stage = door_grid_coords_to_stage_coords(offset_door1_to_border, building1_grid_coords, true);
+    let door2_offset_border_stage = door_grid_coords_to_stage_coords(offset_door2_to_border, building2_grid_coords, true);
     let door1_border_corner_stage = door_grid_coords_to_stage_coords(door1_outline_corner_to_cell_corner, building1_grid_coords, true);
     let door2_border_corner_stage = door_grid_coords_to_stage_coords(door2_outline_corner_to_cell_corner, building2_grid_coords, true);
     let door1_cell_corner_stage = door_grid_coords_to_stage_coords(best_building1_corner, building1_grid_coords, true);
@@ -2648,30 +2758,40 @@ function draw_external_path_part(building1_grid_coords, door1_id, building2_grid
     let cell_corners_corner = calc_corner_between_points(door1_cell_corner_stage, door2_cell_corner_stage, true, false);
 
     // construct final path
-    let external_stage_path = [door1_stage, door1_border_stage, door1_border_corner_stage, door1_cell_corner_stage, 
-        cell_corners_corner, door2_cell_corner_stage, door2_border_corner_stage, door2_border_stage, door2_stage];
+    let external_stage_path = [door1_stage, door1_offset_stage, door1_offset_border_stage, door1_border_corner_stage, door1_cell_corner_stage, 
+        cell_corners_corner, door2_cell_corner_stage, door2_border_corner_stage, door2_offset_border_stage, door2_offset_stage, door2_stage];
 
     // create the shape for the external path
     let external_path_shape = new Konva.Line({
         points: flatten_points(external_stage_path),
         stroke: path_color,
         strokeWidth: path_width,
-        perfectDrawEnabled: false
+        perfectDrawEnabled: false,
+        lineCap: path_line_cap,
+        lineJoin: path_line_join,
     });
+
+    // set the line dash style if necessary
+    let path_dash = get_main_stage_path_dash(path_type);
+    if (path_dash !== null) {
+        external_path_shape.dash(path_dash);
+    }
 
     parent.add(external_path_shape);
 }
 
 
 // draw internal path from one door to another of a given building
-function draw_internal_path_part(building_grid_coords, door1_id, door2_id, parent) {
+function draw_internal_path_part(building_grid_coords, door1_id, door2_id, parent, path_type) {
 
     let cell_info = grid_object_at_coords(building_grid_coords);
     let cell_dims = get_cell_dims(true);
     let door_dims = get_door_dims(true);
 
-    let path_color = "green";
-    let path_width = door_dims.size / 4.5;
+    // get path display options
+    let path_options = path_type_options[path_type];
+    let path_color = show_path_type_color ? path_options.color : "green";
+    let path_width = door_dims.size / 5;
 
     // get the path from each door to the center point
     let door1_to_center = door_grid_path_to_center(building_grid_coords, door1_id);
@@ -2700,19 +2820,27 @@ function draw_internal_path_part(building_grid_coords, door1_id, door2_id, paren
         full_grid_path = [door1_grid_coords, door1_middle_grid_coords, center_grid_coords, door2_middle_grid_coords, door2_grid_coords];
     }
 
-    // cpnvert internal path to stage coordinates
+    // convert internal path to stage coordinates
     let full_stage_path = full_grid_path.map((grid_point) => door_grid_coords_to_stage_coords(grid_point, building_grid_coords, true));
 
     let internal_path_shape = new Konva.Line({
         points: flatten_points(full_stage_path),
         stroke: path_color,
         strokeWidth: path_width,
-        perfectDrawEnabled: false
+        perfectDrawEnabled: false,
+        lineCap: path_line_cap,
+        lineJoin: path_line_join,
+        opacity: 0.5
     });
+
+    // draw a certain dash type if necessary
+    let path_dash = get_main_stage_path_dash(path_type);
+    if (path_dash !== null) {
+        internal_path_shape.dash(path_dash);
+    }
 
     parent.add(internal_path_shape);
 }
-
 
 
 /* -------------------------------------------------------------------------- */
