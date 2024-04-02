@@ -26,9 +26,11 @@ html, body {
 
 #right-sidebar {
     border-left: solid 2px #444;
-    overflow-y:scroll;
+    /* overflow-y:scroll; */
     /* background-color: #8ecae6; */
     grid-column: 3;
+    display: flex; flex-direction: column;
+    overflow: hidden;
 }
 
 #navbar {
@@ -233,13 +235,10 @@ html, body {
     accent-color: black;
 }
 
-.congestion-value-percent {
-    text-align: right;
-    float: right;
-}
-
 .congestion-value-container {
-
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
 }
 
 #display-options-buttons-container {
@@ -249,25 +248,32 @@ html, body {
     gap: 5px;
 }
 
+/* ------------------------- right siderbar elements ------------------------ */
 
-/* --------------------- right siderbar navbar elements --------------------- */
-
+#right-sidebar-content {
+    overflow-y:scroll;
+    flex-grow: 1;
+}
 
 #right-sidebar-navbar {
     /* padding: 10px; */
     border-bottom: solid 2px #444;
     /* background-color: #eee; */
+    display: flex;
+    flex-direction: row;
 }
 
 .navbar-item {
+    flex: 1 1 0px;
     padding: 10px;
-    height:100%;
     cursor: pointer;
     color: #444;
     background-color: #eee;
-    display: inline-block;
-    margin-right: -4px; /* fix inline block spacing */
     font-weight: bold;
+    text-align: center;
+}
+
+.navbar-separator {
     border-right: solid 2px #444;
 }
 

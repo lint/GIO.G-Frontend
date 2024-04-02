@@ -89,15 +89,15 @@
             <div id="congestion-labels-values-container">
               <div class="congestion-value-container">
                 <span>Low Congestion:</span>
-                <span id="low-con-value" class="congestion-value-percent low-con-text-color"></span>
+                <span id="low-con-value" class="low-con-text-color"></span>
               </div>
               <div class="congestion-value-container">
                 <span>Medium Congestion:</span>
-                <span id="med-con-value" class="congestion-value-percent med-con-text-color"></span>
+                <span id="med-con-value" class="med-con-text-color"></span>
               </div>
               <div class="congestion-value-container">
                 <span>High Congestion:</span>
-                <span id="high-con-value" class="congestion-value-percent high-con-text-color"></span>
+                <span id="high-con-value" class="high-con-text-color"></span>
               </div>
             </div>
           </div>
@@ -253,31 +253,34 @@
 
     <div id="right-sidebar-navbar">
       <div id="navbar-building-editor-button" class="navbar-item navbar-item-active" onclick="handle_building_editor_nav_button()">Building Editor</div>
+      <div class="navbar-separator"></div>
       <div id="navbar-path-stats-button" class="navbar-item" onclick="handle_path_stats_nav_button()">Path Statistics</div>
     </div>
 
-    <div id="building-editor-container"> 
+    <div id="right-sidebar-content">
       
-      <div class="building-editor-section">
-        <div class="title">Building Editor</div>
-        <div id="building-editor-stage-container">
-          <div id="building-editor-stage"></div>
+      <div id="building-editor-container"> 
+        <div class="building-editor-section">
+          <div class="title">Building Editor</div>
+          <div id="building-editor-stage-container">
+            <div id="building-editor-stage"></div>
+          </div>
         </div>
+
+        <div id="selected-cell-info-controls-container" class="building-editor-section">
+          <div id="selected-cell-info-text-container"></div>
+          <div id="selected-building-actions-container"></div>
+        </div>
+
+        <div id="selected-building-options-container" class="building-editor-section"></div>
+        <div id="selected-building-doors-container" class="building-editor-section"></div>
       </div>
 
-      <div id="selected-cell-info-controls-container" class="building-editor-section">
-        <div id="selected-cell-info-text-container"></div>
-        <div id="selected-building-actions-container"></div>
+      <div id="path-stats-container"> 
+      
+        <div class="title">Path Statistics</div>
+
       </div>
-
-      <div id="selected-building-options-container" class="building-editor-section"></div>
-      <div id="selected-building-doors-container" class="building-editor-section"></div>
-    </div>
-
-    <div id="path-stats-container"> 
-    
-      <div class="title">Path Statistics</div>
-
     </div>
   </div>
 </div>
