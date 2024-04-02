@@ -50,6 +50,7 @@ let cell_spacing = 10; // TODO: max spacing value? based on the size of the stag
 let should_invert_door_y = false;
 let road_size_ratio = 0.05;
 let road_dashes_per_cell = 15;
+let main_stage_scale_by = 1.05;
 let building_clipping_enabled = true;
 let building_corridors_enabled = true;
 let building_con_colors_enabled = true;
@@ -79,6 +80,9 @@ let is_panning = false;
 let is_pan_attempted = false;
 const pan_min_dist = 5;
 
+// store the original editor width to support responsive scaling
+let orig_editor_width = 0;
+
 // define congestion constants
 const con_std_dev = 20;
 const con_level_names = {
@@ -94,17 +98,8 @@ const con_vals = {
 };
 
 // define stages
-let stage = new Konva.Stage({
-    container: "graph-container",
-    width: 650,
-    height: 650
-});
-
-let editor_stage = new Konva.Stage({
-    container: "building-editor-stage",
-    width: 300,
-    height: 300
-});
+let stage = null;
+let editor_stage = null;
 
 // define layer variables for the main stage (created when main stage is drawn)
 let selection_layer = null;
@@ -121,9 +116,12 @@ let path_layer = null;
 // execute when the document is ready
 document.addEventListener("DOMContentLoaded", function() { 
 
+    // create the stages to fit to parent containers
+    create_stages();
+
     // generate a graph with the default config
     // generate_graph(default_config);
-    
+
     // load a preset graph
     let preset = "graph_25_0.75.json"
     update_preset_select_display(preset)
@@ -143,6 +141,7 @@ document.addEventListener("DOMContentLoaded", function() {
 
     // clear necessary content in the building editor
     reset_building_editor();
+
 });
 
 
@@ -151,6 +150,9 @@ window.addEventListener("resize", function(event) {
 
     // update sidebar accordion cell heights
     update_accordion_heights();
+
+    // update stage dimensions to fit parent container
+    size_stages_to_containers();
 
 }, true);
 
@@ -1677,18 +1679,15 @@ function calculate_cell_dims(grid_len) {
 
     // calculate the dimensions of each building cell
     let main_cell_width = (stage.width() - num_spaces * cell_spacing) / grid_len;
-    let main_cell_height = (stage.height() - num_spaces * cell_spacing) / grid_len;
 
     main_cell_dims = {
-        width: main_cell_width,
-        height: main_cell_height,
+        size: main_cell_width,
         spacing: cell_spacing,
         stroke: 2
     };
 
     editor_cell_dims = {
-        width: editor_stage.width(),
-        height: editor_stage.height(),
+        size: editor_stage.width(),
         spacing: 0,
         stroke: 4
     };
@@ -1707,8 +1706,7 @@ function get_door_dims(for_main_stage) {
     // define dimensions for doors given dimensions for cell
     let cell_dims = get_cell_dims(for_main_stage);
     return {
-        width: cell_dims.width * door_len_ratio,
-        height: cell_dims.height * door_len_ratio,
+        size: cell_dims.size * door_len_ratio,
         stroke: for_main_stage ? 1 : 2
     };
 }
@@ -1721,8 +1719,8 @@ function get_door_dims(for_main_stage) {
 function draw_main_stage() {
 
     // reset stage scale and position
-    stage.scale({x:1, y:1});
-    stage.position({x:0, y:0});
+    // stage.scale({x:1, y:1});
+    // stage.position({x:0, y:0});
 
     // reset cell selections
     reset_cell_selections();
@@ -2047,14 +2045,14 @@ function draw_entrances(building_grid_coords, parent, for_main_stage) {
         let door_stroke_color = door_mod.open ? "black" : "red";
 
         let door_shape = new Konva.Rect({
-            width: door_dims.width,
-            height: door_dims.height,
+            width: door_dims.size,
+            height: door_dims.size,
             fill: door_color,
             // fill: door_colors[d],
             stroke: door_stroke_color,
             strokeWidth: door_dims.stroke,
-            x: door_stage_coords.x - door_dims.width/2, // adjust for rect positioning being top left corner
-            y: door_stage_coords.y - door_dims.height/2,
+            x: door_stage_coords.x - door_dims.size/2, // adjust for rect positioning being top left corner
+            y: door_stage_coords.y - door_dims.size/2,
             perfectDrawEnabled: false
         });
         
@@ -2104,8 +2102,8 @@ function draw_entrances(building_grid_coords, parent, for_main_stage) {
 
                 // adjust the point to door top left coordinate rather than center
                 let best_point_adjusted = {
-                    x: best_point_and_line.point.x - door_dims.width/2,
-                    y: best_point_and_line.point.y - door_dims.height/2
+                    x: best_point_and_line.point.x - door_dims.size/2,
+                    y: best_point_and_line.point.y - door_dims.size/2
                 };
 
                 // set the new position
@@ -2134,7 +2132,7 @@ function draw_corridors(building_grid_coords, parent, for_main_stage) {
     let door_mods = cell_info.building_mods.entrance_mods;
 
     let corridor_color = building_con_colors_enabled ? corridor_con_colors[cell_info.building_mods.con_level] : corridor_con_colors["constant"];
-    let corridor_width = door_dims.width / 3;
+    let corridor_width = door_dims.size / 3;
 
     // create new corridors group
     let corridors_group = new Konva.Group();
@@ -2241,9 +2239,9 @@ function draw_selection_overlay(building_grid_coords, parent) {
 
     // create the cell
     let overlay = new Konva.Rect({
-        width: cell_dims.width + cell_spacing,
-        height: cell_dims.height + cell_spacing,
-        strokeWidth: cell_dims.width / 20,
+        width: cell_dims.size + cell_spacing,
+        height: cell_dims.size + cell_spacing,
+        strokeWidth: cell_dims.size / 20,
         cornerRadius: 5,
         x: cell_coords.x,
         y: cell_coords.y,
@@ -2352,10 +2350,10 @@ function draw_roads(parent) {
 function draw_road_line(start_grid_point, end_grid_point, is_dashed, is_vertical, parent) {
 
     let cell_dims = get_cell_dims(true);
-    let road_size = (cell_dims.width + cell_spacing) * road_size_ratio;
+    let road_size = (cell_dims.size + cell_spacing) * road_size_ratio;
 
     let dash_spacing = road_size / 2;
-    let dash_size = ((cell_dims.width + cell_spacing) - ((road_dashes_per_cell ) * dash_spacing)) / road_dashes_per_cell;
+    let dash_size = ((cell_dims.size + cell_spacing) - ((road_dashes_per_cell ) * dash_spacing)) / road_dashes_per_cell;
 
     // get amount to offset dash in certain direction based on input (creates pluses at intersections)
     let dash_size_offset = is_dashed ? dash_size / 2 : 0;
@@ -2409,7 +2407,7 @@ function draw_road_line(start_grid_point, end_grid_point, is_dashed, is_vertical
 function draw_road_rect(building_grid_coords, parent) {
 
     let cell_dims = get_cell_dims(true);
-    let road_size = cell_dims.width * road_size_ratio;
+    let road_size = cell_dims.size * road_size_ratio;
 
     // convert the given grid coords to stage coords
     let stage_coords = grid_coords_to_main_stage_coords(building_grid_coords);
@@ -2428,8 +2426,8 @@ function draw_road_rect(building_grid_coords, parent) {
     let road = new Konva.Rect({
         x: stage_coords.x,
         y: stage_coords.y,
-        width: cell_dims.width + cell_spacing,
-        height: cell_dims.height + cell_spacing,
+        width: cell_dims.size + cell_spacing,
+        height: cell_dims.size + cell_spacing,
         stroke: road_background_color,
         strokeWidth: stroke_width,
         cornerRadius: road_size * 1.5,
@@ -2510,7 +2508,7 @@ function draw_external_path_part(building1_grid_coords, door1_id, building2_grid
     let door_dims = get_door_dims(true);
 
     let path_color = "red";
-    let path_width = door_dims.width / 4.5;
+    let path_width = door_dims.size / 4.5;
 
     let cell1_info = grid_object_at_coords(building1_grid_coords);
     let cell2_info = grid_object_at_coords(building2_grid_coords);
@@ -2673,7 +2671,7 @@ function draw_internal_path_part(building_grid_coords, door1_id, door2_id, paren
     let door_dims = get_door_dims(true);
 
     let path_color = "green";
-    let path_width = door_dims.width / 4.5;
+    let path_width = door_dims.size / 4.5;
 
     // get the path from each door to the center point
     let door1_to_center = door_grid_path_to_center(building_grid_coords, door1_id);
@@ -2725,8 +2723,8 @@ function draw_internal_path_part(building_grid_coords, door1_id, door2_id, paren
 // convert grid coordinates to stage cell coordinates based on the provided dimensions
 function grid_coords_to_main_stage_coords(grid_coords) {
     return {
-        x: grid_coords.x * (main_cell_dims.width + main_cell_dims.spacing),
-        y: grid_coords.y * (main_cell_dims.height + main_cell_dims.spacing)
+        x: grid_coords.x * (main_cell_dims.size + main_cell_dims.spacing),
+        y: grid_coords.y * (main_cell_dims.size + main_cell_dims.spacing)
     };
 }
 
@@ -2747,8 +2745,8 @@ function door_grid_coords_to_stage_coords(door_grid_coords, building_grid_coords
 
     // get final door coordinates by scaling and translating
     return {
-        x: building_cell_coords.x + (door_grid_coord_offset.x * cell_dims.width) + (cell_dims.width / 2), // +size/2 to get cell center coordinates rather than top left (used in rect positioning)
-        y: building_cell_coords.y + (door_grid_coord_offset.y * cell_dims.height) + (cell_dims.height / 2),
+        x: building_cell_coords.x + (door_grid_coord_offset.x * cell_dims.size) + (cell_dims.size / 2), // +size/2 to get cell center coordinates rather than top left (used in rect positioning)
+        y: building_cell_coords.y + (door_grid_coord_offset.y * cell_dims.size) + (cell_dims.size / 2),
     };
 }
 
@@ -2763,8 +2761,8 @@ function door_stage_coords_to_grid_coords(door_stage_coords, building_grid_coord
 
     // unscale and untranslate the stage coords to get the offset of the door to the building
     let door_grid_coord_offset = {
-        x: (door_stage_coords.x - building_cell_coords.x - (cell_dims.width / 2)) / cell_dims.width,
-        y: (door_stage_coords.y - building_cell_coords.y - (cell_dims.height / 2)) / cell_dims.height,
+        x: (door_stage_coords.x - building_cell_coords.x - (cell_dims.size / 2)) / cell_dims.size,
+        y: (door_stage_coords.y - building_cell_coords.y - (cell_dims.size / 2)) / cell_dims.size,
     };
 
     // get the door grid coords by adding the offset to the building coords
@@ -3845,8 +3843,104 @@ function handle_cell_highlights_visible_button() {
 
 
 /* -------------------------------------------------------------------------- */
-/*                           stage movement controls                          */
+/*                               stage controls                               */
 /* -------------------------------------------------------------------------- */
+
+
+/* ----------------------------- stage resizing ----------------------------- */
+
+
+// create stage objects using their containers' height
+function create_stages() {
+
+    let main_stage_initial_size = 700;
+
+    // get the containers of the stages and their parents
+    let main_stage_container = document.getElementById("graph-stage");
+    let editor_stage_container = document.getElementById("building-editor-stage");
+
+    // get necessary dimensions of the container cells
+    let main_container_width = main_stage_container.offsetWidth;
+    let main_container_height = main_stage_container.offsetHeight;
+    let editor_container_width = editor_stage_container.offsetWidth; // don't need height since it's a square
+
+    // determine the scale for the stage
+    let main_scale = Math.min(1, main_container_height / main_container_width);
+    if (main_stage_initial_size < main_container_width) {
+        main_scale *= main_stage_initial_size / main_container_width;
+    }
+
+    // determine offset to place graph in the middle of the stage
+    let main_x_offset = (main_container_width - main_container_width * main_scale) / 2;
+    let main_y_offset = (main_container_height - main_container_width * main_scale) / 2;
+
+    console.log("create stages, main width: ", main_container_width, "height: ", main_container_height);
+    console.log("editor width: ", editor_container_width);
+
+    // create the stages
+    stage = new Konva.Stage({
+        container: "graph-stage",
+        width: Math.floor(main_container_width) - 1, // slightly underestimate size to prevent display bugs
+        height: Math.floor(main_container_height) - 1,
+        scale: {x:main_scale, y:main_scale},
+        x: main_x_offset,
+        y: main_y_offset
+    });
+
+    editor_stage = new Konva.Stage({
+        container: "building-editor-stage",
+        width: Math.floor(editor_container_width) - 1,
+        height: Math.floor(editor_container_width) - 1
+    });
+    orig_editor_width = Math.floor(editor_container_width) - 1;
+
+    // setup callbacks for the main stage
+    stage.on("mousedown", main_stage_mousedown);
+    stage.on("mousemove", main_stage_mousemove);
+    stage.on("mouseout", main_stage_mouseout);
+    stage.on("mouseup", main_stage_mouseup);
+    stage.on("wheel", main_stage_wheel);
+}
+
+
+// update stage objects using their containers' height
+function size_stages_to_containers() {
+
+    if (stage === null || editor_stage === null) {
+        return;
+    }
+
+    // get the stage containers and their parent containers
+    let main_stage_container = document.getElementById("graph-stage");
+    let editor_stage_container = document.getElementById("building-editor-stage");
+    let main_stage_container_container = main_stage_container.parentNode;
+    let editor_stage_container_container = editor_stage_container.parentNode;
+
+    // temporarily set the display to none to get accurate readings of sizes
+    main_stage_container.style.display = "none";
+    editor_stage_container.style.display = "none";
+
+    // get the sizes of the containers
+    let main_container_width = main_stage_container_container.offsetWidth;
+    let main_container_height = main_stage_container_container.offsetHeight;
+    let editor_container_width = editor_stage_container_container.offsetWidth;
+
+    // reset display status
+    main_stage_container.style.display = "";
+    editor_stage_container.style.display = "";
+
+    // get the scale of the editor stage based on the container width compared with the first editor width
+    let editor_scale = editor_container_width / orig_editor_width;
+
+    // set the widths and heights of the stages (slightly under container size to not cause weird overflow issues)
+    stage.width(Math.floor(main_container_width) - 1);
+    stage.height(Math.floor(main_container_height) - 1);
+    editor_stage.width(Math.floor(editor_container_width) - 1);
+    editor_stage.height(Math.floor(editor_container_width) - 1);
+
+    // scale the editor stage
+    editor_stage.scale({ x: editor_scale, y: editor_scale });
+}
 
 
 /* -------------------------- stage panning support ------------------------- */
@@ -3864,8 +3958,8 @@ function handle_cell_highlights_visible_button() {
 // }
 
 
-// detect any mouse down events on the stage
-stage.on("mousedown", (e) => {
+// callback for detection of any mouse down events on the stage
+function main_stage_mousedown(e) {
     // console.log("stage mouse down!");
 
     is_pan_attempted = true;
@@ -3877,11 +3971,11 @@ stage.on("mousedown", (e) => {
         y: stage.y()
     };
     // e.evt.preventDefault();
-});
+};
 
 
-// detect mouse movement events on the stage
-stage.on("mousemove", (e) => {
+// callback for detection of mouse movement events on the stage
+function main_stage_mousemove(e) {
 
     // do nothing if not currently panning
     if ((!is_pan_attempted && !is_panning) || pan_start_pointer_pos === null || pan_start_stage_pos === null) {
@@ -3934,11 +4028,11 @@ stage.on("mousemove", (e) => {
     };
 
     stage.position(new_stage_pos);
-});
+};
 
 
-// detect when the cursor moves out of the stage
-stage.on("mouseout", (e) => {
+// callback for detection of when the cursor moves out of the stage
+function main_stage_mouseout(e) {
 
     // console.log("stage mouseout!");
     // disable panning if it is enabled
@@ -3949,11 +4043,11 @@ stage.on("mouseout", (e) => {
 
     // TODO: causes weird behavior when going over shapes / layers (mouseout is triggered for some reason, find a way to prevent this)
     stage.container().style.cursor = "default";
-});
+};
 
 
-// detect when the cursor is released in the stage
-stage.on("mouseup", (e) => {
+// callback for detection of when the cursor is released in the stage
+function main_stage_mouseup(e) {
     // console.log("stage mouse up");
     
     // e.evt.preventDefault();
@@ -3967,14 +4061,14 @@ stage.on("mouseup", (e) => {
     }
 
     stage.container().style.cursor = "default";
-});
+};
 
 
 /* -------------------------- stage zooming support ------------------------- */
 
 
-let scaleBy = 1.05;
-stage.on('wheel', (e) => {
+// callback for when wheel movement detected on main stage
+function main_stage_wheel(e) {
     // stop default scrolling
     e.evt.preventDefault();
 
@@ -3982,12 +4076,12 @@ stage.on('wheel', (e) => {
         return;
     }
 
-    let oldScale = stage.scaleX();
+    let old_scale = stage.scaleX();
     let pointer = stage.getPointerPosition();
 
     let stage_coords = {
-        x: (pointer.x - stage.x()) / oldScale,
-        y: (pointer.y - stage.y()) / oldScale,
+        x: (pointer.x - stage.x()) / old_scale,
+        y: (pointer.y - stage.y()) / old_scale,
     };
 
     // how to scale? Zoom in? Or zoom out?
@@ -3999,13 +4093,13 @@ stage.on('wheel', (e) => {
         direction = -direction;
     }
 
-    let newScale = direction > 0 ? oldScale * scaleBy : oldScale / scaleBy;
+    let new_scale = direction > 0 ? old_scale * main_stage_scale_by : old_scale / main_stage_scale_by;
 
-    stage.scale({ x: newScale, y: newScale });
+    stage.scale({ x: new_scale, y: new_scale });
 
-    let newPos = {
-        x: pointer.x - stage_coords.x * newScale,
-        y: pointer.y - stage_coords.y * newScale,
+    let new_pos = {
+        x: pointer.x - stage_coords.x * new_scale,
+        y: pointer.y - stage_coords.y * new_scale,
     };
-    stage.position(newPos);
-});
+    stage.position(new_pos);
+};

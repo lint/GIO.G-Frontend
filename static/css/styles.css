@@ -283,18 +283,18 @@ html, body {
     background-color: #ccc;
 }
 
-
 /* ----------------------------- graph elements ----------------------------- */
 
-#graph-section {
+#graph-stage-container {
     grid-column: 2;
     display: flex;
     justify-content: center;
     align-items: center;
 }
 
-#graph-container {
-    /* border: solid 2px #444; */
+#graph-stage {
+    height: 100%;
+    width: 100%;
 }
 
 /* ----------------------------- building editor ---------------------------- */
@@ -309,12 +309,14 @@ html, body {
     justify-content: center;
     align-items: center;
     background-color: #eee;
-    padding: 10px;
+    border: solid 2px #444;
+    margin-top: 5px;
 }
 
 #building-editor-stage {
-    border: solid 2px #444;
     background-color: white;
+    height: 100%;
+    width: 100%;
 }
 
 #edit-doors-list {
@@ -353,7 +355,6 @@ html, body {
     background-color: #eee;
     padding: 10px;
     margin: 5px 0 5px 0;
-    /* display: none; hide initally, changed to "block" in js  */
 }
 
 .edit-doors-list-item-control {
