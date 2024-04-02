@@ -1,0 +1,121 @@
+[ {
+  "id" : -1,
+  "x" : -1,
+  "y" : -1,
+  "entrances" : [ {
+    "id" : -1,
+    "x" : 1,
+    "y" : 1,
+    "accessible" : 1
+  } ],
+  "congestion_type" : "none",
+  "congestion" : [ ]
+}, {
+  "id" : 18,
+  "x" : -1,
+  "y" : -1,
+  "entrances" : [ {
+    "id" : 4,
+    "x" : 1.380889966146833,
+    "y" : 3.046767407245661,
+    "accessible" : 1
+  } ],
+  "congestion_type" : "none",
+  "congestion" : [ ]
+}, {
+  "id" : 18,
+  "x" : -1,
+  "y" : -1,
+  "entrances" : [ {
+    "id" : 1,
+    "x" : 1.2772024569292684,
+    "y" : 2.909931461899527,
+    "accessible" : 1
+  } ],
+  "congestion_type" : "none",
+  "congestion" : [ ]
+}, {
+  "id" : 30,
+  "x" : -1,
+  "y" : -1,
+  "entrances" : [ {
+    "id" : 5,
+    "x" : 4.060645154439406,
+    "y" : 4.311992272820388,
+    "accessible" : 1
+  } ],
+  "congestion_type" : "none",
+  "congestion" : [ ]
+}, {
+  "id" : 30,
+  "x" : -1,
+  "y" : -1,
+  "entrances" : [ {
+    "id" : 4,
+    "x" : 3.9136159913227826,
+    "y" : 4.322389509344846,
+    "accessible" : 1
+  } ],
+  "congestion_type" : "none",
+  "congestion" : [ ]
+}, {
+  "id" : 57,
+  "x" : -1,
+  "y" : -1,
+  "entrances" : [ {
+    "id" : 1,
+    "x" : 4.231748278531451,
+    "y" : 6.733404101949564,
+    "accessible" : 1
+  } ],
+  "congestion_type" : "none",
+  "congestion" : [ ]
+}, {
+  "id" : 57,
+  "x" : -1,
+  "y" : -1,
+  "entrances" : [ {
+    "id" : 2,
+    "x" : 4.108940150797723,
+    "y" : 6.683614829037607,
+    "accessible" : 1
+  } ],
+  "congestion_type" : "none",
+  "congestion" : [ ]
+}, {
+  "id" : 60,
+  "x" : -1,
+  "y" : -1,
+  "entrances" : [ {
+    "id" : 3,
+    "x" : 6.766133066553084,
+    "y" : 7.163755389737519,
+    "accessible" : 1
+  } ],
+  "congestion_type" : "none",
+  "congestion" : [ ]
+}, {
+  "id" : 60,
+  "x" : -1,
+  "y" : -1,
+  "entrances" : [ {
+    "id" : 2,
+    "x" : 6.738567198842145,
+    "y" : 6.949182611292197,
+    "accessible" : 1
+  } ],
+  "congestion_type" : "none",
+  "congestion" : [ ]
+}, {
+  "id" : -2,
+  "x" : -1,
+  "y" : -1,
+  "entrances" : [ {
+    "id" : -1,
+    "x" : 9,
+    "y" : 9,
+    "accessible" : 1
+  } ],
+  "congestion_type" : "none",
+  "congestion" : [ ]
+} ]

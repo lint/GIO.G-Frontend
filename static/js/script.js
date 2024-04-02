@@ -79,20 +79,20 @@ const path_type_options = {
         exterior_offset: 1,
         color: "red", // Konva.Util.getRandomColor()
     }, 
+    dashed: {
+        dash: [0.1, 0.1],
+        exterior_offset: 2,
+        color: "cyan", //Konva.Util.getRandomColor()
+    },
     dotted: {
         dash: [0.00001, 0.05],
-        exterior_offset: 5,
+        exterior_offset: 3,
         color: "fuchsia", // Konva.Util.getRandomColor()
     },
     dotdashed: {
         dash: [0.00001, 0.05, 0.1, 0.05],
         exterior_offset: 4,
         color: "green", // Konva.Util.getRandomColor()
-    },
-    dashed: {
-        dash: [0.1, 0.1],
-        exterior_offset: 3,
-        color: "cyan", //Konva.Util.getRandomColor()
     },
     longdashed: {
         dash: [0.2, 0.05],
@@ -216,14 +216,26 @@ function recommend_path(path_options) {
     console.log("filtered graph: ", filtered_graph);
 
     // get the graph and draw its buildings on the response
-    fetch("/static/assets/graphs/path.json")
-    .then((res) => res.json())
-    .then((json) => {
-        console.log("path data: ", json);
+    // fetch("/static/assets/graphs/paths/graph_25_0.75_path1.json")
+    // .then((res) => res.json())
+    // .then((json) => {
+    //     console.log("path data: ", json);
+    //     process_paths(json);
+    //     draw_paths();
+    // })
+    // .catch((e) => console.error(e));
+
+    Promise.all([
+        fetch("/static/assets/paths/graph_example_paths_path1.json"),
+        fetch("/static/assets/paths/graph_example_paths_path2.json"),
+        fetch("/static/assets/paths/graph_example_paths_path3.json"),
+    ]).then(responses =>
+        Promise.all(responses.map(response => response.json()))
+    ).then((json) => {
+        console.log("paths data: ", json);
         process_paths(json);
         draw_paths();
-    })
-    .catch((e) => console.error(e));
+    }).catch(err => console.log(err));
 }
 
 
@@ -1771,6 +1783,11 @@ function draw_main_stage() {
     // stage.scale({x:1, y:1});
     // stage.position({x:0, y:0});
 
+    // reset selected points
+    path_start_selected_grid_coords = null;
+    path_end_selected_grid_coords = null;
+    update_path_select_labels();    
+
     // reset cell selections
     reset_cell_selections();
 
@@ -1958,6 +1975,76 @@ function draw_building_shape(building_grid_coords, parent, for_main_stage) {
     }
 
     return building_shape;
+}
+
+
+// draw a shape to represent a building being selected
+function draw_building_select_highlight(building_grid_coords) {
+
+    // TODO: comment this later
+    
+    // get the grid cell info object associated with the building
+    // let cell_info = grid_object_at_coords(building_grid_coords);
+    // let building_mods = cell_info.building_mods;
+    // let cell_dims = get_cell_dims(true);
+
+    // let building_center = building_mods.outline_grid_center;
+    // let building_center_stage = door_grid_coords_to_stage_coords(building_center, building_grid_coords, true);
+    // let outline_path = building_mods.outline_grid_path;
+
+    // let min_x = Number.MAX_SAFE_INTEGER;
+    // let min_y = Number.MAX_SAFE_INTEGER;
+    // let max_x = Number.MIN_SAFE_INTEGER;
+    // let max_y = Number.MIN_SAFE_INTEGER;
+
+    // console.log(min_x, min_y, max_x, max_y);
+
+    // for (let i = 0; i < outline_path.length; i++) {
+
+    //     let point = outline_path[i];
+    //     console.log(point);
+
+    //     if (point.x < min_x) {
+    //         min_x = point.x;
+    //     }
+
+    //     if (point.x > max_x) {
+    //         max_x = point.x;
+    //     }
+
+    //     if (point.y < min_y) {
+    //         min_y = point.y;
+    //     }
+
+    //     if (point.y > max_y) {
+    //         max_y = point.y;
+    //     }
+    // }
+
+    // console.log(min_x, min_y, max_x, max_y);
+
+    // let min_point = {x:min_x, y:min_y};
+    // let max_point = {x:max_x, y:max_y};
+
+    // let min_max_dist = calc_dist(min_point, max_point);
+    // let stage_radius = (min_max_dist * cell_dims.size) / 2;
+
+    // console.log("stage radius: ", stage_radius);
+    // console.log("cell size", cell_dims.size);
+    // console.log(building_center_stage.x, building_center_stage.y);
+    // console.log(grid_coords_to_main_stage_coords(building_grid_coords));
+    // console.log(building_center_stage);
+
+    // let select_circle = new Konva.Circle({
+    //     x: building_center_stage.x,
+    //     y: building_center_stage.y,
+    //     radius: stage_radius,
+    //     fill: "red",
+    //     opacity: 0.5
+    // });
+
+
+    // path_layer.add(select_circle);
 }
 
 
@@ -2555,39 +2642,49 @@ function draw_paths() {
     path_layer = new Konva.Layer();
     stage.add(path_layer);
 
-    let path_type = "dashed";
+    for (let p = 0; p < current_paths.length; p++) {
 
-    for (let i = 1; i < current_paths.length - 2; i++) {
+        let path = current_paths[p];
+        let path_type = Object.keys(path_type_options)[p]; // TODO: specify path types for specific algorithms?
 
-        let building1 = current_paths[i];
-        let building2 = current_paths[i+1];
+        console.log("p: ", p, path, path_type);
 
-        // let building_x = Math.round(building.id / grid.length) + 1;
-        // let building_y = building.id % grid.length + 1;
-        
-        // // x and y values are getting swapped for some reason in path gen
-        // let actual_building_id = (building_y - 1) * grid.length + (building_x - 1);
+        for (let i = 1; i < path.length - 2; i++) {
 
-        // console.log("actual building id", actual_building_id);
-
-        let cell_info1 = grid_object_for_id(building1.id);
-        let cell_info2 = grid_object_for_id(building2.id);
-
-        if (cell_info1 === null || cell_info2 === null) {
-            continue;
+    
+            let building1 = path[i];
+            let building2 = path[i+1];
+            console.log("building1: ", building1);
+    
+            // let building_x = Math.round(building.id / grid.length) + 1;
+            // let building_y = building.id % grid.length + 1;
+            
+            // // x and y values are getting swapped for some reason in path gen
+            // let actual_building_id = (building_y - 1) * grid.length + (building_x - 1);
+    
+            // console.log("actual building id", actual_building_id);
+    
+            let cell_info1 = grid_object_for_id(building1.id);
+            let cell_info2 = grid_object_for_id(building2.id);
+    
+            if (cell_info1 === null || cell_info2 === null) {
+                continue;
+            }
+            
+            let building1_grid_coords = grid_coords_for_building_or_door(cell_info1.building_data);
+            let building2_grid_coords = grid_coords_for_building_or_door(cell_info2.building_data);
+    
+            // draw internal path if buildings have the same id
+            if (building1.id === building2.id) {
+                draw_internal_path_part(building1_grid_coords, building1.entrances[0].id, building2.entrances[0].id, path_layer, path_type);
+            } else {
+                draw_external_path_part(building1_grid_coords, building1.entrances[0].id, building2_grid_coords, building2.entrances[0].id, path_layer, path_type);
+            }
+    
         }
-        
-        let building1_grid_coords = grid_coords_for_building_or_door(cell_info1.building_data);
-        let building2_grid_coords = grid_coords_for_building_or_door(cell_info2.building_data);
-
-        // draw internal path if buildings have the same id
-        if (building1.id === building2.id) {
-            draw_internal_path_part(building1_grid_coords, building1.entrances[0].id, building2.entrances[0].id, path_layer, path_type);
-        } else {
-            draw_external_path_part(building1_grid_coords, building1.entrances[0].id, building2_grid_coords, building2.entrances[0].id, path_layer, path_type);
-        }
-
     }
+
+    
 }
 
 
