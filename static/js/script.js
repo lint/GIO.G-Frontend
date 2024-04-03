@@ -38,6 +38,7 @@ let path_end_selection_shape = null;
 let is_selecting_path_start = false;
 let is_selecting_path_end = false;
 let highlight_colors_enabled = true;
+let path_endpoints_enabled = true;
 const selection_colors = {
     editing: "rgba(0,0,255,0.5)",
     path_start: "rgba(0,255,0,0.5)",
@@ -410,6 +411,11 @@ function calc_grid_bounds(config) {
 
 // helper method to get the grid object at the provided coordinates
 function grid_object_at_coords(grid_coords) {
+
+    if (grid_coords.x >= grid.length || grid_coords.x < 0 || grid_coords.y >= grid.length || grid_coords.y < 0) {
+        return null;
+    }
+
     return grid[grid_coords.y][grid_coords.x];
 }
 
@@ -421,8 +427,13 @@ function grid_object_for_id(building_id) {
     let x = Math.floor(building_id / grid.length);
     let y = building_id % grid.length;
 
+    if (x >= grid.length || x < 0 || y >= grid.length || y < 0) {
+        return null;
+    }
+
     let cell_info = grid[y][x];
 
+    // TODO: why do i do this check? is it actually necessary?
     if (cell_info.building_data !== null) {
         return cell_info
     }
@@ -1107,6 +1118,45 @@ function door_grid_path_to_border(building_grid_coords, door_id, outline_offset,
 }
 
 
+// find the path from a door to the border simply based on closest border
+function door_grid_path_to_border_closest(building_grid_coords, door_grid_coords, outline_offset, door_offset) {
+
+    // TODO: offset the door coords
+
+    // adjusted to be door coordinates
+    let building_grid_corners = [
+        {x:building_grid_coords.x-0.5+outline_offset, y:building_grid_coords.y-0.5+outline_offset}, 
+        {x:building_grid_coords.x+0.5-outline_offset, y:building_grid_coords.y-0.5+outline_offset}, 
+        {x:building_grid_coords.x+0.5-outline_offset, y:building_grid_coords.y+0.5-outline_offset},
+        {x:building_grid_coords.x-0.5+outline_offset, y:building_grid_coords.y+0.5-outline_offset}
+    ];
+
+    // calculate walls from the corners
+    let walls = [];
+    for (let i = 0; i < building_grid_corners.length; i++) {
+        let corner1 = building_grid_corners[i];
+        let corner2 = building_grid_corners[(i + 1) % building_grid_corners.length];
+
+        walls.push([corner1, corner2]);
+    }
+
+    let wall_dist_points = walls.map(function (wall) {
+        let closest_point = calc_closest_point(wall[0], wall[1], door_grid_coords);
+        let dist = calc_dist(closest_point, door_grid_coords);
+
+        return {
+            point: closest_point,
+            dist: dist
+        };
+    });
+
+    // sort the walls based on closest point
+    wall_dist_points.sort((a, b) => a.dist - b.dist);
+
+    return [door_grid_coords, wall_dist_points[0].point];
+}
+
+
 /* ----------------------------- path management ---------------------------- */
 
 
@@ -1234,6 +1284,12 @@ function select_building_to_edit(building_grid_coords, can_unselect) {
 
     // get the info object for the building at the given coords
     let cell_info = grid_object_at_coords(building_grid_coords);
+
+    if (cell_info === null) {
+        console.log("can't select building, cell_info null");
+        return;
+    }
+
     let building_mods = cell_info.building_mods;
 
     console.log("cell info:", cell_info);
@@ -1243,6 +1299,7 @@ function select_building_to_edit(building_grid_coords, can_unselect) {
 
     // unselect if clicked same building (by doing nothing)
     if (editor_selected_grid_coords !== null && coords_eq(building_grid_coords, editor_selected_grid_coords) && can_unselect) {
+        console.log("unselecting", editor_selected_grid_coords);
         editor_selected_grid_coords = null;
         return;
     }
@@ -1861,6 +1918,7 @@ function create_main_layers() {
 
     // process clicks for the selection layer
     // (different from panning mouseup which is already bound, if want to bind to that event you need to use namespaces like mouseup.pan and mouseup.select)
+    stage.off("click");
     stage.on("click", function (e) {
         if (!is_panning) {
             select_point();
@@ -2614,7 +2672,7 @@ function draw_road_rect(building_grid_coords, parent) {
 
 
 // draw a few manually selected paths
-function test_draw_paths() {
+function draw_manual_paths() {
 
     // reset the path layer
     path_layer.destroy();
@@ -2622,51 +2680,52 @@ function test_draw_paths() {
     stage.add(path_layer);
 
     try {
-    draw_internal_path_part({x:0, y:5}, 1, 4, path_layer, "dashed");
-    draw_internal_path_part({x:1, y:3}, 1, 3, path_layer, "dashed");
-    draw_internal_path_part({x:3, y:1}, 3, 2, path_layer, "dashed");
-    draw_internal_path_part({x:5, y:0}, 1, 2, path_layer, "dashed");
-    draw_external_path_part({x:0, y:5}, 4, {x:1, y:3}, 1, path_layer, "dashed");
-    draw_external_path_part({x:1, y:3}, 3, {x:3, y:1}, 3, path_layer, "dashed");
-    draw_external_path_part({x:3, y:1}, 2, {x:5, y:0}, 1, path_layer, "dashed");
+        draw_endpoint_path_part({x:-1, y:6}, {x:0, y:5}, 1, path_layer, "dashed");
+        draw_internal_path_part({x:0, y:5}, 1, 4, path_layer, "dashed");
+        draw_internal_path_part({x:1, y:3}, 1, 3, path_layer, "dashed");
+        draw_internal_path_part({x:3, y:1}, 3, 2, path_layer, "dashed");
+        draw_internal_path_part({x:5, y:0}, 1, 2, path_layer, "dashed");
+        draw_external_path_part({x:0, y:5}, null, 4, {x:1, y:3}, null, 1, path_layer, "dashed");
+        draw_external_path_part({x:1, y:3}, null, 3, {x:3, y:1}, null, 3, path_layer, "dashed");
+        draw_external_path_part({x:3, y:1}, null, 2, {x:5, y:0}, null, 1, path_layer, "dashed");
     } catch(e){console.log(e);}
 
     try {
-    draw_internal_path_part({x:0, y:5}, 1, 5, path_layer, "dotted");
-    draw_external_path_part({x:0, y:5}, 5, {x:3, y:5}, 2, path_layer, "dotted");
-    draw_internal_path_part({x:3, y:5}, 2, 4, path_layer, "dotted");
-    draw_external_path_part({x:3, y:5}, 4, {x:4, y:3}, 1, path_layer, "dotted");
-    draw_internal_path_part({x:4, y:3}, 1, 4, path_layer, "dotted");
-    draw_external_path_part({x:4, y:3}, 4, {x:5, y:0}, 1, path_layer, "dotted");
-    draw_internal_path_part({x:5, y:0}, 1, 2, path_layer, "dotted");
+        draw_internal_path_part({x:0, y:5}, 1, 5, path_layer, "dotted");
+        draw_external_path_part({x:0, y:5}, null, 5, {x:3, y:5}, null, 2, path_layer, "dotted");
+        draw_internal_path_part({x:3, y:5}, 2, 4, path_layer, "dotted");
+        draw_external_path_part({x:3, y:5}, null, 4, {x:4, y:3}, null, 1, path_layer, "dotted");
+        draw_internal_path_part({x:4, y:3}, 1, 4, path_layer, "dotted");
+        draw_external_path_part({x:4, y:3}, null, 4, {x:5, y:0}, null, 1, path_layer, "dotted");
+        draw_internal_path_part({x:5, y:0}, 1, 2, path_layer, "dotted");
     } catch(e){console.log(e);}
 
     try {
-    draw_internal_path_part({x:0, y:5}, 1, 2, path_layer, "solid");
-    draw_external_path_part({x:0, y:5}, 2, {x:0, y:4}, 3, path_layer, "solid");
-    draw_internal_path_part({x:0, y:4}, 3, 1, path_layer, "solid");
-    draw_external_path_part({x:0, y:4}, 1, {x:1, y:1}, 1, path_layer, "solid");
-    draw_internal_path_part({x:1, y:1}, 1, 2, path_layer, "solid");
-    draw_external_path_part({x:1, y:1}, 2, {x:5, y:0}, 1, path_layer, "solid");
-    draw_internal_path_part({x:5, y:0}, 1, 2, path_layer, "solid");
+        draw_internal_path_part({x:0, y:5}, 1, 2, path_layer, "solid");
+        draw_external_path_part({x:0, y:5}, null, 2, {x:0, y:4}, null, 3, path_layer, "solid");
+        draw_internal_path_part({x:0, y:4}, 3, 1, path_layer, "solid");
+        draw_external_path_part({x:0, y:4}, null, 1, {x:1, y:1}, null, 1, path_layer, "solid");
+        draw_internal_path_part({x:1, y:1}, 1, 2, path_layer, "solid");
+        draw_external_path_part({x:1, y:1}, null, 2, {x:5, y:0}, null, 1, path_layer, "solid");
+        draw_internal_path_part({x:5, y:0}, 1, 2, path_layer, "solid");
     } catch(e){console.log(e);}
 
     try {
-    draw_internal_path_part({x:0, y:5}, 1, 4, path_layer, "dotdashed");
-    draw_external_path_part({x:0, y:5}, 4, {x:4, y:1}, 1, path_layer, "dotdashed");
-    draw_internal_path_part({x:4, y:1}, 1, 3, path_layer, "dotdashed");
-    draw_external_path_part({x:4, y:1}, 3, {x:5, y:0}, 1, path_layer, "dotdashed");
-    draw_internal_path_part({x:5, y:0}, 1, 2, path_layer, "dotdashed");
+        draw_internal_path_part({x:0, y:5}, 1, 4, path_layer, "dotdashed");
+        draw_external_path_part({x:0, y:5}, null, 4, {x:4, y:1}, null, 1, path_layer, "dotdashed");
+        draw_internal_path_part({x:4, y:1}, 1, 3, path_layer, "dotdashed");
+        draw_external_path_part({x:4, y:1}, null, 3, {x:5, y:0}, null, 1, path_layer, "dotdashed");
+        draw_internal_path_part({x:5, y:0}, 1, 2, path_layer, "dotdashed");
     } catch(e){console.log(e);}
 
     try {
-    draw_internal_path_part({x:0, y:5}, 1, 4, path_layer, "longdashed");
-    draw_external_path_part({x:0, y:5}, 4, {x:2, y:4}, 3, path_layer, "longdashed");
-    draw_internal_path_part({x:2, y:4}, 3, 2, path_layer, "longdashed");
-    draw_external_path_part({x:2, y:4}, 2, {x:3, y:2}, 1, path_layer, "longdashed");
-    draw_internal_path_part({x:3, y:2}, 1, 4, path_layer, "longdashed");
-    draw_external_path_part({x:3, y:2}, 4, {x:5, y:0}, 1, path_layer, "longdashed");
-    draw_internal_path_part({x:5, y:0}, 1, 2, path_layer, "longdashed");
+        draw_internal_path_part({x:0, y:5}, 1, 4, path_layer, "longdashed");
+        draw_external_path_part({x:0, y:5}, null, 4, {x:2, y:4}, null, 3, path_layer, "longdashed");
+        draw_internal_path_part({x:2, y:4}, 3, 2, path_layer, "longdashed");
+        draw_external_path_part({x:2, y:4}, null, 2, {x:3, y:2}, null, 1, path_layer, "longdashed");
+        draw_internal_path_part({x:3, y:2}, 1, 4, path_layer, "longdashed");
+        draw_external_path_part({x:3, y:2}, null, 4, {x:5, y:0}, null, 1, path_layer, "longdashed");
+        draw_internal_path_part({x:5, y:0}, 1, 2, path_layer, "longdashed");
     } catch(e){console.log(e);}
 }
 
@@ -2685,34 +2744,59 @@ function draw_paths() {
         let path_type = Object.keys(path_type_options)[p]; // TODO: specify path types for specific algorithms?
 
         // iterate over every building in the path
-        for (let i = 1; i < path.length - 2; i++) {
+        for (let i = 0; i < path.length - 1; i++) {
 
-    
             let building1 = path[i];
             let building2 = path[i+1];
     
             let cell_info1 = grid_object_for_id(building1.id);
             let cell_info2 = grid_object_for_id(building2.id);
-    
-            if (cell_info1 === null || cell_info2 === null) {
-                console.log("continued", building1.id, cell_info1, building2.id, cell_info2);
-                continue;
-            }
-            
-            let building1_grid_coords = grid_coords_for_building_or_door(cell_info1.building_data);
-            let building2_grid_coords = grid_coords_for_building_or_door(cell_info2.building_data);
-    
-            // draw internal path if buildings have the same id
-            if (building1.id === building2.id) {
-                draw_internal_path_part(building1_grid_coords, building1.entrances[0].id, building2.entrances[0].id, path_layer, path_type);
+
+            // check for drawing starting path
+            if (i === 0) {
+                
+                let start_door = building1.entrances[0];
+                let end_point_grid_coords = {
+                    x: start_door.x,
+                    y: start_door.y
+                };
+                let building_grid_coords = grid_coords_for_building_or_door(cell_info2.building_data);
+
+                draw_endpoint_path_part(end_point_grid_coords, building_grid_coords, building2.entrances[0].id, path_layer, path_type);
+
+            // check for drawing end path
+            } else if (i + 1 === path.length - 1) {
+
+                let end_door = building2.entrances[0];
+                let end_point_grid_coords = {
+                    x: end_door.x,
+                    y: end_door.y
+                };
+                let building_grid_coords = grid_coords_for_building_or_door(cell_info1.building_data);
+
+                draw_endpoint_path_part(end_point_grid_coords, building_grid_coords, building1.entrances[0].id, path_layer, path_type);
+
+            // drawing path between or inside buildings
             } else {
-                draw_external_path_part(building1_grid_coords, building1.entrances[0].id, building2_grid_coords, building2.entrances[0].id, path_layer, path_type);
+
+                if (cell_info1 === null || cell_info2 === null) {
+                    console.log("failed to draw path for: ", building1.id, cell_info1, building2.id, cell_info2);
+                    continue;
+                }
+                
+                let building1_grid_coords = grid_coords_for_building_or_door(cell_info1.building_data);
+                let building2_grid_coords = grid_coords_for_building_or_door(cell_info2.building_data);
+        
+                // draw internal path if buildings have the same id
+                if (building1.id === building2.id) {
+                    draw_internal_path_part(building1_grid_coords, building1.entrances[0].id, building2.entrances[0].id, path_layer, path_type);
+                } else {
+                    draw_external_path_part(building1_grid_coords, null, building1.entrances[0].id, building2_grid_coords, null, building2.entrances[0].id, path_layer, path_type);
+                }
             }
-    
         }
     }
 }
-
 
 
 // draws a point at the location of selection
@@ -2753,12 +2837,40 @@ function draw_point_selection(door_grid_coords, building_grid_coords, parent, is
 }
 
 
-// draw external path from a given building to another building
-function draw_external_path_part(building1_grid_coords, door1_id, building2_grid_coords, door2_id, parent, path_type) {
+// draw path between an endpoint and building
+function draw_endpoint_path_part(endpoint_door_grid_coords, building_grid_coords, door_id, parent, path_type) {
+    
+    // get the cell info for the provided building
+    let cell_info = grid_object_at_coords(building_grid_coords);
+    let door_mods = cell_info.building_mods.entrance_mods[door_id];
+    let door_grid_coords = grid_coords_for_building_or_door(door_mods.data_ref);
 
-    console.log("external path: building1: ", building1_grid_coords, "door1: ", door1_id, "building2_grid_coords: ", building2_grid_coords, "door2: ", door2_id);
+    // calculate the building grid coords for the endpoint
+    let endpoint_building_grid_coords = door_grid_coords_to_building_grid_coords_rounding(endpoint_door_grid_coords);
+
+    // draw the external path
+    draw_external_path_part(endpoint_building_grid_coords, endpoint_door_grid_coords, null, building_grid_coords, door_grid_coords, door_id, parent, path_type);
+}
+
+// draw external path from a given building to another building
+function draw_external_path_part(building1_grid_coords, door1_grid_coords, door1_id, building2_grid_coords, door2_grid_coords, door2_id, parent, path_type) {
+
+    console.log("external path: building1: ", building1_grid_coords, "door1: ", door1_grid_coords, "building2_grid_coords: ", building2_grid_coords, "door2: ", door2_grid_coords);
 
     // figuring this method out was way more complicated than it had any right or need to be ...
+
+    let cell1_info = grid_object_at_coords(building1_grid_coords);
+    let cell2_info = grid_object_at_coords(building2_grid_coords);
+
+    // use door id to get grid coords if possible
+    if (cell1_info !== null && door1_id !== null) {
+        let door1_mods = cell1_info.building_mods.entrance_mods[door1_id];
+        door1_grid_coords = grid_coords_for_building_or_door(door1_mods.data_ref);
+    }
+    if (cell2_info !== null && door2_id !== null) {
+        let door2_mods = cell2_info.building_mods.entrance_mods[door2_id];
+        door2_grid_coords = grid_coords_for_building_or_door(door2_mods.data_ref);
+    }
 
     let cell_dims = get_cell_dims(true);
     let door_dims = get_door_dims(true);
@@ -2769,14 +2881,6 @@ function draw_external_path_part(building1_grid_coords, door1_id, building2_grid
     let path_width = door_dims.size / 5;
     let path_grid_offset = path_options.exterior_offset * (path_width / cell_dims.size * 1.25);
     let door_grid_offset = (path_options.exterior_offset - 3) * (path_width / cell_dims.size);
-
-    let cell1_info = grid_object_at_coords(building1_grid_coords);
-    let cell2_info = grid_object_at_coords(building2_grid_coords);
-    let door1_mods = cell1_info.building_mods.entrance_mods[door1_id];
-    let door2_mods = cell2_info.building_mods.entrance_mods[door2_id];
-
-    let door1_grid_coords = grid_coords_for_building_or_door(door1_mods.data_ref);
-    let door2_grid_coords = grid_coords_for_building_or_door(door2_mods.data_ref);
 
     // get different cell corners for building 1 (adjusted to door coordinates)
     let building1_grid_corners = [
@@ -2869,8 +2973,20 @@ function draw_external_path_part(building1_grid_coords, door1_id, building2_grid
     }
 
     // calculate points straight from door to cell border
-    let door1_to_border_results = door_grid_path_to_border(building1_grid_coords, door1_id, path_grid_offset, door_grid_offset);
-    let door2_to_border_results = door_grid_path_to_border(building2_grid_coords, door2_id, path_grid_offset, door_grid_offset);
+    let door1_to_border_results = null;
+    let door2_to_border_results = null;
+
+    if (door1_id !== null) {
+        door1_to_border_results = door_grid_path_to_border(building1_grid_coords, door1_id, path_grid_offset, door_grid_offset);
+    } else {
+        door1_to_border_results = door_grid_path_to_border_closest(building1_grid_coords, door1_grid_coords, path_grid_offset, door_grid_offset);
+    }
+
+    if (door2_id !== null) {
+        door2_to_border_results = door_grid_path_to_border(building2_grid_coords, door2_id, path_grid_offset, door_grid_offset);
+    } else {
+        door2_to_border_results = door_grid_path_to_border_closest(building2_grid_coords, door2_grid_coords, path_grid_offset, door_grid_offset);
+    }
 
     // extract the offsetted door coordinates the the border point from the results
     let offset_door1 = door1_to_border_results[0];
@@ -3042,14 +3158,19 @@ function door_grid_coords_to_stage_coords(door_grid_coords, building_grid_coords
 }
 
 
-// convert door grid coords to main stage coords by rounding to get the building coords
-function door_grid_coords_to_main_stage_coords_rounding(door_grid_coords) {
-
-    let building_grid_coords = {
+// get the building coords for given door coords by rounding
+function door_grid_coords_to_building_grid_coords_rounding(door_grid_coords) {
+    return {
         x: Math.round(door_grid_coords.x),
         y: Math.round(door_grid_coords.y)
     };
+}
 
+
+// convert door grid coords to main stage coords by rounding to get the building coords
+function door_grid_coords_to_main_stage_coords_rounding(door_grid_coords) {
+
+    let building_grid_coords = door_grid_coords_to_building_grid_coords_rounding(door_grid_coords);
     return door_grid_coords_to_stage_coords(door_grid_coords, building_grid_coords, true);
 }
 
@@ -3911,11 +4032,12 @@ function submit_path_gen_form() {
         end_id = grid_cell_id_for_coords(path_end_selected_grid_coords);
     }
 
+    // TODO: reenable this
     // check if an error has been detected
-    if (has_error) {
-        alert(error_message);
-        return;
-    }
+    // if (has_error) {
+    //     alert(error_message);
+    //     return;
+    // }
 
     // create an object containing the path recommendation options
     let path_options = {
@@ -4152,21 +4274,23 @@ function handle_congestion_colors_button() {
 // selected cell highlight colors visibility toggle
 function handle_cell_highlights_visible_button() {
 
+    // TODO: change for just selected building highlight
+
     // toggle the highlight color boolean
     highlight_colors_enabled = !highlight_colors_enabled;
 
     // update the highlight color for every cell
-    for (let x = 0; x < grid.length; x++) {
-        for (let y = 0; y < grid.length; y++) {
+    // for (let x = 0; x < grid.length; x++) {
+    //     for (let y = 0; y < grid.length; y++) {
             
-            let cell_info = grid[y][x];
-            if (cell_info.shapes.selection_overlay === null) {
-                continue;
-            }
+    //         let cell_info = grid[y][x];
+    //         if (cell_info.shapes.selection_overlay === null) {
+    //             continue;
+    //         }
 
-            set_overlay_highlight({x:x, y:y}, null);
-        }
-    }
+    //         set_overlay_highlight({x:x, y:y}, null);
+    //     }
+    // }
 }
 
 
@@ -4181,6 +4305,29 @@ function handle_legend_visible_button() {
     } else {
         legend.style.display = "none";
     }
+}
+
+
+// handle path end points visibility toggle
+function handle_path_endpoint_visibility_button() {
+
+    if (path_endpoints_enabled) {
+        if (path_start_selection_shape) {
+            path_start_selection_shape.hide();
+        }
+        if (path_end_selection_shape) {
+            path_end_selection_shape.hide();
+        }
+    } else {
+        if (path_start_selection_shape) {
+            path_start_selection_shape.show();
+        }
+        if (path_end_selection_shape) {
+            path_end_selection_shape.show();
+        }
+    }
+
+    path_endpoints_enabled = !path_endpoints_enabled;
 }
 
 
