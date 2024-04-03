@@ -96,7 +96,7 @@ const path_type_options = {
     },
     longdashed: {
         dash: [0.2, 0.05],
-        exterior_offset: 2,
+        exterior_offset: 5,
         color: "purple", //Konva.Util.getRandomColor()
     }
 };
@@ -2578,6 +2578,7 @@ function draw_road_rect(building_grid_coords, parent) {
 /* ------------------------------ path drawing ------------------------------ */
 
 
+// draw a few manually selected paths
 function test_draw_paths() {
 
     // reset the path layer
@@ -2606,10 +2607,10 @@ function test_draw_paths() {
     } catch(e){console.log(e);}
 
     try {
-    draw_internal_path_part({x:0, y:5}, 1, 3, path_layer, "solid");
-    draw_external_path_part({x:0, y:5}, 3, {x:0, y:4}, 3, path_layer, "solid");
-    draw_internal_path_part({x:0, y:4}, 3, 2, path_layer, "solid");
-    draw_external_path_part({x:0, y:4}, 2, {x:1, y:1}, 1, path_layer, "solid");
+    draw_internal_path_part({x:0, y:5}, 1, 2, path_layer, "solid");
+    draw_external_path_part({x:0, y:5}, 2, {x:0, y:4}, 3, path_layer, "solid");
+    draw_internal_path_part({x:0, y:4}, 3, 1, path_layer, "solid");
+    draw_external_path_part({x:0, y:4}, 1, {x:1, y:1}, 1, path_layer, "solid");
     draw_internal_path_part({x:1, y:1}, 1, 2, path_layer, "solid");
     draw_external_path_part({x:1, y:1}, 2, {x:5, y:0}, 1, path_layer, "solid");
     draw_internal_path_part({x:5, y:0}, 1, 2, path_layer, "solid");
@@ -2753,7 +2754,7 @@ function draw_external_path_part(building1_grid_coords, door1_id, building2_grid
         if (building1_grid_coords.x === building2_grid_coords.x) {
 
             // building 1 is above building 2
-            if (building1_grid_coords.y < building2_grid_coords.y) {
+            if ((!should_invert_door_y && building1_grid_coords.y < building2_grid_coords.y) || (should_invert_door_y && building1_grid_coords.y > building2_grid_coords.y)) {
                 building1_corner_options = [building1_grid_corners[2], building1_grid_corners[3]];
 
             // building 1 is below building 2
@@ -2788,19 +2789,22 @@ function draw_external_path_part(building1_grid_coords, door1_id, building2_grid
     } else {
 
         // building 1 is top left of building 2
-        if (building1_grid_coords.x < building2_grid_coords.x && building1_grid_coords.y < building2_grid_coords.y) {
+        if (building1_grid_coords.x < building2_grid_coords.x 
+            && ((!should_invert_door_y && building1_grid_coords.y < building2_grid_coords.y) || (should_invert_door_y && building1_grid_coords.y > building2_grid_coords.y))) {
 
             best_building1_corner = building1_grid_corners[2];
             best_building2_corner = building2_grid_corners[0];
 
         // building 1 is bottom left of building 2
-        } else if (building1_grid_coords.x < building2_grid_coords.x && building1_grid_coords.y > building2_grid_coords.y) {
+        } else if (building1_grid_coords.x < building2_grid_coords.x 
+            && ((!should_invert_door_y && building1_grid_coords.y > building2_grid_coords.y) || (should_invert_door_y && building1_grid_coords.y < building2_grid_coords.y))) {
 
             best_building1_corner = building1_grid_corners[1];
             best_building2_corner = building2_grid_corners[3];
             
         // building 1 is top right of building 2
-        } else if (building1_grid_coords.x > building2_grid_coords.x && building1_grid_coords.y < building2_grid_coords.y) {
+        } else if (building1_grid_coords.x > building2_grid_coords.x 
+            && ((!should_invert_door_y && building1_grid_coords.y < building2_grid_coords.y) || (should_invert_door_y && building1_grid_coords.y > building2_grid_coords.y))) {
 
             best_building1_corner = building1_grid_corners[3];
             best_building2_corner = building2_grid_corners[1];
