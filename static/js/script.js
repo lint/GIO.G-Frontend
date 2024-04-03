@@ -33,6 +33,8 @@ let grid = null;
 let editor_selected_grid_coords = null;
 let path_start_selected_grid_coords = null;
 let path_end_selected_grid_coords = null;
+let path_start_selection_shape = null;
+let path_end_selection_shape = null;
 let is_selecting_path_start = false;
 let is_selecting_path_end = false;
 let highlight_colors_enabled = true;
@@ -1114,58 +1116,64 @@ function process_paths(paths) {
 /* ---------------------- building selection management --------------------- */
 
 
-// handler for when a given grid cell has been clicked
-function select_grid_cell(grid_coords, can_unselect) {
+// handler for when a point has been clicked on the main stage
+function select_point() {
+    
+    // get the stage coords of the current pointer position
+    let scale = stage.scaleX();
+    let pointer = stage.getPointerPosition();
+    let stage_coords = {
+        x: (pointer.x - stage.x()) / scale,
+        y: (pointer.y - stage.y()) / scale,
+    };
+    console.log("click detected at stage coords: ", stage_coords);
 
-    // do not select when currently panning
-    if (grid === null || is_panning) {
-        return;
-    }
-
-    // reset the highlight of all previous selections
-    set_overlay_highlight(path_start_selected_grid_coords, "");
-    set_overlay_highlight(path_end_selected_grid_coords, "");
-    set_overlay_highlight(editor_selected_grid_coords, "");
+    // convert the stage coords of the click to door grid coords
+    let grid_coords = door_main_stage_coords_to_grid_coords_rounding(stage_coords);
 
     // determine the selection to make based on the current system state
     if (is_selecting_path_start) {
-        select_path_endpoint(grid_coords, true, can_unselect);
+        select_path_endpoint(grid_coords.door, grid_coords.building, true);
     } else if (is_selecting_path_end) {
-        select_path_endpoint(grid_coords, false, can_unselect);
+        select_path_endpoint(grid_coords.door, grid_coords.building, false);
     } else {
-        select_building_to_edit(grid_coords, can_unselect);
+        select_building_to_edit(grid_coords.building, true);
     }
-
-    // set highlight of current selections
-    set_overlay_highlight(path_start_selected_grid_coords, null);
-    set_overlay_highlight(path_end_selected_grid_coords, null);
-    set_overlay_highlight(editor_selected_grid_coords, null);
 }
 
 
+// handler for when a given grid cell has been clicked
+// function select_grid_cell(grid_coords, can_unselect) {
+
+//     // do not select when currently panning
+//     if (grid === null || is_panning) {
+//         return;
+//     }
+
+//     // determine the selection to make based on the current system state
+//     if (is_selecting_path_start) {
+//         select_path_endpoint(grid_coords, true);
+//     } else if (is_selecting_path_end) {
+//         select_path_endpoint(grid_coords, false);
+//     } else {
+//         select_building_to_edit(grid_coords, can_unselect);
+//     }
+// }
+
+
 // handle a path or end point being selected
-function select_path_endpoint(grid_coords, is_start, can_unselect) {
+function select_path_endpoint(door_grid_coords, building_grid_coords, is_start) {
 
     // set the new selected grid coords
     if (is_start) {
-
-        // unselect if clicked same building
-        if (path_start_selected_grid_coords !== null && coords_eq(grid_coords, path_start_selected_grid_coords) && can_unselect) {
-            path_start_selected_grid_coords = null;
-        } else {
-            path_start_selected_grid_coords = grid_coords;
-        }
+        path_start_selected_grid_coords = door_grid_coords;
     
     // set the new selected grid coords
     } else {
-
-        // unselect if clicked same building
-        if (path_end_selected_grid_coords !== null && coords_eq(grid_coords, path_end_selected_grid_coords) && can_unselect) {
-            path_end_selected_grid_coords = null;
-        } else {
-            path_end_selected_grid_coords = grid_coords;
-        }
+        path_end_selected_grid_coords = door_grid_coords;
     }
+
+    draw_point_selection(door_grid_coords, building_grid_coords, selection_layer, is_start);
 
     // after selection is made, neither selection type should be active
     is_selecting_path_start = false;
@@ -1566,7 +1574,7 @@ function handle_delete_building_button(building_grid_coords) {
     delete_building(building_grid_coords);
 
     // reselect the empty cell
-    select_grid_cell(building_grid_coords, false);
+    select_building_to_edit(building_grid_coords, false);
 }
 
 // handle the selected empty grid cell add button click
@@ -1581,7 +1589,7 @@ function handle_add_building_button(building_grid_coords) {
     draw_building(building_grid_coords, building_layer, true);
 
     // reselect the filled cell
-    select_grid_cell(building_grid_coords, false);
+    select_building_to_edit(building_grid_coords, false);
 }
 
 
@@ -1773,6 +1781,21 @@ function get_door_dims(for_main_stage) {
 }
 
 
+// path type options to useable stage coordinates
+function get_main_stage_path_dash(path_type) {
+
+    let path_options = path_type_options[path_type];
+    let door_dims = get_door_dims(true);
+    let cell_dims = get_cell_dims(true);
+
+    if (path_options.dash === null) {
+        return null;
+    }
+
+    return path_options.dash.map((dash_part) => dash_part * cell_dims.size);
+}
+
+
 /* ---------------------------- building drawing ---------------------------- */
 
 
@@ -1801,7 +1824,7 @@ function draw_main_stage() {
     create_main_layers();
 
     // draw selection overlay
-    draw_selection_overlays(selection_layer);
+    // draw_selection_overlays(selection_layer);
 
     // draw buildings 
     draw_buildings(building_layer);
@@ -1815,8 +1838,6 @@ function draw_main_stage() {
 function create_main_layers() {
 
     // create and add new layers
-    selection_layer = new Konva.Layer({
-    });
     building_layer = new Konva.Layer({
         listening: false
     });
@@ -1826,11 +1847,22 @@ function create_main_layers() {
     path_layer = new Konva.Layer({
         listening: false
     });
+    selection_layer = new Konva.Layer({
+        listening: false
+    });
     
     stage.add(road_layer);
     stage.add(building_layer);
     stage.add(path_layer);
     stage.add(selection_layer);
+
+    // process clicks for the selection layer
+    // (different from panning mouseup which is already bound, if want to bind to that event you need to use namespaces like mouseup.pan and mouseup.select)
+    stage.on("click", function (e) {
+        if (!is_panning) {
+            select_point();
+        }
+    });
 }
 
 
@@ -2337,108 +2369,108 @@ function draw_corridors(building_grid_coords, parent, for_main_stage) {
 /* ------------------------ selection overlay drawing ----------------------- */
 
 
-// draws an overlay over every grid cell so you can select buildings
-function draw_selection_overlays(parent) {
+// // draws an overlay over every grid cell so you can select buildings
+// function draw_selection_overlays(parent) {
     
-    // create background layer grid cells
-    for (let x = 0; x < grid.length; x++) {
-        for (let y = 0; y < grid.length; y++) {
+//     // create background layer grid cells
+//     for (let x = 0; x < grid.length; x++) {
+//         for (let y = 0; y < grid.length; y++) {
 
-            let grid_coords = {x: x, y: y};
-            draw_selection_overlay(grid_coords, parent);
-        }
-    }
-}
+//             let grid_coords = {x: x, y: y};
+//             draw_selection_overlay(grid_coords, parent);
+//         }
+//     }
+// }
 
 
-// draw a background / overlay cell for given grid coordinates
-function draw_selection_overlay(building_grid_coords, parent) {
+// // draw a background / overlay cell for given grid coordinates
+// function draw_selection_overlay(building_grid_coords, parent) {
 
-    // TODO: include spacing
+//     // TODO: include spacing
 
-    // get the building info object at the given grid coordinates
-    let cell_info = grid_object_at_coords(building_grid_coords);
-    let cell_dims = get_cell_dims(true);
+//     // get the building info object at the given grid coordinates
+//     let cell_info = grid_object_at_coords(building_grid_coords);
+//     let cell_dims = get_cell_dims(true);
 
-    // destroy previous background shape if there is one
-    let prev_background = cell_info.shapes.selection_overlay;
-    if (prev_background !== null) {
-        prev_background.destroy();
-    }
+//     // destroy previous background shape if there is one
+//     let prev_background = cell_info.shapes.selection_overlay;
+//     if (prev_background !== null) {
+//         prev_background.destroy();
+//     }
 
-    // find the coordinates to draw the cell at
-    let cell_coords = grid_coords_to_main_stage_coords(building_grid_coords);
-    cell_coords = {
-        x: cell_coords.x - cell_dims.spacing/2,
-        y: cell_coords.y - cell_dims.spacing/2
-    }
+//     // find the coordinates to draw the cell at
+//     let cell_coords = grid_coords_to_main_stage_coords(building_grid_coords);
+//     cell_coords = {
+//         x: cell_coords.x - cell_dims.spacing/2,
+//         y: cell_coords.y - cell_dims.spacing/2
+//     }
 
-    // create the cell
-    let overlay = new Konva.Rect({
-        width: cell_dims.size + cell_dims.spacing,
-        height: cell_dims.size + cell_dims.spacing,
-        strokeWidth: cell_dims.size / 20,
-        cornerRadius: 5,
-        x: cell_coords.x,
-        y: cell_coords.y,
-        perfectDrawEnabled: false
-    });
+//     // create the cell
+//     let overlay = new Konva.Rect({
+//         width: cell_dims.size + cell_dims.spacing,
+//         height: cell_dims.size + cell_dims.spacing,
+//         strokeWidth: cell_dims.size / 20,
+//         cornerRadius: 5,
+//         x: cell_coords.x,
+//         y: cell_coords.y,
+//         perfectDrawEnabled: false
+//     });
 
-    // define a function for when the cell is clicked
-    overlay.on("mouseup", function (e) {
-        select_grid_cell(building_grid_coords, true);
-    });
+//     // define a function for when the cell is clicked
+//     overlay.on("mouseup", function (e) {
+//         select_grid_cell(building_grid_coords, true);
+//     });
     
-    // store the overlay cell for easy access later
-    cell_info.shapes.selection_overlay = overlay;
+//     // store the overlay cell for easy access later
+//     cell_info.shapes.selection_overlay = overlay;
 
-    // set the color of the overlay
-    set_overlay_highlight(building_grid_coords, null);
+//     // set the color of the overlay
+//     set_overlay_highlight(building_grid_coords, null);
 
-    // add the cell to the layer
-    parent.add(overlay);
-}
+//     // add the cell to the layer
+//     parent.add(overlay);
+// }
 
 
 // set the highlight color of an overlay cell
-function set_overlay_highlight(grid_coords, highlight_color_override) {
+// function set_overlay_highlight(grid_coords, highlight_color_override) {
 
-    if (grid_coords === null) {
-        return;
-    }
+//     if (grid_coords === null) {
+//         return;
+//     }
 
-    let highlight_color = "";
+//     let highlight_color = "";
 
-    // check if highlight colors are enabled as a whole
-    if (!highlight_colors_enabled) {
-        highlight_color = "";
+//     // check if highlight colors are enabled as a whole
+//     if (!highlight_colors_enabled) {
+//         highlight_color = "";
 
-    // check if a highlight color override has been provided
-    } else if (highlight_color_override !== null) {
-        highlight_color = highlight_color_override;
+//     // check if a highlight color override has been provided
+//     } else if (highlight_color_override !== null) {
+//         highlight_color = highlight_color_override;
 
-    // no override provided, check if grid cell is currently selected
-    } else {
+//     // no override provided, check if grid cell is currently selected
+//     } else {
 
-        // check if the building is currently selected for editing
-        if (editor_selected_grid_coords !== null && coords_eq(grid_coords, editor_selected_grid_coords)) {
-            highlight_color = selection_colors.editing;
-        // check if the building is currently selected as the path start
-        } else if (path_start_selected_grid_coords !== null && coords_eq(grid_coords, path_start_selected_grid_coords)) {
-            highlight_color = selection_colors.path_start;
-        // check if the building is currently selected as the path end
-        } else if (path_end_selected_grid_coords !== null && coords_eq(grid_coords, path_end_selected_grid_coords)) {
-            highlight_color = selection_colors.path_end;
-        }
-    }
+//         // check if the building is currently selected for editing
+//         if (editor_selected_grid_coords !== null && coords_eq(grid_coords, editor_selected_grid_coords)) {
+//             highlight_color = selection_colors.editing;
+//         // check if the building is currently selected as the path start
+//         } else if (path_start_selected_grid_coords !== null && coords_eq(grid_coords, path_start_selected_grid_coords)) {
+//             highlight_color = selection_colors.path_start;
+//         // check if the building is currently selected as the path end
+//         } else if (path_end_selected_grid_coords !== null && coords_eq(grid_coords, path_end_selected_grid_coords)) {
+//             highlight_color = selection_colors.path_end;
+//         }
+//     }
 
-    let cell_info = grid_object_at_coords(grid_coords);
-    let overlay_shape = cell_info.shapes.selection_overlay;
+//     let cell_info = grid_object_at_coords(grid_coords);
+//     let overlay_shape = cell_info.shapes.selection_overlay;
 
-    if (overlay_shape !== null) {
-        overlay_shape.stroke(highlight_color);
-    }
-}
+//     if (overlay_shape !== null) {
+//         overlay_shape.stroke(highlight_color);
+//     }
+// }
 
 
 /* ------------------------------ road drawing ------------------------------ */
@@ -2688,18 +2720,42 @@ function draw_paths() {
 }
 
 
-// path type options to useable stage coordinates
-function get_main_stage_path_dash(path_type) {
 
-    let path_options = path_type_options[path_type];
-    let door_dims = get_door_dims(true);
+// draws a point at the location of selection
+function draw_point_selection(door_grid_coords, building_grid_coords, parent, is_start) {
+
+    console.log(door_grid_coords, building_grid_coords);
+    
     let cell_dims = get_cell_dims(true);
+    let selection_color = is_start ? selection_colors.path_start : selection_colors.path_end;
+    console.log(selection_color);
 
-    if (path_options.dash === null) {
-        return null;
+    // remove the previous selection point shapes if they exist
+    if (is_start && path_start_selection_shape !== null) {
+        path_start_selection_shape.destroy();
+    } else if (!is_start && path_end_selection_shape !== null) {
+        path_end_selection_shape.destroy();
     }
 
-    return path_options.dash.map((dash_part) => dash_part * cell_dims.size);
+    let stage_coords = door_grid_coords_to_stage_coords(door_grid_coords, building_grid_coords, true);
+    
+    let endpoint_circle = new Konva.Circle({
+        x: stage_coords.x,
+        y: stage_coords.y,
+        radius: cell_dims.size / 10,
+        // fill: "red",
+        // fill: "rgba(255, 0, 0, 0.5)",
+        stroke: selection_color,
+        strokeWidth: cell_dims.size / 20
+    });
+
+    if (is_start) {
+        path_start_selection_shape = endpoint_circle;
+    } else {
+        path_end_selection_shape = endpoint_circle;
+    }
+
+    parent.add(endpoint_circle);
 }
 
 
@@ -2954,10 +3010,19 @@ function grid_coords_to_main_stage_coords(grid_coords) {
 }
 
 
+// convert main stage coords to grid coords
+function main_stage_coords_to_grid_coords(stage_coords) {
+    return {
+        x: stage_coords.x / (main_cell_dims.size + main_cell_dims.spacing),
+        y: stage_coords.y / (main_cell_dims.size + main_cell_dims.spacing)
+    };
+}
+
+
 // convert door grid coordinates to stage coordinates based on the provided dimensions
 function door_grid_coords_to_stage_coords(door_grid_coords, building_grid_coords, for_main_stage) {
 
-    let building_cell_coords = for_main_stage ? grid_coords_to_main_stage_coords(building_grid_coords) : {x:0, y:0};
+    let building_stage_coords = for_main_stage ? grid_coords_to_main_stage_coords(building_grid_coords) : {x:0, y:0};
     let cell_dims = get_cell_dims(for_main_stage);
 
     let invert_y = should_invert_door_y ? -1 : 1;
@@ -2970,8 +3035,40 @@ function door_grid_coords_to_stage_coords(door_grid_coords, building_grid_coords
 
     // get final door coordinates by scaling and translating
     return {
-        x: building_cell_coords.x + (door_grid_coord_offset.x * cell_dims.size) + (cell_dims.size / 2), // +size/2 to get cell center coordinates rather than top left (used in rect positioning)
-        y: building_cell_coords.y + (door_grid_coord_offset.y * cell_dims.size) + (cell_dims.size / 2),
+        x: building_stage_coords.x + (door_grid_coord_offset.x * cell_dims.size) + (cell_dims.size / 2), // +size/2 to get cell center coordinates rather than top left (used in rect positioning)
+        y: building_stage_coords.y + (door_grid_coord_offset.y * cell_dims.size) + (cell_dims.size / 2),
+    };
+}
+
+
+// convert door grid coords to main stage coords by rounding to get the building coords
+function door_grid_coords_to_main_stage_coords_rounding(door_grid_coords) {
+
+    let building_grid_coords = {
+        x: Math.round(door_grid_coords.x),
+        y: Math.round(door_grid_coords.y)
+    };
+
+    return door_grid_coords_to_stage_coords(door_grid_coords, building_grid_coords, true);
+}
+
+
+// convert door main stage coords to grid coords by rounding to get the building coords
+function door_main_stage_coords_to_grid_coords_rounding(door_stage_coords) {
+
+    // ugly but hey it works
+
+    let cell_dims = get_cell_dims(true);
+    let resolution = cell_dims.size + cell_dims.spacing;
+    let building_stage_coords = {
+        x: round_partial(door_stage_coords.x - (cell_dims.size + cell_dims.spacing/2) / 2, resolution),
+        y: round_partial(door_stage_coords.y - (cell_dims.size + cell_dims.spacing/2) / 2, resolution)
+    };
+    let building_grid_coords = main_stage_coords_to_grid_coords(building_stage_coords);
+
+    return {
+        door: door_stage_coords_to_grid_coords(door_stage_coords, building_grid_coords, true),
+        building: building_grid_coords
     };
 }
 
@@ -2979,15 +3076,15 @@ function door_grid_coords_to_stage_coords(door_grid_coords, building_grid_coords
 // convert door grid coordinates to stage coordinates based on the provided dimensions
 function door_stage_coords_to_grid_coords(door_stage_coords, building_grid_coords, for_main_stage) {
 
-    let building_cell_coords = for_main_stage ? grid_coords_to_main_stage_coords(building_grid_coords) : {x:0, y:0};
+    let building_stage_coords = for_main_stage ? grid_coords_to_main_stage_coords(building_grid_coords) : {x:0, y:0};
     let cell_dims = get_cell_dims(for_main_stage);
 
     let invert_y = should_invert_door_y ? -1 : 1;
 
     // unscale and untranslate the stage coords to get the offset of the door to the building
     let door_grid_coord_offset = {
-        x: (door_stage_coords.x - building_cell_coords.x - (cell_dims.size / 2)) / cell_dims.size,
-        y: (door_stage_coords.y - building_cell_coords.y - (cell_dims.size / 2)) / cell_dims.size,
+        x: (door_stage_coords.x - building_stage_coords.x - (cell_dims.size / 2)) / cell_dims.size,
+        y: (door_stage_coords.y - building_stage_coords.y - (cell_dims.size / 2)) / cell_dims.size,
     };
 
     // get the door grid coords by adding the offset to the building coords
@@ -3038,6 +3135,12 @@ function building_or_door_coords_for_grid_coords(grid_coords) {
 /* -------------------------------------------------------------------------- */
 /*                            math helper functions                           */
 /* -------------------------------------------------------------------------- */
+
+
+// calculate a round number for a given resolution
+function round_partial(num, resolution) {
+    return Math.round(num / resolution) * resolution;
+}
 
 
 // calculates a corner point from the rectangle bounding the two given points
@@ -3829,19 +3932,18 @@ function submit_path_gen_form() {
 // update the path start and end selection info text
 function update_path_select_labels() {
 
-    let start_text = "Selected ID: ";
-    let end_text = "Selected ID: ";
+    let start_text = "";
+    let end_text = "";
     
     // get the id of the currently selected start cell
     if (path_start_selected_grid_coords !== null) {
-        let start_cell_id = grid_cell_id_for_coords(path_start_selected_grid_coords);
-        start_text += start_cell_id;
+        // let start_cell_id = grid_cell_id_for_coords(path_start_selected_grid_coords);
+        start_text = `(${path_start_selected_grid_coords.x.toFixed(1)}, ${path_start_selected_grid_coords.y.toFixed(1)})`;
     }
 
     // get the id of the currently selected end cell
     if (path_end_selected_grid_coords !== null) {
-        let end_cell_id = grid_cell_id_for_coords(path_end_selected_grid_coords);
-        end_text += end_cell_id;
+        end_text = `(${path_end_selected_grid_coords.x.toFixed(1)}, ${path_end_selected_grid_coords.y.toFixed(1)})`;
     }
     
     document.getElementById("path-start-building-info").innerHTML = start_text;
@@ -4273,11 +4375,7 @@ function main_stage_mouseout(e) {
 
 // callback for detection of when the cursor is released in the stage
 function main_stage_mouseup(e) {
-    // console.log("stage mouse up");
-    
-    // e.evt.preventDefault();
-    // e.evt.stopImmediatePropagation();
-    // e.evt.stopPropagation();
+    console.log("stage mouse up");
 
     // disable panning if it is enabled
     if (is_panning || is_pan_attempted) {
