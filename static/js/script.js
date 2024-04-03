@@ -54,6 +54,9 @@ let main_stage_scale_by = 1.05;
 let building_clipping_enabled = true;
 let building_corridors_enabled = true;
 let building_con_colors_enabled = true;
+let path_legend_enabled = true;
+
+// color definitions
 const building_con_colors = {
     low: "#CAFFBF", // pale green
     med: "#FFD6A5", // pale orange
@@ -66,13 +69,13 @@ const corridor_con_colors = { // associated background congestion color with 0.5
     high: "#D9A0A0",
     constant: "#9ECBDF"
 }
-
 const con_text_color_classes = {
     low: "low-con-text-color",
     med: "med-con-text-color",
     high: "high-con-text-color"
 };
 
+// options to define path styles
 const path_type_options = {
     solid: {
         dash: null,
@@ -4061,6 +4064,20 @@ function handle_cell_highlights_visible_button() {
 
             set_overlay_highlight({x:x, y:y}, null);
         }
+    }
+}
+
+
+// handle legend visibility toggle
+function handle_legend_visible_button() {
+
+    let legend = document.getElementById("graph-legend");
+    path_legend_enabled = !path_legend_enabled;
+
+    if (path_legend_enabled) {
+        legend.style.display = "";
+    } else {
+        legend.style.display = "none";
     }
 }
 

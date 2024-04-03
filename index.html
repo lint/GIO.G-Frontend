@@ -121,14 +121,14 @@
               <input type="checkbox" id="path-gen-astro-cb" value="astro" checked>
               <label for="path-gen-astro-cb">Astro</label>
               <br>
-              <input type="checkbox" id="path-gen-astrog-cb" value="astrog">
-              <label for="path-gen-astrog-cb">AstroG</label>
+              <input type="checkbox" id="path-gen-astrog-cb" value="astroG">
+              <label for="path-gen-astrog-cb">Astro-Greedy</label>
               <br>
               <input type="checkbox" id="path-gen-dijkstra-cb" value="dijkstra">
               <label for="path-gen-dijkstra-cb">Dijkstra</label>
               <br>
-              <input type="checkbox" id="path-gen-dijkstra-con-cb" value="dijkstra_con">
-              <label for="path-gen-dijkstra-con-cb">Dijkstra Congestion</label>
+              <input type="checkbox" id="path-gen-dijkstra-con-cb" value="dijkstraC">
+              <label for="path-gen-dijkstra-con-cb">Dijkstra-Congestion</label>
               <br>
               <input type="checkbox" id="path-gen-greedy-cb" value="greedy">
               <label for="path-gen-greedy-cb">Greedy</label>
@@ -224,6 +224,7 @@
             <button type="button" onclick="handle_roads_visible_button()">Toggle Roads</button>
             <button type="button" onclick="handle_congestion_colors_button()">Toggle Congestion Colors</button>
             <button type="button" onclick="handle_cell_highlights_visible_button()">Toggle Selection Highlights</button>
+            <button type="button" onclick="handle_legend_visible_button()">Toggle Path Legend</button>
           </div>
         </div>     
       </div>   
@@ -247,7 +248,50 @@
   </div>
   
   <div id="graph-stage-container">
+    
     <div id="graph-stage"></div>
+
+    <div id="graph-legend">
+      <div id="graph-legend-title">Path Legend</div>
+      <div id="graph-legend-display-title">Display</div>
+      <div id="graph-legend-list">
+          <div class="graph-legend-item">
+            <span class="graph-legend-item-name">Astro</span>
+            <span id="solid-line" class="graph-legend-line"></span>
+            <span class="options-short-group graph-legend-item-cb-container">
+              <input type="checkbox" id="legend-display-astro-cb" checked>
+            </span>
+          </div>
+          <div class="graph-legend-item">
+            <span class="graph-legend-item-name">Astro-Greedy</span>
+            <span id="dashed-line" class="graph-legend-line"></span>
+            <span class="options-short-group graph-legend-item-cb-container">
+              <input type="checkbox" id="legend-display-astrog-cb" checked>
+            </span>
+          </div>
+          <div class="graph-legend-item">
+            <span class="graph-legend-item-name">Dijkstra</span>
+            <span id="dotted-line" class="graph-legend-line"></span>
+            <span class="options-short-group graph-legend-item-cb-container">
+              <input type="checkbox" id="legend-display-dijkstra-cb" checked>
+            </span>
+          </div>
+          <div class="graph-legend-item">
+            <span class="graph-legend-item-name">Dijkstra-Congestion</span>
+            <span id="dotdashed-line" class="graph-legend-line"></span>
+            <span class="options-short-group graph-legend-item-cb-container">
+              <input type="checkbox" id="legend-display-dijkstra-con-cb" checked>
+            </span>
+          </div>
+          <div class="graph-legend-item">
+            <span class="graph-legend-item-name">Greedy</span>
+            <span id="longdashed-line" class="graph-legend-line"></span>
+            <span class="options-short-group graph-legend-item-cb-container">
+              <input type="checkbox" id="legend-display-greedy-cb" checked>
+            </span>
+          </div>
+      </div>
+    </div>
   </div>
 
   <div id="right-sidebar">
