@@ -37,13 +37,6 @@ let path_start_selection_shape = null;
 let path_end_selection_shape = null;
 let is_selecting_path_start = false;
 let is_selecting_path_end = false;
-let highlight_colors_enabled = true;
-let path_endpoints_enabled = true;
-const selection_colors = {
-    editing: "rgba(0,0,255,0.5)",
-    path_start: "rgba(0,255,0,0.5)",
-    path_end: "rgba(255,0,0,0.5)"
-};
 
 // stage display variables
 let main_cell_dims = null;
@@ -58,6 +51,11 @@ let building_clipping_enabled = true;
 let building_corridors_enabled = true;
 let building_con_colors_enabled = true;
 let path_legend_enabled = true;
+let highlight_colors_enabled = true;
+let path_endpoints_enabled = true;
+let road_hiding_drag_enabled = false;
+let can_pan_enabled = true;
+let can_zoom_enabled = true;
 
 // color definitions
 const building_con_colors = {
@@ -76,6 +74,11 @@ const con_text_color_classes = {
     low: "low-con-text-color",
     med: "med-con-text-color",
     high: "high-con-text-color"
+};
+const selection_colors = {
+    editing: "rgba(0,0,255,0.5)",
+    path_start: "rgba(0,255,0,0.5)",
+    path_end: "rgba(255,0,0,0.5)"
 };
 
 // options to define path styles
@@ -143,6 +146,13 @@ let selection_layer = null;
 let building_layer = null;
 let road_layer = null;
 let path_layer = null;
+
+// define variables to support road hiding
+let road_hide_start_pos = null;
+let road_hide_cur_pos = null;
+let is_dragging_road_hide = false;
+let road_hiding_bounds_rect = null;
+
 
 
 /* -------------------------------------------------------------------------- */
@@ -1883,6 +1893,9 @@ function draw_main_stage() {
     // create the necessary layers to draw
     create_main_layers();
 
+    // setup necessary callbacks
+    setup_main_stage_callbacks();
+
     // draw selection overlay
     // draw_selection_overlays(selection_layer);
 
@@ -1899,10 +1912,10 @@ function create_main_layers() {
 
     // create and add new layers
     building_layer = new Konva.Layer({
-        listening: false
+        // listening: false // TODO: add listening false back after custom movement is not needed
     });
     road_layer = new Konva.Layer({
-        listening: false
+        // listening: false // TODO: add listening false back when you remove road hiding support
     });
     path_layer = new Konva.Layer({
         listening: false
@@ -1915,15 +1928,28 @@ function create_main_layers() {
     stage.add(building_layer);
     stage.add(path_layer);
     stage.add(selection_layer);
+}
 
+
+// setup stage event handlers
+function setup_main_stage_callbacks() {
+    
     // process clicks for the selection layer
     // (different from panning mouseup which is already bound, if want to bind to that event you need to use namespaces like mouseup.pan and mouseup.select)
-    stage.off("click");
-    stage.on("click", function (e) {
+    stage.off(".selection");
+    stage.on("click.selection", function (e) {
         if (!is_panning) {
             select_point();
         }
     });
+
+    // setup stage road hiding events
+    stage.off(".road_hiding");
+    stage.on("mousedown.road_hiding", road_hiding_stage_mousedown);
+    stage.on("mousemove.road_hiding", road_hiding_stage_mousemove);
+    stage.on("mouseup.road_hiding", road_hiding_stage_mouseup);
+    road_hiding_bounds_rect = new Konva.Rect({x: 0, y: 0, width: 0, height: 0, stroke: 'red', dash: [2,2], listening: false});
+    road_layer.add(road_hiding_bounds_rect);
 }
 
 
@@ -1981,7 +2007,7 @@ function draw_building(building_grid_coords, parent, for_main_stage) {
     let building_mods = cell_info.building_mods;
 
     // create a group to contain the building and its entrances
-    let building_group = new Konva.Group();
+    let building_group = new Konva.Group({draggable: true}); // TODO: remove draggable after custom movement is no longer needed
     
     if (for_main_stage) {
 
@@ -2549,14 +2575,13 @@ function draw_roads(parent) {
     //     }
     // }
 
-    // draw horizontal and vertical roads
     for (let i = 0; i <= 1; i++) {
 
         // draw background on first iteration, dashed lines on second iteration
         let is_dashed = i == 1;
     
         // draw vertical roads 
-        for (let x = 0; x <= grid.length; x++) {
+        for (let x = 1; x < grid.length; x++) {
 
             let start_grid_point = { x: x, y: 0 };
             let end_grid_point   = { x: x, y: grid.length };
@@ -2565,7 +2590,7 @@ function draw_roads(parent) {
         }
 
         // draw horizontal roads 
-        for (let y = 0; y <= grid.length; y++) {
+        for (let y = 1; y < grid.length; y++) {
 
             let start_grid_point = { x: 0, y: y };
             let end_grid_point   = { x: grid.length, y: y };
@@ -2576,14 +2601,17 @@ function draw_roads(parent) {
 }
 
 // draw a road background for a given start and end grid point
-function draw_road_line(start_grid_point, end_grid_point, is_dashed, is_vertical, parent) {
+function draw_road_line(start_grid_point, end_grid_point, is_dashed, is_vertical, parent, skips) {
 
     let cell_dims = get_cell_dims(true);
     // let road_size = (cell_dims.size + cell_dims.spacing) * road_size_ratio;
     let road_size = cell_dims.spacing;
-
     let dash_spacing = road_size / 2;
     let dash_size = ((cell_dims.size + cell_dims.spacing) - ((road_dashes_per_cell ) * dash_spacing)) / road_dashes_per_cell;
+
+    // randomize road size
+    let rand_road_size = road_size * rand_in_range(0.5, 1.25)
+    // let rand_road_size = road_size;
 
     // get amount to offset dash in certain direction based on input (creates pluses at intersections)
     let dash_size_offset = is_dashed ? dash_size / 2 : 0;
@@ -2615,7 +2643,7 @@ function draw_road_line(start_grid_point, end_grid_point, is_dashed, is_vertical
 
     // determine drawing values
     let road_color = is_dashed ? road_dash_color : road_background_color;
-    let stroke_width = is_dashed ?  road_size / 6 : road_size;
+    let stroke_width = is_dashed ?  road_size / 6 : rand_road_size;
 
     // create new road path
     let road = new Konva.Line({
@@ -3662,6 +3690,20 @@ function calc_point_angle_around_circle(point, circle_center) {
     return angle;
 }
 
+// reverse coordinates
+function invert_rect_coords(r1, r2){
+    let r1x = r1.x, r1y = r1.y, r2x = r2.x, r2y = r2.y, d;
+    if (r1x > r2x) {
+        d = Math.abs(r1x - r2x);
+        r1x = r2x; r2x = r1x + d;
+    }
+    if (r1y > r2y) {
+        d = Math.abs(r1y - r2y);
+        r1y = r2y; r2y = r1y + d;
+    }
+    return ({x1: r1x, y1: r1y, x2: r2x, y2: r2y});   
+}
+
 
 /* ---------------------------- random functions ---------------------------- */
 
@@ -4331,6 +4373,24 @@ function handle_path_endpoint_visibility_button() {
 }
 
 
+// toggles the road hiding variable
+function handle_road_hiding_button() {
+    road_hiding_drag_enabled = !road_hiding_drag_enabled;
+}
+
+
+// toggles the can pan variable
+function handle_panning_toggle_button() {
+    can_pan_enabled = !can_pan_enabled;
+}
+
+
+// toggles the can zoom variable
+function handle_zooming_toggle_button() {
+    can_zoom_enabled = !can_zoom_enabled;
+}
+
+
 /* -------------------------------------------------------------------------- */
 /*                               stage controls                               */
 /* -------------------------------------------------------------------------- */
@@ -4384,11 +4444,11 @@ function create_stages() {
     orig_editor_width = Math.floor(editor_container_width) - 1;
 
     // setup callbacks for the main stage
-    stage.on("mousedown", main_stage_mousedown);
-    stage.on("mousemove", main_stage_mousemove);
-    stage.on("mouseout", main_stage_mouseout);
-    stage.on("mouseup", main_stage_mouseup);
-    stage.on("wheel", main_stage_wheel);
+    stage.on("mousedown.pan", panning_main_stage_mousedown);
+    stage.on("mousemove.pan", panning_main_stage_mousemove);
+    stage.on("mouseout.pan", panning_main_stage_mouseout);
+    stage.on("mouseup.pan", panning_main_stage_mouseup);
+    stage.on("wheel.zoom", zooming_main_stage_wheel);
 }
 
 
@@ -4448,8 +4508,12 @@ function size_stages_to_containers() {
 
 
 // callback for detection of any mouse down events on the stage
-function main_stage_mousedown(e) {
+function panning_main_stage_mousedown(e) {
     // console.log("stage mouse down!");
+
+    if (road_hiding_drag_enabled || !can_pan_enabled) {
+        return;
+    }
 
     is_pan_attempted = true;
 
@@ -4464,10 +4528,10 @@ function main_stage_mousedown(e) {
 
 
 // callback for detection of mouse movement events on the stage
-function main_stage_mousemove(e) {
+function panning_main_stage_mousemove(e) {
 
     // do nothing if not currently panning
-    if ((!is_pan_attempted && !is_panning) || pan_start_pointer_pos === null || pan_start_stage_pos === null) {
+    if (!is_pan_attempted || (!is_pan_attempted && !is_panning) || pan_start_pointer_pos === null || pan_start_stage_pos === null || !can_pan_enabled) {
         return;
     }
 
@@ -4521,7 +4585,7 @@ function main_stage_mousemove(e) {
 
 
 // callback for detection of when the cursor moves out of the stage
-function main_stage_mouseout(e) {
+function panning_main_stage_mouseout(e) {
 
     // console.log("stage mouseout!");
     // disable panning if it is enabled
@@ -4536,11 +4600,11 @@ function main_stage_mouseout(e) {
 
 
 // callback for detection of when the cursor is released in the stage
-function main_stage_mouseup(e) {
+function panning_main_stage_mouseup(e) {
     console.log("stage mouse up");
 
     // disable panning if it is enabled
-    if (is_panning || is_pan_attempted) {
+    if (is_panning || is_pan_attempted || !can_pan_enabled) {
         is_panning = false;
         is_pan_attempted = false;
     }
@@ -4553,11 +4617,11 @@ function main_stage_mouseup(e) {
 
 
 // callback for when wheel movement detected on main stage
-function main_stage_wheel(e) {
+function zooming_main_stage_wheel(e) {
     // stop default scrolling
     e.evt.preventDefault();
 
-    if (is_panning) {
+    if (is_panning || !can_zoom_enabled) {
         return;
     }
 
@@ -4588,3 +4652,76 @@ function main_stage_wheel(e) {
     };
     stage.position(new_pos);
 };
+  
+
+/* ------------------------- main stage road hiding ------------------------- */
+
+
+// start the road hiding rect bounds on mouse down
+function road_hiding_stage_mousedown(e) {
+
+    if (road_hiding_drag_enabled) {
+        is_dragging_road_hide = true;
+        
+        let scale = stage.scaleX();
+        let pointer = stage.getPointerPosition();
+
+        let pointer_stage_coords = {
+            x: (pointer.x - stage.x()) / scale,
+            y: (pointer.y - stage.y()) / scale,
+        };
+
+        road_hide_start_pos = pointer_stage_coords;
+        road_hide_cur_pos = pointer_stage_coords;
+    } else {
+        is_dragging_road_hide = false;
+        road_hide_start_pos = null;
+        road_hide_cur_pos = null;
+    }
+};
+
+
+// update hiding road rect bounds
+function road_hiding_stage_mousemove(e) {
+    if (is_dragging_road_hide) {
+        
+        let scale = stage.scaleX();
+        let pointer = stage.getPointerPosition();
+
+        let pointer_stage_coords = {
+            x: (pointer.x - stage.x()) / scale,
+            y: (pointer.y - stage.y()) / scale,
+        };
+
+        road_hide_cur_pos = pointer_stage_coords;
+        let pos_rect = invert_rect_coords(road_hide_start_pos, road_hide_cur_pos);
+
+        road_hiding_bounds_rect.x(pos_rect.x1);
+        road_hiding_bounds_rect.y(pos_rect.y1);
+        road_hiding_bounds_rect.width(pos_rect.x2 - pos_rect.x1);
+        road_hiding_bounds_rect.height(pos_rect.y2 - pos_rect.y1);
+        road_hiding_bounds_rect.visible(true);        
+    }
+};
+  
+
+// draw a new road hiding rectangle at the current bound coordinates and size
+function road_hiding_stage_mouseup(e) {
+    
+    is_dragging_road_hide = false;
+    road_hiding_bounds_rect.visible(false);
+
+    if (!road_hiding_drag_enabled) {
+        return;
+    }
+    
+    var new_hide_rect = new Konva.Rect({
+        x: road_hiding_bounds_rect.x(),
+        y: road_hiding_bounds_rect.y(),
+        width: road_hiding_bounds_rect.width(),
+        height: road_hiding_bounds_rect.height(),
+        fill: "white",
+        draggable: true
+    })
+    road_layer.add(new_hide_rect);
+}

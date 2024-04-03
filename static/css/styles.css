@@ -308,12 +308,13 @@ html, body {
     position: absolute;
     bottom: 0;
     right: 0;
-    background-color: rgba(52,58,64, 0.5);
-    width: 20%;
-    height: 30%;
+    background-color: rgba(52, 58, 64, 0.5);
+    border-top: solid 2px rgba(52, 58, 64, 0.5);
+    border-left: solid 2px rgba(52, 58, 64, 0.5);
+    /* width: 20%;
+    height: 30%; */
     padding: 10px;
     color: white;
-    overflow: auto;
 }
 
 #graph-legend-list {
