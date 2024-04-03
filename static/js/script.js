@@ -2213,11 +2213,12 @@ function draw_building_outline(building_grid_coords, parent, for_main_stage) {
     stage_shape_path = flatten_points(stage_shape_path);
 
     // draw building outline (ensures doors have an outer border along the building shape)
-    let outline_color = building_mods.open ? "black" : "red";
+    // let outline_color = building_mods.open ? "black" : "red";
+    let outline_color = building_mods.open ? corridor_con_colors[building_mods.con_level] :  "red";
     let building_outline = new Konva.Line({
         points: stage_shape_path,
         stroke: outline_color,
-        strokeWidth: get_cell_dims(for_main_stage).stroke,
+        strokeWidth: get_cell_dims(for_main_stage).stroke * 2,
         closed: true,
         listening: false, // needed for the editor layer to allow doors to be dragged
         perfectDrawEnabled: false
@@ -2610,7 +2611,7 @@ function draw_road_line(start_grid_point, end_grid_point, is_dashed, is_vertical
     let dash_size = ((cell_dims.size + cell_dims.spacing) - ((road_dashes_per_cell ) * dash_spacing)) / road_dashes_per_cell;
 
     // randomize road size
-    let rand_road_size = road_size * rand_in_range(0.5, 1.25)
+    let rand_road_size = road_size * rand_in_range(0.35, 1.25);
     // let rand_road_size = road_size;
 
     // get amount to offset dash in certain direction based on input (creates pluses at intersections)
@@ -2708,7 +2709,7 @@ function draw_manual_paths() {
     stage.add(path_layer);
 
     try {
-        draw_endpoint_path_part({x:-1, y:6}, {x:0, y:5}, 1, path_layer, "dashed");
+        draw_endpoint_path_part({x:-0.5, y:5.55}, {x:0, y:5}, 1, path_layer, "dashed");
         draw_internal_path_part({x:0, y:5}, 1, 4, path_layer, "dashed");
         draw_internal_path_part({x:1, y:3}, 1, 3, path_layer, "dashed");
         draw_internal_path_part({x:3, y:1}, 3, 2, path_layer, "dashed");
@@ -2716,9 +2717,11 @@ function draw_manual_paths() {
         draw_external_path_part({x:0, y:5}, null, 4, {x:1, y:3}, null, 1, path_layer, "dashed");
         draw_external_path_part({x:1, y:3}, null, 3, {x:3, y:1}, null, 3, path_layer, "dashed");
         draw_external_path_part({x:3, y:1}, null, 2, {x:5, y:0}, null, 1, path_layer, "dashed");
+        draw_endpoint_path_part({x:5.5, y:-0.5}, {x:5, y:0}, 2, path_layer, "dashed");
     } catch(e){console.log(e);}
 
     try {
+        draw_endpoint_path_part({x:-0.5, y:5.5}, {x:0, y:5}, 1, path_layer, "dotted");
         draw_internal_path_part({x:0, y:5}, 1, 5, path_layer, "dotted");
         draw_external_path_part({x:0, y:5}, null, 5, {x:3, y:5}, null, 2, path_layer, "dotted");
         draw_internal_path_part({x:3, y:5}, 2, 4, path_layer, "dotted");
@@ -2726,9 +2729,11 @@ function draw_manual_paths() {
         draw_internal_path_part({x:4, y:3}, 1, 4, path_layer, "dotted");
         draw_external_path_part({x:4, y:3}, null, 4, {x:5, y:0}, null, 1, path_layer, "dotted");
         draw_internal_path_part({x:5, y:0}, 1, 2, path_layer, "dotted");
+        draw_endpoint_path_part({x:5.5, y:-0.5}, {x:5, y:0}, 2, path_layer, "dotted");
     } catch(e){console.log(e);}
 
     try {
+        draw_endpoint_path_part({x:-0.5, y:5.5}, {x:0, y:5}, 1, path_layer, "solid");
         draw_internal_path_part({x:0, y:5}, 1, 2, path_layer, "solid");
         draw_external_path_part({x:0, y:5}, null, 2, {x:0, y:4}, null, 3, path_layer, "solid");
         draw_internal_path_part({x:0, y:4}, 3, 1, path_layer, "solid");
@@ -2736,17 +2741,21 @@ function draw_manual_paths() {
         draw_internal_path_part({x:1, y:1}, 1, 2, path_layer, "solid");
         draw_external_path_part({x:1, y:1}, null, 2, {x:5, y:0}, null, 1, path_layer, "solid");
         draw_internal_path_part({x:5, y:0}, 1, 2, path_layer, "solid");
+        draw_endpoint_path_part({x:5.5, y:-0.5}, {x:5, y:0}, 2, path_layer, "solid");
     } catch(e){console.log(e);}
 
     try {
+        draw_endpoint_path_part({x:-0.5, y:5.5}, {x:0, y:5}, 1, path_layer, "dotdashed");
         draw_internal_path_part({x:0, y:5}, 1, 4, path_layer, "dotdashed");
         draw_external_path_part({x:0, y:5}, null, 4, {x:4, y:1}, null, 1, path_layer, "dotdashed");
         draw_internal_path_part({x:4, y:1}, 1, 3, path_layer, "dotdashed");
         draw_external_path_part({x:4, y:1}, null, 3, {x:5, y:0}, null, 1, path_layer, "dotdashed");
         draw_internal_path_part({x:5, y:0}, 1, 2, path_layer, "dotdashed");
+        draw_endpoint_path_part({x:5.5, y:-0.5}, {x:5, y:0}, 2, path_layer, "dotdashed");
     } catch(e){console.log(e);}
 
     try {
+        draw_endpoint_path_part({x:-0.5, y:5.5}, {x:0, y:5}, 1, path_layer, "longdashed");
         draw_internal_path_part({x:0, y:5}, 1, 4, path_layer, "longdashed");
         draw_external_path_part({x:0, y:5}, null, 4, {x:2, y:4}, null, 3, path_layer, "longdashed");
         draw_internal_path_part({x:2, y:4}, 3, 2, path_layer, "longdashed");
@@ -2754,6 +2763,7 @@ function draw_manual_paths() {
         draw_internal_path_part({x:3, y:2}, 1, 4, path_layer, "longdashed");
         draw_external_path_part({x:3, y:2}, null, 4, {x:5, y:0}, null, 1, path_layer, "longdashed");
         draw_internal_path_part({x:5, y:0}, 1, 2, path_layer, "longdashed");
+        draw_endpoint_path_part({x:5.5, y:-0.5}, {x:5, y:0}, 2, path_layer, "longdashed");
     } catch(e){console.log(e);}
 }
 

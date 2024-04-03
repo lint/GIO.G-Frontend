@@ -18,7 +18,7 @@ html, body {
 
 #left-sidebar {
     border-right: solid 2px #444;
-    padding: 0px 10px 10px 10px;
+    padding: 5px 10px 10px 10px;
     overflow-y: scroll;
     box-sizing: border-box;
     grid-column: 1;
@@ -102,7 +102,7 @@ html, body {
     text-align: left;
     outline: none;
     transition: 0.5s;
-    margin: 10px 0 0px 0;
+    margin: 2px 0 0px 0;
 }
 
 .accordion-active, .accordion-button:hover {
@@ -130,7 +130,7 @@ html, body {
 }
 
 .options-section-inner-container {
-    padding: 10px 0px;
+    padding: 2px 0px;
 }
 
 .options-form-container {
@@ -139,7 +139,7 @@ html, body {
 }
 
 .options-category-container {
-    margin: 2px 10px 2px 0;
+    margin: 2px 10px 0px 0;
 }
 
 .options-input-container {
