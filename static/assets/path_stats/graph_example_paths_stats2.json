@@ -1,8 +1,8 @@
 {
-  "time_total" : 804685.347684041,
-  "time_indoor" : 38954.65252176664,
-  "time_outdoor" : 765730.6951622744,
-  "congestion_average" : 1.485756059483681,
-  "congestion_max" : 2.4234431674280925,
-  "congestion_min" : 0.548068951539269
+  "time_total" : 794249.4760325626,
+  "time_indoor" : 85293.75214228846,
+  "time_outdoor" : 708955.7238902741,
+  "congestion_average" : 0.8021961757295772,
+  "congestion_max" : 1.6899557801968528,
+  "congestion_min" : 0.08556342873769808
 }

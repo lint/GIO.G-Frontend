@@ -413,7 +413,7 @@ function grid_object_at_coords(grid_coords) {
 function grid_object_for_id(building_id) {
 
     // use the id to get the grid coords directly
-    let x = Math.round(building_id / grid.length);
+    let x = Math.floor(building_id / grid.length);
     let y = building_id % grid.length;
 
     let cell_info = grid[y][x];
@@ -2643,32 +2643,24 @@ function draw_paths() {
     path_layer = new Konva.Layer();
     stage.add(path_layer);
 
+    // iterate over every current path
     for (let p = 0; p < current_paths.length; p++) {
 
         let path = current_paths[p];
         let path_type = Object.keys(path_type_options)[p]; // TODO: specify path types for specific algorithms?
 
-        console.log("p: ", p, path, path_type);
-
+        // iterate over every building in the path
         for (let i = 1; i < path.length - 2; i++) {
 
     
             let building1 = path[i];
             let building2 = path[i+1];
-            console.log("building1: ", building1);
-    
-            // let building_x = Math.round(building.id / grid.length) + 1;
-            // let building_y = building.id % grid.length + 1;
-            
-            // // x and y values are getting swapped for some reason in path gen
-            // let actual_building_id = (building_y - 1) * grid.length + (building_x - 1);
-    
-            // console.log("actual building id", actual_building_id);
     
             let cell_info1 = grid_object_for_id(building1.id);
             let cell_info2 = grid_object_for_id(building2.id);
     
             if (cell_info1 === null || cell_info2 === null) {
+                console.log("continued", building1.id, cell_info1, building2.id, cell_info2);
                 continue;
             }
             
@@ -2684,8 +2676,6 @@ function draw_paths() {
     
         }
     }
-
-    
 }
 
 
@@ -2706,6 +2696,8 @@ function get_main_stage_path_dash(path_type) {
 
 // draw external path from a given building to another building
 function draw_external_path_part(building1_grid_coords, door1_id, building2_grid_coords, door2_id, parent, path_type) {
+
+    console.log("external path: building1: ", building1_grid_coords, "door1: ", door1_id, "building2_grid_coords: ", building2_grid_coords, "door2: ", door2_id);
 
     // figuring this method out was way more complicated than it had any right or need to be ...
 
@@ -2884,6 +2876,8 @@ function draw_external_path_part(building1_grid_coords, door1_id, building2_grid
 
 // draw internal path from one door to another of a given building
 function draw_internal_path_part(building_grid_coords, door1_id, door2_id, parent, path_type) {
+
+    console.log("internal path: building1: ", building_grid_coords, "door1: ", door1_id, "door2: ", door2_id);
 
     let cell_info = grid_object_at_coords(building_grid_coords);
     let cell_dims = get_cell_dims(true);

@@ -11,49 +11,49 @@
   "congestion_type" : "none",
   "congestion" : [ ]
 }, {
-  "id" : 3,
+  "id" : 13,
+  "x" : -1,
+  "y" : -1,
+  "entrances" : [ {
+    "id" : 5,
+    "x" : 2.1328311546007876,
+    "y" : 3.3460369883011643,
+    "accessible" : 1
+  } ],
+  "congestion_type" : "none",
+  "congestion" : [ ]
+}, {
+  "id" : 13,
   "x" : -1,
   "y" : -1,
   "entrances" : [ {
     "id" : 4,
-    "x" : 3.764601278898511,
-    "y" : 1.183913637294657,
+    "x" : 1.7583113672928254,
+    "y" : 3.1888278548241766,
     "accessible" : 1
   } ],
   "congestion_type" : "none",
   "congestion" : [ ]
 }, {
-  "id" : 3,
+  "id" : 27,
   "x" : -1,
   "y" : -1,
   "entrances" : [ {
-    "id" : 3,
-    "x" : 3.6826762658184053,
-    "y" : 1.0616814855469536,
+    "id" : 4,
+    "x" : 4.2464234433876555,
+    "y" : 5.206773820460017,
     "accessible" : 1
   } ],
   "congestion_type" : "none",
   "congestion" : [ ]
 }, {
-  "id" : 11,
+  "id" : 27,
   "x" : -1,
   "y" : -1,
   "entrances" : [ {
-    "id" : 3,
-    "x" : 5.679842693525365,
-    "y" : 2.184842907076156,
-    "accessible" : 1
-  } ],
-  "congestion_type" : "none",
-  "congestion" : [ ]
-}, {
-  "id" : 11,
-  "x" : -1,
-  "y" : -1,
-  "entrances" : [ {
-    "id" : 2,
-    "x" : 5.745539127494752,
-    "y" : 1.9642378565790135,
+    "id" : 1,
+    "x" : 4.148192398044478,
+    "y" : 4.762842588468026,
     "accessible" : 1
   } ],
   "congestion_type" : "none",
