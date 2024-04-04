@@ -86,27 +86,32 @@ const path_type_options = {
     solid: {
         dash: null,
         exterior_offset: 1,
-        color: "red", // Konva.Util.getRandomColor()
+        // color: "red", // Konva.Util.getRandomColor()
+        color: "#023047"
     }, 
     dashed: {
         dash: [0.1, 0.1],
         exterior_offset: 2,
-        color: "cyan", //Konva.Util.getRandomColor()
+        // color: "cyan", //Konva.Util.getRandomColor()
+        color: "#2a9d8f"
     },
     dotted: {
         dash: [0.00001, 0.05],
         exterior_offset: 3,
-        color: "fuchsia", // Konva.Util.getRandomColor()
+        // color: "fuchsia", // Konva.Util.getRandomColor()
+        color: "#D10700",
     },
     dotdashed: {
         dash: [0.00001, 0.05, 0.1, 0.05],
         exterior_offset: 4,
-        color: "green", // Konva.Util.getRandomColor()
+        // color: "green", // Konva.Util.getRandomColor()
+        color: "#E06900"
     },
     longdashed: {
         dash: [0.2, 0.05],
         exterior_offset: 5,
-        color: "purple", //Konva.Util.getRandomColor()
+        // color: "purple", //Konva.Util.getRandomColor()
+        color: "#DB508C"
     }
 };
 let path_line_cap = "round"; // round, square, or butt
@@ -179,27 +184,26 @@ document.addEventListener("DOMContentLoaded", function() {
     
     // show any necessary values on the config form
     update_config_form_display();
-
-    // update sidebar accordion cell heights
-    update_accordion_heights();
-
+    
     // set the initial values for the path selection buttons
     update_path_select_labels();
-
+    
     // clear necessary content in the building editor
     reset_building_editor();
-
+    
+    // update sidebar accordion cell heights
+    update_accordion_heights();
 });
 
 
 // execute when the window is resized
 window.addEventListener("resize", function(event) {
 
-    // update sidebar accordion cell heights
-    update_accordion_heights();
-
     // update stage dimensions to fit parent container
     size_stages_to_containers();
+
+    // update sidebar accordion cell heights
+    update_accordion_heights();
 
 }, true);
 
@@ -638,7 +642,7 @@ function generate_new_doors(building_grid_coords, num_doors, door_id_start) {
     let angle_partition = 360 / num_doors;
 
     for (let i = 0; i < num_doors; i++) {
-        let door_r = rand_in_range(0.1, 0.4); // ensures doors are not too close to the center nor outside the grid cell
+        let door_r = rand_in_range(0.25, 0.45); // ensures doors are not too close to the center nor outside the grid cell
         let door_theta = (i * angle_partition + rand_in_range(0, angle_partition)) * (Math.PI / 180); // convert to radians from degrees
         
         let door_graph_coords = {
@@ -1460,6 +1464,9 @@ function select_building_to_edit(building_grid_coords, can_unselect) {
     if (cell_info.building_data !== null) {
         redraw_selected_building(building_grid_coords);
     }
+
+    // update accordian heights
+    update_accordion_heights();
 }
 
 
@@ -1779,6 +1786,9 @@ function handle_delete_door_button(building_grid_coords, door_id) {
 
     // redraw the building to reflect the changes in doors
     redraw_selected_building(building_grid_coords);
+
+    // update accordian heights
+    update_accordion_heights();
 }
 
 
@@ -1796,6 +1806,9 @@ function handle_add_door_button(building_grid_coords) {
 
     // redraw the building to display the new door
     redraw_selected_building(building_grid_coords);
+
+    // update accordian heights
+    update_accordion_heights();
 }
 
 
@@ -2075,7 +2088,7 @@ function draw_building_shape(building_grid_coords, parent, for_main_stage) {
     let stage_shape_path = grid_shape_path.map((point) => door_grid_coords_to_stage_coords(point, building_grid_coords, for_main_stage));
     stage_shape_path = flatten_points(stage_shape_path);
 
-    let building_color = building_con_colors_enabled ? building_con_colors[cell_info.building_mods.con_level] : building_con_colors["constant"];
+    let building_color = building_con_colors_enabled ? building_con_colors[cell_info.building_data.congestion_type || cell_info.building_mods.con_level] : building_con_colors["constant"];
 
     // construct a building shape given the door coordinates and calculated corners
     let building_shape = new Konva.Line({
@@ -2387,7 +2400,7 @@ function draw_corridors(building_grid_coords, parent, for_main_stage) {
     let door_dims = get_door_dims(for_main_stage);
     let door_mods = cell_info.building_mods.entrance_mods;
 
-    let corridor_color = building_con_colors_enabled ? corridor_con_colors[cell_info.building_mods.con_level] : corridor_con_colors["constant"];
+    let corridor_color = building_con_colors_enabled ? corridor_con_colors[cell_info.building_data.congestion_type || cell_info.building_mods.con_level] : corridor_con_colors["constant"];
     let corridor_width = door_dims.size / 3;
 
     // create new corridors group
@@ -2711,33 +2724,29 @@ function draw_manual_paths() {
     try {
         draw_endpoint_path_part({x:-0.5, y:5.55}, {x:0, y:5}, 1, path_layer, "dashed");
         draw_internal_path_part({x:0, y:5}, 1, 4, path_layer, "dashed");
-        draw_internal_path_part({x:1, y:3}, 1, 3, path_layer, "dashed");
+        draw_external_path_part({x:0, y:5}, null, 4, {x:2, y:3}, null, 1, path_layer, "dashed");
+        draw_internal_path_part({x:2, y:3}, 1, 2, path_layer, "dashed");
+        draw_external_path_part({x:2, y:3}, null, 2, {x:3, y:1}, null, 3, path_layer, "dashed");
         draw_internal_path_part({x:3, y:1}, 3, 2, path_layer, "dashed");
-        draw_internal_path_part({x:5, y:0}, 1, 2, path_layer, "dashed");
-        draw_external_path_part({x:0, y:5}, null, 4, {x:1, y:3}, null, 1, path_layer, "dashed");
-        draw_external_path_part({x:1, y:3}, null, 3, {x:3, y:1}, null, 3, path_layer, "dashed");
         draw_external_path_part({x:3, y:1}, null, 2, {x:5, y:0}, null, 1, path_layer, "dashed");
+        draw_internal_path_part({x:5, y:0}, 1, 2, path_layer, "dashed");
         draw_endpoint_path_part({x:5.5, y:-0.5}, {x:5, y:0}, 2, path_layer, "dashed");
     } catch(e){console.log(e);}
 
     try {
         draw_endpoint_path_part({x:-0.5, y:5.5}, {x:0, y:5}, 1, path_layer, "dotted");
-        draw_internal_path_part({x:0, y:5}, 1, 5, path_layer, "dotted");
-        draw_external_path_part({x:0, y:5}, null, 5, {x:3, y:5}, null, 2, path_layer, "dotted");
-        draw_internal_path_part({x:3, y:5}, 2, 4, path_layer, "dotted");
-        draw_external_path_part({x:3, y:5}, null, 4, {x:4, y:3}, null, 1, path_layer, "dotted");
-        draw_internal_path_part({x:4, y:3}, 1, 4, path_layer, "dotted");
-        draw_external_path_part({x:4, y:3}, null, 4, {x:5, y:0}, null, 1, path_layer, "dotted");
+        draw_internal_path_part({x:0, y:5}, 1, 4, path_layer, "dotted");
+        draw_external_path_part({x:0, y:5}, null, 4, {x:3, y:4}, null, 2, path_layer, "dotted");
+        draw_internal_path_part({x:3, y:4}, 2, 4, path_layer, "dotted");
+        draw_external_path_part({x:3, y:4}, null, 4, {x:5, y:0}, null, 1, path_layer, "dotted");
         draw_internal_path_part({x:5, y:0}, 1, 2, path_layer, "dotted");
         draw_endpoint_path_part({x:5.5, y:-0.5}, {x:5, y:0}, 2, path_layer, "dotted");
     } catch(e){console.log(e);}
 
     try {
         draw_endpoint_path_part({x:-0.5, y:5.5}, {x:0, y:5}, 1, path_layer, "solid");
-        draw_internal_path_part({x:0, y:5}, 1, 2, path_layer, "solid");
-        draw_external_path_part({x:0, y:5}, null, 2, {x:0, y:4}, null, 3, path_layer, "solid");
-        draw_internal_path_part({x:0, y:4}, 3, 1, path_layer, "solid");
-        draw_external_path_part({x:0, y:4}, null, 1, {x:1, y:1}, null, 1, path_layer, "solid");
+        draw_internal_path_part({x:0, y:5}, 1, 4, path_layer, "solid");
+        draw_external_path_part({x:0, y:5}, null, 4, {x:1, y:1}, null, 1, path_layer, "solid");
         draw_internal_path_part({x:1, y:1}, 1, 2, path_layer, "solid");
         draw_external_path_part({x:1, y:1}, null, 2, {x:5, y:0}, null, 1, path_layer, "solid");
         draw_internal_path_part({x:5, y:0}, 1, 2, path_layer, "solid");
@@ -2757,11 +2766,11 @@ function draw_manual_paths() {
     try {
         draw_endpoint_path_part({x:-0.5, y:5.5}, {x:0, y:5}, 1, path_layer, "longdashed");
         draw_internal_path_part({x:0, y:5}, 1, 4, path_layer, "longdashed");
-        draw_external_path_part({x:0, y:5}, null, 4, {x:2, y:4}, null, 3, path_layer, "longdashed");
-        draw_internal_path_part({x:2, y:4}, 3, 2, path_layer, "longdashed");
-        draw_external_path_part({x:2, y:4}, null, 2, {x:3, y:2}, null, 1, path_layer, "longdashed");
-        draw_internal_path_part({x:3, y:2}, 1, 4, path_layer, "longdashed");
-        draw_external_path_part({x:3, y:2}, null, 4, {x:5, y:0}, null, 1, path_layer, "longdashed");
+        draw_external_path_part({x:0, y:5}, null, 4, {x:3, y:4}, null, 2, path_layer, "longdashed");
+        draw_internal_path_part({x:3, y:4}, 2, 4, path_layer, "longdashed");
+        draw_external_path_part({x:3, y:4}, null, 4, {x:4, y:3}, null, 1, path_layer, "longdashed");
+        draw_internal_path_part({x:4, y:3}, 1, 4, path_layer, "longdashed");
+        draw_external_path_part({x:4, y:3}, null, 4, {x:5, y:0}, null, 1, path_layer, "longdashed");
         draw_internal_path_part({x:5, y:0}, 1, 2, path_layer, "longdashed");
         draw_endpoint_path_part({x:5.5, y:-0.5}, {x:5, y:0}, 2, path_layer, "longdashed");
     } catch(e){console.log(e);}
@@ -4165,51 +4174,6 @@ function handle_select_end_building_button() {
     is_selecting_path_start = false;
 
     update_path_select_buttons_active();
-}
-
-
-/* ----------------------- right sidebar nav controls ----------------------- */
-
-
-// handle the building editor button clicked
-function handle_building_editor_nav_button() {
-
-    // get the buttons in the navbar
-    let building_editor_button = document.getElementById("navbar-building-editor-button");
-    let path_stats_button = document.getElementById("navbar-path-stats-button");
-
-    // get the container divs on the right sidebar
-    let building_editor_container = document.getElementById("building-editor-container");
-    let path_stats_container = document.getElementById("path-stats-container");
-
-    // show the necessary container and hide the other
-    building_editor_container.style.display = "block";
-    path_stats_container.style.display = "none";
-
-    // set the currently selected item to be active
-    building_editor_button.classList.add("navbar-item-active");
-    path_stats_button.classList.remove("navbar-item-active");
-}
-
-
-// handle the building editor button clicked
-function handle_path_stats_nav_button() {
-
-    // get the buttons in the navbar
-    let building_editor_button = document.getElementById("navbar-building-editor-button");
-    let path_stats_button = document.getElementById("navbar-path-stats-button");
-
-    // get the container divs on the right sidebar
-    let building_editor_container = document.getElementById("building-editor-container");
-    let path_stats_container = document.getElementById("path-stats-container");
-
-    // show the necessary container and hide the other
-    building_editor_container.style.display = "none";
-    path_stats_container.style.display = "block";
-
-    // set the currently selected item to be active
-    building_editor_button.classList.remove("navbar-item-active");
-    path_stats_button.classList.add("navbar-item-active");
 }
 
 

@@ -26,11 +26,11 @@ html, body {
 
 #right-sidebar {
     border-left: solid 2px #444;
-    /* overflow-y:scroll; */
+    overflow-y:scroll;
     /* background-color: #8ecae6; */
     grid-column: 3;
-    display: flex; flex-direction: column;
-    overflow: hidden;
+    box-sizing: border-box;
+    padding: 5px 10px 10px 10px;
 }
 
 #navbar {
@@ -96,13 +96,13 @@ html, body {
 .accordion-button {
     background-color: #eee;
     cursor: pointer;
-    padding: 12px;
+    padding: 10px;
     width: 100%;
     border: none;
     text-align: left;
     outline: none;
     transition: 0.5s;
-    margin: 2px 0 0px 0;
+    margin: 5px 0 0px 0;
 }
 
 .accordion-active, .accordion-button:hover {
@@ -130,7 +130,7 @@ html, body {
 }
 
 .options-section-inner-container {
-    padding: 2px 0px;
+    padding: 5px 0px;
 }
 
 .options-form-container {
@@ -139,7 +139,7 @@ html, body {
 }
 
 .options-category-container {
-    margin: 2px 10px 0px 0;
+    margin: 5px 10px 0px 0;
 }
 
 .options-input-container {
@@ -248,46 +248,6 @@ html, body {
     gap: 5px;
 }
 
-/* ------------------------- right siderbar elements ------------------------ */
-
-#right-sidebar-content {
-    overflow-y:scroll;
-    flex-grow: 1;
-}
-
-#right-sidebar-navbar {
-    /* padding: 10px; */
-    border-bottom: solid 2px #444;
-    /* background-color: #eee; */
-    display: flex;
-    flex-direction: row;
-}
-
-.navbar-item {
-    flex: 1 1 0px;
-    padding: 10px;
-    cursor: pointer;
-    color: #444;
-    background-color: #eee;
-    font-weight: bold;
-    text-align: center;
-}
-
-.navbar-separator {
-    border-right: solid 2px #444;
-}
-
-.navbar-item.navbar-item-active {
-    background-color: #ccc;
-}
-
-.navbar-item:hover:not(.navbar-item-active) {
-    background-color: #ddd;
-}
-
-.navbar-item:active:not(.navbar-item-active) {
-    background-color: #ccc;
-}
 
 /* ----------------------------- graph elements ----------------------------- */
 
@@ -296,7 +256,7 @@ html, body {
     display: flex;
     justify-content: center;
     align-items: center;
-    position: relative;
+    /* position: relative; */
 }
 
 #graph-stage {
@@ -305,21 +265,19 @@ html, body {
 }
 
 #graph-legend {
-    position: absolute;
+    /* position: absolute;
     bottom: 0;
-    right: 0;
-    background-color: rgba(52, 58, 64, 0.5);
-    border-top: solid 2px rgba(52, 58, 64, 0.5);
-    border-left: solid 2px rgba(52, 58, 64, 0.5);
+    right: 0; */
+    /* background-color: rgba(52, 58, 64, 0.5); */
     /* width: 20%;
     height: 30%; */
-    padding: 10px;
-    color: white;
+    /* padding: 10px; */
 }
 
 #graph-legend-list {
-    list-style-type: none;
+    /* list-style-type: none; */
     /* padding: 0 10px 0 10px; */
+    grid-template-rows: repeat(5, 1fr);
 }
 
 #graph-legend-title {
@@ -334,11 +292,14 @@ html, body {
     font-size: 14px;
     /* float: right; */
     text-align: right;
+    padding-right: 
 }
 
 .graph-legend-item {
-    display: flex;
-    flex-direction: row;
+    display: grid;
+    grid-template-columns: 0.3fr 0.62fr 0.08fr;
+    /* display: flex;
+    flex-direction: row; */
     vertical-align: middle;
     gap: 10px;
     padding: 0 12px 0 5px;
@@ -348,7 +309,7 @@ html, body {
     font-weight: bold;
     text-align: left;
     align-self: center;
-    font-size: 12px;
+    font-size: 14px;
     flex: 1;
 }
 
@@ -366,41 +327,37 @@ html, body {
 }
 
 #solid-line {
-    background: repeating-linear-gradient(90deg, red 0 5px) center;
+    background: repeating-linear-gradient(90deg, #023047 0 5px) center;
     background-size: 100% 4px;
     background-repeat: no-repeat;
 }
 
 #dashed-line {
-    background: repeating-linear-gradient(90deg, cyan 0 10px, #0000 0 20px) center;
+    background: repeating-linear-gradient(90deg, #2a9d8f 0 10px, #0000 0 20px) center;
     background-size: 100% 4px;
     background-repeat: no-repeat;
 }
 
 #dotted-line {
-    background: repeating-linear-gradient(90deg, fuchsia 0 4px, #0000 0 10px) center;
+    background: repeating-linear-gradient(90deg, #D10700 0 4px, #0000 0 10px) center;
     background-size: 100% 4px;
     background-repeat: no-repeat;
 }
 
 #dotdashed-line {
-    background: repeating-linear-gradient(90deg, green 0 4px, #0000 0 8px, green 0 18px, #0000 0 22px) center;
+    background: repeating-linear-gradient(90deg, #E06900 0 4px, #0000 0 8px, #E06900 0 18px, #0000 0 22px) center;
     background-size: 100% 4px;
     background-repeat: no-repeat;
 }
 
 #longdashed-line {
-    background: repeating-linear-gradient(90deg, purple 0 20px, #0000 0 22px) center;
+    background: repeating-linear-gradient(90deg, #DB508C 0 20px, #0000 0 22px) center;
     background-size: 100% 4px;
     background-repeat: no-repeat;
 }
 
 /* ----------------------------- building editor ---------------------------- */
 
-#building-editor-container {
-    padding: 10px;
-    display: block;
-}
 
 #building-editor-stage-container {
     display: flex;
@@ -408,7 +365,7 @@ html, body {
     align-items: center;
     background-color: #eee;
     border: solid 2px #444;
-    margin-top: 5px;
+    /* margin-top: 5px; */
 }
 
 #building-editor-stage {
@@ -451,8 +408,7 @@ html, body {
 
 .building-editor-section {
     background-color: #eee;
-    padding: 10px;
-    margin: 5px 0 5px 0;
+    padding: 5px 5px 0px 5px;
 }
 
 .edit-doors-list-item-control {
@@ -463,21 +419,19 @@ html, body {
 
 #path-stats-container {
     padding: 10px;
-    display: none;
 }
-
 
 /* ---------------------------------- misc ---------------------------------- */
 
 .title {
     color: #444;
-    font-size: 18px;
+    font-size: 16px;
     font-weight: bold;
 }
 
 .subtitle {
     color: #444;
-    font-size: 16px;
+    font-size: 14px;
     font-weight: bold;
 }
 
@@ -509,3 +463,52 @@ a, a:visited, a:hover, a:active {
 .centered {
     text-align: center;
 }
+
+.row-1 {
+    grid-row: 1;
+}
+
+.row-2 {
+    grid-row: 2;
+}
+
+.row-3 {
+    grid-row: 3;
+}
+
+.row-4 {
+    grid-row: 4;
+}
+
+.row-5 {
+    grid-row: 5;
+}
+
+.row-6 {
+    grid-row: 6;
+}
+
+.col-1 {
+    grid-column: 1;
+}
+
+.col-2 {
+    grid-column: 2;
+}
+
+.col-3 {
+    grid-column: 3;
+}
+
+.col-4 {
+    grid-column: 4;
+}
+
+.col-5 {
+    grid-column: 5;
+}
+
+.col-6 {
+    grid-column: 6;
+}
+

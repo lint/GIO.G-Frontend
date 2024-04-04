@@ -183,6 +183,8 @@
                 <option value="graph_50_0.75.json">graph_50_0.75.json</option>
                 <option value="graph_100_0.75.json">graph_100_0.75.json</option>
                 <option value="graph_example_paths.json">graph_example_paths.json</option>
+                <option value="in_order_graph.json">in_order_graph.json</option>
+                <option value="true_random_graph.json">true_random_graph.json</option>
               </select>
             </div>
             <div class="options-input-container">
@@ -261,83 +263,84 @@
   </div>
   
   <div id="graph-stage-container">
-    
     <div id="graph-stage"></div>
-
-    <div id="graph-legend">
-      <div id="graph-legend-title">Path Legend</div>
-      <div id="graph-legend-display-title">Display</div>
-      <div id="graph-legend-list">
-          <div class="graph-legend-item">
-            <span class="graph-legend-item-name">Astro</span>
-            <span id="solid-line" class="graph-legend-line"></span>
-            <span class="options-short-group graph-legend-item-cb-container">
-              <input type="checkbox" id="legend-display-astro-cb" checked>
-            </span>
-          </div>
-          <div class="graph-legend-item">
-            <span class="graph-legend-item-name">Astro-Greedy</span>
-            <span id="dashed-line" class="graph-legend-line"></span>
-            <span class="options-short-group graph-legend-item-cb-container">
-              <input type="checkbox" id="legend-display-astrog-cb" checked>
-            </span>
-          </div>
-          <div class="graph-legend-item">
-            <span class="graph-legend-item-name">Dijkstra</span>
-            <span id="dotted-line" class="graph-legend-line"></span>
-            <span class="options-short-group graph-legend-item-cb-container">
-              <input type="checkbox" id="legend-display-dijkstra-cb" checked>
-            </span>
-          </div>
-          <div class="graph-legend-item">
-            <span class="graph-legend-item-name">Dijkstra-Congestion</span>
-            <span id="dotdashed-line" class="graph-legend-line"></span>
-            <span class="options-short-group graph-legend-item-cb-container">
-              <input type="checkbox" id="legend-display-dijkstra-con-cb" checked>
-            </span>
-          </div>
-          <div class="graph-legend-item">
-            <span class="graph-legend-item-name">Greedy</span>
-            <span id="longdashed-line" class="graph-legend-line"></span>
-            <span class="options-short-group graph-legend-item-cb-container">
-              <input type="checkbox" id="legend-display-greedy-cb" checked>
-            </span>
-          </div>
-      </div>
-    </div>
   </div>
 
   <div id="right-sidebar">
 
-    <div id="right-sidebar-navbar">
-      <div id="navbar-building-editor-button" class="navbar-item navbar-item-active" onclick="handle_building_editor_nav_button()">Building Editor</div>
-      <div class="navbar-separator"></div>
-      <div id="navbar-path-stats-button" class="navbar-item" onclick="handle_path_stats_nav_button()">Path Statistics</div>
+    <button class="accordion-button title accordion-active">Building Editor</button>
+    <div class="options-section">
+      <div class="options-section-inner-container">
+
+          <div class="building-editor-section">
+            <div id="building-editor-stage-container">
+              <div id="building-editor-stage"></div>
+            </div>
+          </div>
+  
+          <div id="selected-cell-info-controls-container" class="building-editor-section">
+            <div id="selected-cell-info-text-container"></div>
+            <div id="selected-building-actions-container"></div>
+          </div>
+  
+          <div id="selected-building-options-container" class="building-editor-section"></div>
+          <div id="selected-building-doors-container" class="building-editor-section"></div>
+
+      </div>
     </div>
 
-    <div id="right-sidebar-content">
-      
-      <div id="building-editor-container"> 
-        <div class="building-editor-section">
-          <div class="title">Building Editor</div>
-          <div id="building-editor-stage-container">
-            <div id="building-editor-stage"></div>
+    <button class="accordion-button title accordion-active">Path Legend</button>
+    <div class="options-section">
+      <div class="options-section-inner-container">
+        <div id="graph-legend">
+          <div id="graph-legend-display-title">Display</div>
+          <div id="graph-legend-list">
+            <div class="graph-legend-item">
+              <span class="graph-legend-item-name col-1">Astro</span>
+              <span id="solid-line" class="graph-legend-line col-2"></span>
+              <span class="options-short-group graph-legend-item-cb-container col-3">
+                <input type="checkbox" id="legend-display-astro-cb" checked>
+              </span>
+            </div>
+            <div class="graph-legend-item">
+              <span class="graph-legend-item-name col-1">Astro-Greedy</span>
+              <span id="dashed-line" class="graph-legend-line col-2"></span>
+              <span class="options-short-group graph-legend-item-cb-container col-3">
+                <input type="checkbox" id="legend-display-astrog-cb" checked>
+              </span>
+            </div>
+            <div class="graph-legend-item">
+              <span class="graph-legend-item-name col-1">Dijkstra</span>
+              <span id="dotted-line" class="graph-legend-line col-2"></span>
+              <span class="options-short-group graph-legend-item-cb-container col-3">
+                <input type="checkbox" id="legend-display-dijkstra-cb" checked>
+              </span>
+            </div>
+            <div class="graph-legend-item">
+              <span class="graph-legend-item-name col-1">Dijkstra-Congestion</span>
+              <span id="dotdashed-line" class="graph-legend-line col-2"></span>
+              <span class="options-short-group graph-legend-item-cb-container col-3">
+                <input type="checkbox" id="legend-display-dijkstra-con-cb" checked>
+              </span>
+            </div>
+            <div class="graph-legend-item">
+              <span class="graph-legend-item-name col-1">Greedy</span>
+              <span id="longdashed-line" class="graph-legend-line col-2"></span>
+              <span class="options-short-group graph-legend-item-cb-container col-3">
+                <input type="checkbox" id="legend-display-greedy-cb" checked>
+              </span>
+            </div>
           </div>
         </div>
-
-        <div id="selected-cell-info-controls-container" class="building-editor-section">
-          <div id="selected-cell-info-text-container"></div>
-          <div id="selected-building-actions-container"></div>
-        </div>
-
-        <div id="selected-building-options-container" class="building-editor-section"></div>
-        <div id="selected-building-doors-container" class="building-editor-section"></div>
       </div>
+    </div>
 
-      <div id="path-stats-container"> 
-      
-        <div class="title">Path Statistics</div>
-
+    <button class="accordion-button title">Path Statistics</button>
+    <div class="options-section">
+      <div class="options-section-inner-container">
+        <div id="path-stats-container"> 
+          <div class="title">Path Statistics</div>
+        </div>
       </div>
     </div>
   </div>
@@ -346,5 +349,3 @@
 <script type="text/javascript" src="static/js/script.js"></script>
 </body>
 </html> 
-
-
