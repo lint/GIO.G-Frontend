@@ -530,10 +530,15 @@ function draw_entrances(building_grid_coords, parent, for_main_stage) {
             // get the stage coordinates of the effective grid walls
             let effective_grid_walls = cell_info.building_mods.effective_grid_walls;
             let effective_stage_walls = effective_grid_walls.map(function (line) {
-                return [
-                    door_grid_coords_to_stage_coords(line[0], building_grid_coords, for_main_stage),
-                    door_grid_coords_to_stage_coords(line[1], building_grid_coords, for_main_stage)
-                ];
+
+                let stage_coords1 = door_grid_coords_to_stage_coords(line[0], building_grid_coords, for_main_stage);
+                let stage_coords2 = door_grid_coords_to_stage_coords(line[1], building_grid_coords, for_main_stage);
+
+                let offset = (cell_dims.stroke/2) * -1; // TODO: add door_dims.stroke depending on where you want the cutoff to be
+                let offset_stage_coords1 = calc_line_extend_point(stage_coords2, stage_coords1, offset);
+                let offset_stage_coords2 = calc_line_extend_point(stage_coords1, stage_coords2, offset);
+
+                return [offset_stage_coords1, offset_stage_coords2];
             });
 
             // lock the door's position to the building shape
@@ -542,16 +547,11 @@ function draw_entrances(building_grid_coords, parent, for_main_stage) {
 
                 // get the current shape position
                 let current_pos = {
-                    x: door_shape.x(),
-                    y: door_shape.y()
+                    x: pos.x + door_dims.size / 2,
+                    y: pos.y + door_dims.size / 2
                 };
-                // current_pos = editor_stage.getPointerPosition(); 
-                current_pos = pos;
 
                 // find the point closest to the shape from the current point
-                // let best_point = calc_closest_point_to_shape(outline_stage_points, current_pos);
-                // let best_point = calc_closest_point_to_lines(effective_stage_walls, current_pos);
-                // let attached_line = calc_closest_line_from_point_to_lines(effective_stage_walls, current_pos);
                 let best_point_and_line = calc_closest_line_and_point_from_point_to_lines(effective_stage_walls, current_pos);
                 let line_direction = calc_line_orthogonal_direction(best_point_and_line.line[0], best_point_and_line.line[1]);
                 door_mod["wall_direction"] = line_direction;
@@ -559,13 +559,11 @@ function draw_entrances(building_grid_coords, parent, for_main_stage) {
 
                 // adjust the point to door top left coordinate rather than center
                 let best_point_adjusted = {
-                    x: best_point_and_line.point.x - door_dims.size/2,
-                    y: best_point_and_line.point.y - door_dims.size/2
+                    x: best_point_and_line.point.x - door_dims.size / 2,
+                    y: best_point_and_line.point.y - door_dims.size / 2
                 };
 
                 // set the new position
-                // door_shape.x(best_point_adjusted.x);
-                // door_shape.y(best_point_adjusted.y);
                 return best_point_adjusted;
             });
 
