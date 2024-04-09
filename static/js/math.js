@@ -10,6 +10,42 @@ function round_partial(num, resolution) {
 }
 
 
+// calculates a bounding rectangle given a list of points
+function calc_bounding_rect(points) {
+
+    let min_x = Number.MAX_SAFE_INTEGER;
+    let max_x = Number.MIN_SAFE_INTEGER;
+    let min_y = Number.MAX_SAFE_INTEGER;
+    let max_y = Number.MIN_SAFE_INTEGER;
+
+    // find the minimum and maximum x and y values
+    for (let i = 0; i < points.length; i++) {
+        let point = points[i];
+
+        if (point.x > max_x) {
+            max_x = point.x;
+        }
+        if (point.x < min_x) {
+            min_x = point.x;
+        }
+        if (point.y > max_y) {
+            max_y = point.y;
+        }
+        if (point.y < min_y) {
+            min_y = point.y;
+        }
+    }
+
+    // find and return the corners of the bounding rectangle
+    return [
+        {x: min_x, y: min_y},
+        {x: max_x, y: min_y},
+        {x: max_x, y: max_y},
+        {x: min_x, y: max_y}
+    ]
+}
+
+
 // calculates a midpoint between two given points
 function calc_midpoint(p1, p2) {
     return {x: (p1.x + p2.x) / 2, y: (p1.y + p2.y) / 2};

@@ -220,23 +220,7 @@ function draw_building(building_grid_coords, parent, for_main_stage) {
     }
 
     // construct and draw the building shape
-    let building_shape = draw_building_shape(building_grid_coords, building_group, for_main_stage);
-    let points = building_shape.points();
-    
-    // TODO: remove entirely
-    // add a clipping function to the building group to hide doors from appearing outside of building
-    if (building_clipping_enabled) {
-        building_group.clipFunc(function(ctx) {
-            ctx.beginPath();
-            ctx.moveTo(points[0], points[1]);
-    
-            for (let i = 2; i < points.length - 1; i += 2) {
-              ctx.lineTo(points[i], points[i+1]);
-            }
-    
-            ctx.closePath();
-        });
-    }
+    draw_building_shape(building_grid_coords, building_group, for_main_stage);
 
     // draw building corridors
     draw_corridors(building_grid_coords, building_group, for_main_stage);
@@ -273,7 +257,18 @@ function draw_building_shape(building_grid_coords, parent, for_main_stage) {
 
     // convert the grid path to a path that can be used by the stage
     let grid_shape_path = cell_info.building_mods.outline_grid_path;
-    let stage_shape_path = grid_shape_path.map((point) => door_grid_coords_to_stage_coords(point, building_grid_coords, for_main_stage));
+    let stage_shape_path = null;
+    
+    if (for_main_stage) {
+        stage_shape_path = grid_shape_path.map((point) => door_grid_coords_to_stage_coords(point, building_grid_coords, for_main_stage));
+    } else {
+
+        let entrance_points = grid_shape_path.map((door) => grid_coords_for_building_or_door(door));
+        let normalized_entrance_points = normalize_door_grid_coords_list(entrance_points);
+        let bounding_rect = calc_bounding_rect(normalized_entrance_points);
+
+        stage_shape_path = normalized_entrance_points.map((point) => door_grid_coords_to_editor_stage_coords(point, bounding_rect));
+    }
     stage_shape_path = flatten_points(stage_shape_path);
 
     let building_color = building_con_colors_enabled ? building_con_colors[cell_info.building_data.congestion_type || cell_info.building_mods.con_level] : building_con_colors["constant"];
@@ -285,7 +280,8 @@ function draw_building_shape(building_grid_coords, parent, for_main_stage) {
         // stroke: 'black',
         // strokeWidth: building_stroke_width,
         closed: true,
-        perfectDrawEnabled: false
+        perfectDrawEnabled: false,
+        draggable: true
     });
     parent.add(building_shape);
 
@@ -294,7 +290,20 @@ function draw_building_shape(building_grid_coords, parent, for_main_stage) {
         cell_info.shapes.building = building_shape;
     }
 
-    return building_shape;
+    // TODO: remove entirely
+    // add a clipping function to the building group to hide doors from appearing outside of building
+    if (building_clipping_enabled) {
+        parent.clipFunc(function(ctx) {
+            ctx.beginPath();
+            ctx.moveTo(stage_shape_path[0], stage_shape_path[1]);
+    
+            for (let i = 2; i < stage_shape_path.length - 1; i += 2) {
+              ctx.lineTo(stage_shape_path[i], stage_shape_path[i+1]);
+            }
+    
+            ctx.closePath();
+        });
+    }
 }
 
 
@@ -410,14 +419,24 @@ function draw_building_outline(building_grid_coords, parent, for_main_stage) {
 
     // convert the grid path to a path that can be used by the stage
     let grid_shape_path = building_mods.outline_grid_path;
-    let stage_shape_path = grid_shape_path.map((point) => door_grid_coords_to_stage_coords(point, building_grid_coords, for_main_stage));
-    stage_shape_path = flatten_points(stage_shape_path);
+    let stage_shape_path = null;
+
+    if (for_main_stage) {
+        stage_shape_path = grid_shape_path.map((point) => door_grid_coords_to_stage_coords(point, building_grid_coords, for_main_stage));
+    } else {
+
+        let entrance_points = grid_shape_path.map((door) => grid_coords_for_building_or_door(door));
+        let normalized_entrance_points = normalize_door_grid_coords_list(entrance_points);
+        let bounding_rect = calc_bounding_rect(normalized_entrance_points);
+
+        stage_shape_path = normalized_entrance_points.map((point) => door_grid_coords_to_editor_stage_coords(point, bounding_rect));
+    }
 
     // draw building outline (ensures doors have an outer border along the building shape)
     // let outline_color = building_mods.open ? "black" : "red";
     let outline_color = building_mods.open ? corridor_con_colors[building_mods.con_level] :  "red";
     let building_outline = new Konva.Line({
-        points: stage_shape_path,
+        points: flatten_points(stage_shape_path),
         stroke: outline_color,
         strokeWidth: get_cell_dims(for_main_stage).stroke * 2,
         closed: true,
@@ -445,6 +464,12 @@ function draw_entrances(building_grid_coords, parent, for_main_stage) {
     let building_mods = cell_info.building_mods;
     let door_mods = building_mods.entrance_mods;
     let doors = cell_info.building_data.entrances;
+
+    // TODO: make this better as to not repeat it over and over so many times, especially for each door...
+    let grid_shape_path = building_mods.outline_grid_path;
+    let entrance_points = grid_shape_path.map((door) => grid_coords_for_building_or_door(door));
+    let normalized_entrance_points = normalize_door_grid_coords_list(entrance_points);
+    let bounding_rect = calc_bounding_rect(normalized_entrance_points);
 
     // create new entrances group
     let entrances_group = new Konva.Group();
@@ -493,10 +518,17 @@ function draw_entrances(building_grid_coords, parent, for_main_stage) {
         let door_mod = door_mods[door_id];        
         
         // get door x and y coordinates (convert 1-indexed to 0-indexed)
-        let door_grid_coords_unscaled = grid_coords_for_building_or_door(door);
+        let door_grid_coords = grid_coords_for_building_or_door(door);
 
         // convert grid coordinates to stage coordinates
-        let door_stage_coords = door_grid_coords_to_stage_coords(door_grid_coords_unscaled, building_grid_coords, for_main_stage);
+        let door_stage_coords = null;
+        if (for_main_stage) {
+            door_stage_coords = door_grid_coords_to_stage_coords(door_grid_coords, building_grid_coords, for_main_stage);
+        } else {
+            // TODO: properly normalize these with stored offsets
+            let normalized_door_grid_coords = {x:door_grid_coords.x-building_grid_coords.x, y: door_grid_coords.y-building_grid_coords.y};
+            door_stage_coords = door_grid_coords_to_editor_stage_coords(normalized_door_grid_coords, bounding_rect);
+        }
         
         let door_color = door["accessible"] == 1 ? "blue" : "gray";
         let door_stroke_color = door_mod.open ? "black" : "red";
@@ -531,8 +563,12 @@ function draw_entrances(building_grid_coords, parent, for_main_stage) {
             let effective_grid_walls = cell_info.building_mods.effective_grid_walls;
             let effective_stage_walls = effective_grid_walls.map(function (line) {
 
-                let stage_coords1 = door_grid_coords_to_stage_coords(line[0], building_grid_coords, for_main_stage);
-                let stage_coords2 = door_grid_coords_to_stage_coords(line[1], building_grid_coords, for_main_stage);
+                // TODO: properly normalize these with stored offsets
+                let normalized_door1_grid_coords = {x:line[0].x-building_grid_coords.x, y: line[0].y-building_grid_coords.y};
+                let normalized_door2_grid_coords = {x:line[1].x-building_grid_coords.x, y: line[1].y-building_grid_coords.y};
+                
+                let stage_coords1 = door_grid_coords_to_editor_stage_coords(normalized_door1_grid_coords, bounding_rect);
+                let stage_coords2 = door_stage_coords = door_grid_coords_to_editor_stage_coords(normalized_door2_grid_coords, bounding_rect);
 
                 let offset = (cell_dims.stroke/2) * -1; // TODO: add door_dims.stroke depending on where you want the cutoff to be
                 let offset_stage_coords1 = calc_line_extend_point(stage_coords2, stage_coords1, offset);
@@ -584,10 +620,17 @@ function draw_corridors(building_grid_coords, parent, for_main_stage) {
     let cell_info = grid_object_at_coords(building_grid_coords);
     let cell_dims = get_cell_dims(for_main_stage);
     let door_dims = get_door_dims(for_main_stage);
-    let door_mods = cell_info.building_mods.entrance_mods;
+    let building_mods = cell_info.building_mods;
+    let door_mods = building_mods.entrance_mods;
 
     let corridor_color = building_con_colors_enabled ? corridor_con_colors[cell_info.building_data.congestion_type || cell_info.building_mods.con_level] : corridor_con_colors["constant"];
     let corridor_width = door_dims.size / 3;
+
+    // TODO: make this better as to not repeat it over and over so many times, especially for each door...
+    let grid_shape_path = building_mods.outline_grid_path;
+    let entrance_points = grid_shape_path.map((door) => grid_coords_for_building_or_door(door));
+    let normalized_entrance_points = normalize_door_grid_coords_list(entrance_points);
+    let bounding_rect = calc_bounding_rect(normalized_entrance_points);
 
     // create new corridors group
     let corridors_group = new Konva.Group();
@@ -646,7 +689,17 @@ function draw_corridors(building_grid_coords, parent, for_main_stage) {
         let door_mod = door_mods[door_id];
 
         let path_to_center = door_grid_path_to_center(building_grid_coords, door_id);
-        let stage_path = path_to_center.map((grid_point) => door_grid_coords_to_stage_coords(grid_point, building_grid_coords, for_main_stage));
+        let stage_path = path_to_center.map(function (grid_point) {
+            
+            // TODO: normalize these coordinates with a stored offset (when you move everything to building mods)
+            // TODO: also apply this to main corridor calculations
+            let normalized_door_coords = {
+                x: grid_point.x - building_grid_coords.x,
+                y: grid_point.y - building_grid_coords.y
+            };
+
+            return door_grid_coords_to_editor_stage_coords(normalized_door_coords, bounding_rect);
+        });
 
         let corridor = new Konva.Line({
             points: flatten_points(stage_path),
@@ -664,7 +717,6 @@ function draw_corridors(building_grid_coords, parent, for_main_stage) {
 
     parent.add(corridors_group);
 }
-
 
 
 /* ------------------------------ road drawing ------------------------------ */
@@ -785,8 +837,8 @@ function draw_road_line(grid_road_line, is_dashed, is_vertical, parent) {
     let rand_road_weight = grid_road_line.width_weight;
 
     let cell_dims = get_cell_dims(true);
-    // let road_size = (cell_dims.size + cell_dims.spacing) * road_size_ratio;
-    let road_size = cell_dims.spacing;
+    let road_size = (cell_dims.size + cell_dims.spacing) * road_size_ratio;
+    // let road_size = cell_dims.spacing;
     let dash_spacing = road_size / 2;
     let dash_size = ((cell_dims.size + cell_dims.spacing) - ((road_dashes_per_cell ) * dash_spacing)) / road_dashes_per_cell;
 
@@ -1038,7 +1090,7 @@ function draw_endpoint_path_part(endpoint_door_grid_coords, building_grid_coords
     let door_grid_coords = grid_coords_for_building_or_door(door_mods.data_ref);
 
     // calculate the building grid coords for the endpoint
-    let endpoint_building_grid_coords = door_grid_coords_to_building_grid_coords_rounding(endpoint_door_grid_coords);
+    let endpoint_building_grid_coords = estimate_building_grid_coords(endpoint_door_grid_coords);
 
     // draw the external path
     draw_external_path_part(endpoint_building_grid_coords, endpoint_door_grid_coords, null, building_grid_coords, door_grid_coords, door_id, parent, path_type);

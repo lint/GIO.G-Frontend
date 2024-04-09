@@ -44,8 +44,61 @@ function door_grid_coords_to_stage_coords(door_grid_coords, building_grid_coords
 }
 
 
+// convert door grid coordinates to editor stage coordinates
+function door_grid_coords_to_editor_stage_coords(normalized_door_grid_coords, building_bounding_grid_rect) {
+
+    let cell_dims = get_cell_dims(false);
+
+    let bounds_width = calc_dist(building_bounding_grid_rect[0], building_bounding_grid_rect[1]);
+    let bounds_height = calc_dist(building_bounding_grid_rect[1], building_bounding_grid_rect[2]);
+
+    let editor_inset = cell_dims.size * editor_inset_ratio;
+    let editor_inset_size = cell_dims.size - 2 * editor_inset;
+
+    let scale = Math.min(editor_inset_size / bounds_width, editor_inset_size / bounds_height);
+
+    let x_offset = editor_inset + ((editor_inset_size - bounds_width*scale) / 2) - (building_bounding_grid_rect[0].x * scale);
+    let y_offset = editor_inset + ((editor_inset_size - bounds_height*scale) / 2) - (building_bounding_grid_rect[0].y * scale);
+
+    return {
+        x: normalized_door_grid_coords.x * scale + x_offset,
+        y: normalized_door_grid_coords.y * scale + y_offset
+    };
+}
+
+
+// normalize a list of door coordinates as if they started in 0, 0
+function normalize_door_grid_coords_list(door_grid_coords_list) {
+
+    let best_left_door = {x: Number.MAX_SAFE_INTEGER, y: Number.MAX_SAFE_INTEGER};
+    let best_up_door = {x: Number.MAX_SAFE_INTEGER, y: Number.MAX_SAFE_INTEGER};
+
+    for (let i = 0; i < door_grid_coords_list.length; i++) {
+        let curr_door = door_grid_coords_list[i];
+
+        if (curr_door.x < best_left_door.x) {
+            best_left_door = curr_door;
+        }
+
+        if (curr_door.y < best_up_door.y) {
+            best_up_door = curr_door;
+        }
+    }
+
+    let left_building_coords = estimate_building_grid_coords(best_left_door);
+    let up_building_coords = estimate_building_grid_coords(best_up_door);
+
+    return door_grid_coords_list.map(function (door) {
+        return {
+            x: door.x - left_building_coords.x,
+            y: door.y - up_building_coords.y
+        };
+    });
+}
+
+
 // get the building coords for given door coords by rounding
-function door_grid_coords_to_building_grid_coords_rounding(door_grid_coords) {
+function estimate_building_grid_coords(door_grid_coords) {
     return {
         x: Math.round(door_grid_coords.x),
         y: Math.round(door_grid_coords.y)
@@ -56,7 +109,7 @@ function door_grid_coords_to_building_grid_coords_rounding(door_grid_coords) {
 // convert door grid coords to main stage coords by rounding to get the building coords
 function door_grid_coords_to_main_stage_coords_rounding(door_grid_coords) {
 
-    let building_grid_coords = door_grid_coords_to_building_grid_coords_rounding(door_grid_coords);
+    let building_grid_coords = estimate_building_grid_coords(door_grid_coords);
     return door_grid_coords_to_stage_coords(door_grid_coords, building_grid_coords, true);
 }
 
