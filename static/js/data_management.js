@@ -117,7 +117,7 @@ function process_building(building) {
     // TODO: improve ordering and organizing of these functions calls?
 
     // update any coordinates of deep doors in the building
-    update_deep_doors(building);
+    // update_deep_doors(building);
 
     // initialize the info object for the given building
     init_grid_cell_info(building);

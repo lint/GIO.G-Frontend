@@ -10,6 +10,22 @@ function round_partial(num, resolution) {
 }
 
 
+// calculates a midpoint between two given points
+function calc_midpoint(p1, p2) {
+    return {x: (p1.x + p2.x) / 2, y: (p1.y + p2.y) / 2};
+}
+
+
+// calculates a weighted midpoint between two given points
+function calc_weighted_midpoint(p1, p2, end_weight) {
+    let start_weight = 1 - end_weight;
+    return {
+        x: p1.x * start_weight + p2.x * end_weight,
+        y: p1.y * start_weight + p2.y * end_weight
+    };
+}
+
+
 // calculates a corner point from the rectangle bounding the two given points
 function calc_corner_between_points(p1, p2, convex, invert_y) {
 
@@ -34,6 +50,22 @@ function calc_corner_between_points(p1, p2, convex, invert_y) {
             y: p1.y
         };
     }
+}
+
+
+// calculates three corner points to construct a cutout corner 
+function calc_cutout_corner_between_points(p1, p2, convex, cutout_weight=0.5) {
+
+    // assumes points are sorted counter clockwise around a circle to determine which direction is convex vs concave
+
+    let main_corner = calc_corner_between_points(p1, p2, convex, false);
+
+    let p1_midpoint = calc_weighted_midpoint(p1, main_corner, cutout_weight);
+    let p2_midpoint = calc_weighted_midpoint(p2, main_corner, cutout_weight);
+
+    let cutout_corner = calc_corner_between_points(p1_midpoint, p2_midpoint, !convex, false);
+
+    return [p1_midpoint, cutout_corner, p2_midpoint];
 }
 
 

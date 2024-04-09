@@ -165,26 +165,55 @@ function update_deep_doors(building) {
         let target = doors[(d + 1) % doors.length];
         let neighbor2 = doors[(d + 2) % doors.length];
 
+        let deep_status = check_deep_door(neighbor1, target, neighbor2, building);
+
         // found deep door in on left side of building
-        if (target.x < building.x && target.x > neighbor1.x && target.x > neighbor2.x) {
+        if (deep_status === "left") {
             target.x = neighbor1.x > neighbor2.x ? neighbor1.x : neighbor2.x;
         } 
         
         // found deep door on right side of building
-        if (target.x > building.x && target.x < neighbor1.x && target.x < neighbor2.x) {
+        if (deep_status === "right") {
             target.x = neighbor1.x < neighbor2.x ? neighbor1.x : neighbor2.x;
         } 
         
         // found deep door on top of building
-        if (target.y > building.y && target.y < neighbor1.y && target.y < neighbor2.y) {
+        if (deep_status === "up") {
             target.y = neighbor1.y < neighbor2.y ? neighbor1.y : neighbor2.y;
         } 
         
         // found deep door on bottom of building
-        if (target.y < building.y && target.y > neighbor1.y && target.y > neighbor2.y) {
+        if (deep_status === "down") {
             target.y = neighbor1.y > neighbor2.y ? neighbor1.y : neighbor2.y;
         }
     }
+}
+
+
+// check if target door is deep between three points
+function check_deep_door(neighbor1, target, neighbor2, reference) {
+    
+    // found deep door in on left side of building
+    if (target.x < reference.x && target.x > neighbor1.x && target.x > neighbor2.x) {
+        return "left";
+    } 
+    
+    // found deep door on right side of building
+    if (target.x > reference.x && target.x < neighbor1.x && target.x < neighbor2.x) {
+        return "right";
+    } 
+    
+    // found deep door on top of building
+    if (target.y > reference.y && target.y < neighbor1.y && target.y < neighbor2.y) {
+        return "up";
+    } 
+    
+    // found deep door on bottom of building
+    if (target.y < reference.y && target.y > neighbor1.y && target.y > neighbor2.y) {
+        return "down";
+    }
+
+    return null;
 }
 
 
@@ -197,21 +226,36 @@ function create_building_outline_path(building_grid_coords) {
     // store coordinates to draw building shape
     let grid_shape_path = [];
 
+    let updating_2nd_deep_half = false;
+
     // iterate over every sequential pairs of doors
     for (let d = 0; d < doors.length; d++) {
 
         let door1 = doors[d];
         let door2 = doors[(d + 1) % doors.length];
+
+        // get the deep status of the next
+        let door2_deep_status = doors.length > 3 ? check_deep_door(door1, door2, doors[(d + 2) % doors.length], cell_info.building_data) : null;
         
         // get door x and y coordinates (convert 1-indexed to 0-indexed)
         let door1_grid_coords = grid_coords_for_building_or_door(door1);
         let door2_grid_coords = grid_coords_for_building_or_door(door2);
 
-        // find a corner between the two door coordinates
-        let corner = calc_corner_between_points(door1_grid_coords, door2_grid_coords, true, false);
+        // find the corner or corner cutout for the next door
+        if (door2_deep_status !== null || updating_2nd_deep_half) {
+            let corner_path = calc_cutout_corner_between_points(door1_grid_coords, door2_grid_coords, true, 0.5);
+            grid_shape_path.push(door1_grid_coords, ...corner_path);
 
-        // store the path coordinates
-        grid_shape_path.push(door1_grid_coords, corner);
+            if (door2_deep_status !== null) {
+                updating_2nd_deep_half = true;
+            } else if (updating_2nd_deep_half) {
+                updating_2nd_deep_half = false;
+            }
+
+        } else {
+            let corner = calc_corner_between_points(door1_grid_coords, door2_grid_coords, true, false);
+            grid_shape_path.push(door1_grid_coords, corner);
+        }
     }
 
     // simplify the grid path by removing duplicate points and points on the same line
