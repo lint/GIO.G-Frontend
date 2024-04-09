@@ -10,7 +10,7 @@
 // create stage objects using their containers' height
 function create_stages() {
 
-    let main_stage_initial_size = 700;
+    let main_stage_initial_size = 850;
 
     // get the containers of the stages and their parents
     let main_stage_container = document.getElementById("graph-stage");

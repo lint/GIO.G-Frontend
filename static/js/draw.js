@@ -619,6 +619,19 @@ function draw_corridors(building_grid_coords, parent, for_main_stage) {
     let center_stage_up    = door_grid_coords_to_stage_coords(center_grid_up, building_grid_coords, for_main_stage);
     let center_stage_down  = door_grid_coords_to_stage_coords(center_grid_down, building_grid_coords, for_main_stage);
 
+    let center_stage_left_intersection = null;
+    let center_stage_right_intersection = null;
+    let center_stage_up_intersection = null;
+    let center_stage_down_intersection = null;
+
+    let effective_grid_walls = cell_info.building_mods.effective_grid_walls;
+    let stage_walls = effective_grid_walls.map(function (line) {
+        return [
+            door_grid_coords_to_stage_coords(line[0], building_grid_coords, for_main_stage),
+            door_grid_coords_to_stage_coords(line[1], building_grid_coords, for_main_stage)
+        ];
+    });
+
     // draw all middle pathways as one big line
     let center_line = new Konva.Line({
         points: flatten_points([center_stage_up, center_stage_down, center_stage_right, center_stage_left]),
@@ -657,45 +670,119 @@ function draw_corridors(building_grid_coords, parent, for_main_stage) {
 /* ------------------------------ road drawing ------------------------------ */
 
 
+// combine consecutive road line parts into one line object
+function consolidate_road_line_parts(line_parts) {
+
+    let combined_lines = [];
+
+    let prev_first_part = line_parts[0];
+    for (let i = 1; i < line_parts.length; i++) {
+
+        let cur_part = line_parts[i];
+
+        // the end point of the previous part matches the start point of the current point, combine them
+        if (coords_eq(prev_first_part.end, cur_part.start)) {
+            prev_first_part.end = cur_part.end;
+            prev_first_part.end_perpen_width_weight = cur_part.end_perpen_width_weight;
+        
+        // match was not found, add the first part to the lines list
+        } else {
+            combined_lines.push(prev_first_part);
+            prev_first_part = cur_part;
+        }
+    }
+    combined_lines.push(prev_first_part);
+
+    return combined_lines;
+}
+
 // draws roads in the background 
 function draw_roads(parent) {
 
-    // draw roads squares around each grid cell
-    // for (let y = 0; y < grid.length; y++) {
-    //     for (let x = 0; x < grid.length; x++) {
+    // TODO: find ways to define which parts should be skipped
+    let horz_skips = [];
+    let vert_skips = [];
+    
+    // generate random road widths for each vertical and horizontal road
+    let horz_rand_widths = [];
+    let vert_rand_widths = [];
 
-    //         let grid_coords = {x: x, y: y};
-    //         draw_road_rect(grid_coords, parent);
-    //     }
-    // }
+    for (let i = 0; i < grid.length; i++) {
+        horz_rand_widths.push(rand_in_range(0.35, 1.25));
+        vert_rand_widths.push(rand_in_range(0.35, 1.25));
+    }
 
-    for (let i = 0; i <= 1; i++) {
+    let horz_line_parts = [];
+    let vert_line_parts = [];
+
+    // TODO: probably a better way to do this rather than in two separate loops over the grid... (i do it to make consolidation easier)
+    // iterate over every grid cell to calculate horizontal lines
+    for (let y = 1; y < grid.length; y++) {
+        for (let x = 0; x < grid.length; x++) {
+            
+            // calculate the starting point and end points for vertical and horizontal roads
+            let start_point = { x: x, y: y };
+            let horizontal_end_point = { x: x + 1, y: y };
+            
+            if (horz_skips.indexOf(x) === -1) {
+                horz_line_parts.push({
+                    start: start_point,
+                    end: horizontal_end_point,
+                    width_weight: horz_rand_widths[y],
+                    start_perpen_width_weight: vert_rand_widths[x] || 1,
+                    end_perpen_width_weight: vert_rand_widths[x+1] || 1
+                });
+            }
+        }
+    }
+
+    // iterate over every grid cell to calculate vertical lines
+    for (let x = 1; x < grid.length; x++) {
+        for (let y = 0; y < grid.length; y++) {
+            
+            // calculate the starting point and end points for vertical and horizontal roads
+            let start_point = { x: x, y: y };
+            let vertical_end_point = { x: x, y: y + 1};
+
+            if (vert_skips.indexOf(y) === -1) {
+                vert_line_parts.push({
+                    start: start_point,
+                    end: vertical_end_point,
+                    width_weight: vert_rand_widths[x],
+                    start_perpen_width_weight: horz_rand_widths[y] || 1,
+                    end_perpen_width_weight: horz_rand_widths[y+1] || 1
+                });
+            }
+        }
+    }
+
+    // consolidate horizontal and vertical lines (combining consecutive parts into one line object)
+    let horz_lines = consolidate_road_line_parts(horz_line_parts);
+    let vert_lines = consolidate_road_line_parts(vert_line_parts);
+
+    for (let d = 0; d <= 1; d++) {
 
         // draw background on first iteration, dashed lines on second iteration
-        let is_dashed = i == 1;
-    
+        let is_dashed = d == 1;
+
         // draw vertical roads 
-        for (let x = 1; x < grid.length; x++) {
+        vert_lines.forEach(function (road_line) {
+            draw_road_line(road_line, is_dashed, true, parent);
+        });
 
-            let start_grid_point = { x: x, y: 0 };
-            let end_grid_point   = { x: x, y: grid.length };
-
-            draw_road_line(start_grid_point, end_grid_point, is_dashed, true, parent);
-        }
-
-        // draw horizontal roads 
-        for (let y = 1; y < grid.length; y++) {
-
-            let start_grid_point = { x: 0, y: y };
-            let end_grid_point   = { x: grid.length, y: y };
-
-            draw_road_line(start_grid_point, end_grid_point, is_dashed, false, parent);
-        }
+        // draw horizontal roads
+        horz_lines.forEach(function (road_line) {
+            draw_road_line(road_line, is_dashed, false, parent);
+        });
     }
 }
 
 // draw a road background for a given start and end grid point
-function draw_road_line(start_grid_point, end_grid_point, is_dashed, is_vertical, parent, skips) {
+function draw_road_line(grid_road_line, is_dashed, is_vertical, parent) {
+
+    let start_grid_point = grid_road_line.start;
+    let end_grid_point = grid_road_line.end;
+    let rand_road_weight = grid_road_line.width_weight;
 
     let cell_dims = get_cell_dims(true);
     // let road_size = (cell_dims.size + cell_dims.spacing) * road_size_ratio;
@@ -703,9 +790,8 @@ function draw_road_line(start_grid_point, end_grid_point, is_dashed, is_vertical
     let dash_spacing = road_size / 2;
     let dash_size = ((cell_dims.size + cell_dims.spacing) - ((road_dashes_per_cell ) * dash_spacing)) / road_dashes_per_cell;
 
-    // randomize road size
-    let rand_road_size = road_size * rand_in_range(0.35, 1.25);
-    // let rand_road_size = road_size;
+    // get weighted road size
+    let rand_road_size = road_size * rand_road_weight;
 
     // get amount to offset dash in certain direction based on input (creates pluses at intersections)
     let dash_size_offset = is_dashed ? dash_size / 2 : 0;
@@ -715,6 +801,19 @@ function draw_road_line(start_grid_point, end_grid_point, is_dashed, is_vertical
     // convert the given grid coords to stage coords
     let start_stage_point = grid_coords_to_main_stage_coords(start_grid_point);
     let end_stage_point = grid_coords_to_main_stage_coords(end_grid_point);
+
+    // adjust stage coords to be offset by perpendicular road sizes at the start and end
+    if (is_vertical) {
+        if (!is_dashed) {
+            start_stage_point.y -= road_size * grid_road_line.start_perpen_width_weight / 2;
+        }
+        end_stage_point.y += road_size * grid_road_line.end_perpen_width_weight / 2;
+    } else {
+        if (!is_dashed) {
+            start_stage_point.x -= road_size * grid_road_line.start_perpen_width_weight / 2;
+        }
+        end_stage_point.x += road_size * grid_road_line.end_perpen_width_weight / 2;
+    }
 
     // adjust stage coords to be in the middle of spacing
     start_stage_point = {
@@ -751,40 +850,6 @@ function draw_road_line(start_grid_point, end_grid_point, is_dashed, is_vertical
     if (is_dashed) {
         road.dash([dash_size, dash_spacing]);
     }
-
-    parent.add(road);
-}
-
-// draw a road rectangle around a given cell to create rounded road corners
-function draw_road_rect(building_grid_coords, parent) {
-
-    let cell_dims = get_cell_dims(true);
-    // let road_size = cell_dims.size * road_size_ratio;
-    let road_size = cell_dims.spacing;
-
-    // convert the given grid coords to stage coords
-    let stage_coords = grid_coords_to_main_stage_coords(building_grid_coords);
-
-    stage_coords = {
-        x: stage_coords.x - cell_dims.spacing/2,
-        y: stage_coords.y - cell_dims.spacing/2
-    };
-
-    // google maps road color 
-    let road_background_color = "#AAB9C9";
-    let stroke_width = road_size;
-
-    // create new road rect
-    let road = new Konva.Rect({
-        x: stage_coords.x,
-        y: stage_coords.y,
-        width: cell_dims.size + cell_dims.spacing,
-        height: cell_dims.size + cell_dims.spacing,
-        stroke: road_background_color,
-        strokeWidth: stroke_width,
-        cornerRadius: road_size * 1.5,
-        perfectDrawEnabled: false
-    });
 
     parent.add(road);
 }
