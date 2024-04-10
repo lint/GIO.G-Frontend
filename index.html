@@ -273,19 +273,19 @@
     <div class="options-section">
       <div class="options-section-inner-container">
 
-          <div class="building-editor-section">
+          <div class="options-category-container">
             <div id="building-editor-stage-container">
               <div id="building-editor-stage"></div>
             </div>
           </div>
   
-          <div id="selected-cell-info-controls-container" class="building-editor-section">
+          <div id="selected-cell-info-controls-container" class="options-category-container">
             <div id="selected-cell-info-text-container"></div>
             <div id="selected-building-actions-container"></div>
           </div>
   
-          <div id="selected-building-options-container" class="building-editor-section"></div>
-          <div id="selected-building-doors-container" class="building-editor-section"></div>
+          <div id="selected-building-options-container" class="options-category-container"></div>
+          <div id="selected-building-doors-container" class="options-category-container"></div>
 
       </div>
     </div>
@@ -339,8 +339,87 @@
     <button class="accordion-button title">Path Statistics</button>
     <div class="options-section">
       <div class="options-section-inner-container">
-        <div id="path-stats-container"> 
-          <div class="title">Path Statistics</div>
+        <div class="options-category-container" id="stats-table-time-container"> 
+          <div class="subtitle">Travel Time (seconds):</div>
+          <table class="stats-table" id="stats-table-time">
+            <tr class="stats-table-row">
+              <th class="stats-table-header"></th>
+              <th class="stats-table-header">Total</th>
+              <th class="stats-table-header">Indoor</th>
+              <th class="stats-table-header">Outdoor</th>
+            </tr>
+            <tr class="stats-table-row" id="stats-table-row-time-astro">
+              <td class="stats-table-cell stats-table-left-col">Astro</td>
+              <td class="stats-table-cell">0.00</td>
+              <td class="stats-table-cell">0.00</td>
+              <td class="stats-table-cell">0.00</td>
+            </tr>
+            <tr class="stats-table-row" id="stats-table-row-time-astrog">
+              <td class="stats-table-cell stats-table-left-col">Astro-G</td>
+              <td class="stats-table-cell">0.00</td>
+              <td class="stats-table-cell">0.00</td>
+              <td class="stats-table-cell">0.00</td>
+            </tr>
+            <tr class="stats-table-row" id="stats-table-row-time-dijkstra">
+              <td class="stats-table-cell stats-table-left-col">Dijkstra</td>
+              <td class="stats-table-cell">0.00</td>
+              <td class="stats-table-cell">0.00</td>
+              <td class="stats-table-cell">0.00</td>
+            </tr>
+            <tr class="stats-table-row" id="stats-table-row-time-dijkstrac">
+              <td class="stats-table-cell stats-table-left-col">Dijkstra-C</td>
+              <td class="stats-table-cell">0.00</td>
+              <td class="stats-table-cell">0.00</td>
+              <td class="stats-table-cell">0.00</td>
+            </tr>
+            <tr class="stats-table-row" id="stats-table-row-time-greedy">
+              <td class="stats-table-cell stats-table-left-col">Greedy</td>
+              <td class="stats-table-cell">0.00</td>
+              <td class="stats-table-cell">0.00</td>
+              <td class="stats-table-cell">0.00</td>
+            </tr>
+          </table> 
+        </div>
+        <div class="options-category-container" id="stats-table-con-container"> 
+          <div class="subtitle">Congestion (# of people / m²):</div>
+          <table class="stats-table" id="stats-table-con">
+            <tr class="stats-table-row">
+              <th class="stats-table-header"></th>
+              <th class="stats-table-header">Avg</th>
+              <th class="stats-table-header">Min</th>
+              <th class="stats-table-header">Max</th>
+            </tr>
+            <tr class="stats-table-row" id="stats-table-row-con-astro">
+              <td class="stats-table-cell stats-table-left-col">Astro</td>
+              <td class="stats-table-cell">0.00</td>
+              <td class="stats-table-cell">0.00</td>
+              <td class="stats-table-cell">0.00</td>
+            </tr>
+            <tr class="stats-table-row" id="stats-table-row-con-astrog">
+              <td class="stats-table-cell stats-table-left-col">Astro-G</td>
+              <td class="stats-table-cell">0.00</td>
+              <td class="stats-table-cell">0.00</td>
+              <td class="stats-table-cell">0.00</td>
+            </tr>
+            <tr class="stats-table-row" id="stats-table-row-con-dijkstra">
+              <td class="stats-table-cell stats-table-left-col">Dijkstra</td>
+              <td class="stats-table-cell">0.00</td>
+              <td class="stats-table-cell">0.00</td>
+              <td class="stats-table-cell">0.00</td>
+            </tr>
+            <tr class="stats-table-row" id="stats-table-row-con-dijkstrac">
+              <td class="stats-table-cell stats-table-left-col">Dijkstra-C</td>
+              <td class="stats-table-cell">0.00</td>
+              <td class="stats-table-cell">0.00</td>
+              <td class="stats-table-cell">0.00</td>
+            </tr>
+            <tr class="stats-table-row" id="stats-table-row-con-greedy">
+              <td class="stats-table-cell stats-table-left-col">Greedy</td>
+              <td class="stats-table-cell">0.00</td>
+              <td class="stats-table-cell">0.00</td>
+              <td class="stats-table-cell">0.00</td>
+            </tr>
+          </table> 
         </div>
       </div>
     </div>
