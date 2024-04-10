@@ -126,6 +126,9 @@ function process_building(building) {
     create_building_outline_path(building_grid_coords);
     find_building_effective_walls(building_grid_coords);
 
+    // find the bounding rectangle around the building outline shape
+    find_building_bounding_rectangle(building_grid_coords);
+
     // update door positions to respect effective walls
     update_doors_to_effective_walls(building_grid_coords);
 
@@ -214,7 +217,10 @@ function create_empty_grid(length) {
                     outline_grid_path: [],
                     con_level: null,
                     outline_grid_center: null,
-                    effective_grid_walls: []
+                    effective_grid_walls: [],
+                    normalized_grid_outline: [],
+                    normalized_bounding_rect: [],
+                    normal_offset: null
                 }
             };            
 

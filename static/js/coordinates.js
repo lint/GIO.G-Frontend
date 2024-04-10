@@ -25,8 +25,25 @@ function main_stage_coords_to_grid_coords(stage_coords) {
 // convert door grid coordinates to stage coordinates based on the provided dimensions
 function door_grid_coords_to_stage_coords(door_grid_coords, building_grid_coords, for_main_stage) {
 
-    let building_stage_coords = for_main_stage ? grid_coords_to_main_stage_coords(building_grid_coords) : {x:0, y:0};
-    let cell_dims = get_cell_dims(for_main_stage);
+    if (for_main_stage) {
+        return door_grid_coords_to_main_stage_coords(door_grid_coords, building_grid_coords);
+    } else {
+        let cell_info = grid_object_at_coords(building_grid_coords);
+        let building_mods = cell_info.building_mods;
+        let normalized_door_grid_coords = {
+            x: door_grid_coords.x - building_mods.normal_offset.x,
+            y: door_grid_coords.y - building_mods.normal_offset.y
+        };
+        return door_grid_coords_to_editor_stage_coords(normalized_door_grid_coords, building_mods.normalized_bounding_rect);
+    }
+
+}
+
+
+// convert door grid coordinates to main stage coordinates
+function door_grid_coords_to_main_stage_coords(door_grid_coords, building_grid_coords) {
+    let building_stage_coords = grid_coords_to_main_stage_coords(building_grid_coords);
+    let cell_dims = get_cell_dims(true);
 
     let invert_y = should_invert_door_y ? -1 : 1;
     
@@ -55,7 +72,7 @@ function door_grid_coords_to_editor_stage_coords(normalized_door_grid_coords, bu
     let editor_inset = cell_dims.size * editor_inset_ratio;
     let editor_inset_size = cell_dims.size - 2 * editor_inset;
 
-    let scale = Math.min(editor_inset_size / bounds_width, editor_inset_size / bounds_height);
+    let scale = Math.min(editor_inset_size / bounds_width, editor_inset_size / bounds_height) * editor_stage.scaleX();
 
     let x_offset = editor_inset + ((editor_inset_size - bounds_width*scale) / 2) - (building_bounding_grid_rect[0].x * scale);
     let y_offset = editor_inset + ((editor_inset_size - bounds_height*scale) / 2) - (building_bounding_grid_rect[0].y * scale);
@@ -88,12 +105,20 @@ function normalize_door_grid_coords_list(door_grid_coords_list) {
     let left_building_coords = estimate_building_grid_coords(best_left_door);
     let up_building_coords = estimate_building_grid_coords(best_up_door);
 
-    return door_grid_coords_list.map(function (door) {
+    let normalized_doors = door_grid_coords_list.map(function (door) {
         return {
             x: door.x - left_building_coords.x,
             y: door.y - up_building_coords.y
         };
     });
+
+    return {
+        door_coords: normalized_doors,
+        normal_offset: {
+            x: left_building_coords.x,
+            y: up_building_coords.y
+        }
+    };
 }
 
 
@@ -134,11 +159,10 @@ function door_main_stage_coords_to_grid_coords_rounding(door_stage_coords) {
 }
 
 
-// convert door grid coordinates to stage coordinates based on the provided dimensions
-function door_stage_coords_to_grid_coords(door_stage_coords, building_grid_coords, for_main_stage) {
-
-    let building_stage_coords = for_main_stage ? grid_coords_to_main_stage_coords(building_grid_coords) : {x:0, y:0};
-    let cell_dims = get_cell_dims(for_main_stage);
+// convert door main stage coords to grid coords
+function door_main_stage_coords_to_grid_coords(door_stage_coords, building_grid_coords) {
+    let building_stage_coords = grid_coords_to_main_stage_coords(building_grid_coords);
+    let cell_dims = get_cell_dims(true);
 
     let invert_y = should_invert_door_y ? -1 : 1;
 
@@ -153,6 +177,42 @@ function door_stage_coords_to_grid_coords(door_stage_coords, building_grid_coord
         x: building_grid_coords.x + door_grid_coord_offset.x,
         y: building_grid_coords.y + (invert_y * door_grid_coord_offset.y)
     };
+}
+
+
+// convert door editor stage coords to grid coords
+function door_editor_stage_coords_to_grid_coords(door_stage_coords, building_grid_coords) {
+    let cell_dims = get_cell_dims(false);
+    let cell_info = grid_object_at_coords(building_grid_coords);
+    let building_bounding_grid_rect = cell_info.building_mods.normalized_bounding_rect;
+    let normal_offset = cell_info.building_mods.normal_offset;
+
+    let bounds_width = calc_dist(building_bounding_grid_rect[0], building_bounding_grid_rect[1]);
+    let bounds_height = calc_dist(building_bounding_grid_rect[1], building_bounding_grid_rect[2]);
+
+    let editor_inset = cell_dims.size * editor_inset_ratio;
+    let editor_inset_size = cell_dims.size - 2 * editor_inset;
+
+    let scale = Math.min(editor_inset_size / bounds_width, editor_inset_size / bounds_height) * editor_stage.scaleX();
+
+    let x_offset = editor_inset + ((editor_inset_size - bounds_width*scale) / 2) - (building_bounding_grid_rect[0].x * scale);
+    let y_offset = editor_inset + ((editor_inset_size - bounds_height*scale) / 2) - (building_bounding_grid_rect[0].y * scale);
+
+    return {
+        x: (door_stage_coords.x - x_offset) / scale + normal_offset.x,
+        y: (door_stage_coords.y - y_offset) / scale + normal_offset.y
+    };
+}
+
+
+// convert door grid coordinates to stage coordinates based on the provided dimensions
+function door_stage_coords_to_grid_coords(door_stage_coords, building_grid_coords, for_main_stage) {
+
+    if (for_main_stage) {
+        return door_main_stage_coords_to_grid_coords(door_stage_coords, building_grid_coords);
+    } else {
+        return door_editor_stage_coords_to_grid_coords(door_stage_coords, building_grid_coords);
+    }
 }
 
 
@@ -349,6 +409,22 @@ function find_building_effective_walls(building_grid_coords) {
     }
 
     cell_info.building_mods.effective_grid_walls = effective_grid_walls;
+}
+
+
+// find the bounding rectangle for a building
+function find_building_bounding_rectangle(building_grid_coords) {
+
+    let cell_info = grid_object_at_coords(building_grid_coords);
+
+    let grid_shape_path = cell_info.building_mods.outline_grid_path;
+    // let entrance_points = grid_shape_path.map((door) => grid_coords_for_building_or_door(door));
+    let normalized_data = normalize_door_grid_coords_list(grid_shape_path);
+    let bounding_rect = calc_bounding_rect(normalized_data.door_coords);
+
+    cell_info.building_mods.normalized_bounding_rect = bounding_rect;
+    cell_info.building_mods.normalized_grid_outline = normalized_data.door_coords;
+    cell_info.building_mods.normal_offset = normalized_data.normal_offset;
 }
 
 

@@ -240,6 +240,9 @@ function delete_building(building_grid_coords) {
     cell_info.building_mods.con_level = null;
     cell_info.building_mods.effective_grid_walls = [];
     cell_info.building_mods.outline_grid_center = null;
+    cell_info.building_mods.normalized_bounding_rect = [];
+    cell_info.building_mods.normalized_grid_outline = [];
+    cell_info.building_mods.normal_offset = null;
     cell_info.shapes.building = null;
     cell_info.shapes.building_outline = null;
     cell_info.shapes.entrances = {};
