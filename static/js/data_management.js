@@ -134,6 +134,29 @@ function process_building(building) {
 
     // find building center point
     find_building_center(building_grid_coords);
+
+    // make building available at connected cell coordinates
+    setup_connected_grid_cell_info(building_grid_coords);
+}
+
+
+// link cell info building data available at the connected cell coordinates
+function setup_connected_grid_cell_info(building_grid_coords) {
+
+    // TODO: this probably has further implications for other parts of the code
+
+    let cell_info = grid_object_at_coords(building_grid_coords);
+    let connected_buildings = cell_info.building_data.connected_buildings;
+
+    if (connected_buildings == null) {
+        return;
+    }
+
+    for (let i = 0; i < connected_buildings.length; i++) {
+        let building_coords = grid_coords_for_building_or_door(connected_buildings[i]);
+
+        grid[building_coords.y][building_coords.x] = cell_info;
+    }
 }
 
 
@@ -187,6 +210,38 @@ function door_object_at_coords(grid_coords, door_id) {
 }
 
 
+// returns an empty grid cell object
+function new_empty_grid_cell() {
+    let cell_info = {
+        building_data: null,
+        shapes: {
+            building: null,
+            building_outline: null,
+            selection_overlay: null,
+            entrances: {},
+            building_group: null,
+            entrances_group: null,
+            corridors_group: null
+        },
+        building_mods: {
+            entrance_mods: {}, 
+            open: true,
+            orig_entrances: null,
+            next_new_door_id: 1,
+            outline_grid_path: [],
+            con_level: null,
+            outline_grid_center: null,
+            effective_grid_walls: [],
+            normalized_grid_outline: [],
+            normalized_bounding_rect: [],
+            normal_offset: null
+        }
+    };
+
+    return cell_info;
+}
+
+
 // returns a grid of objects describing every building cell for the graph
 function create_empty_grid(length) {
     
@@ -198,32 +253,8 @@ function create_empty_grid(length) {
         for (let x = 0; x < length; x++) {
 
             // create empty object for each grid cell
-            let cell_info = {
-                building_data: null,
-                shapes: {
-                    building: null,
-                    building_outline: null,
-                    selection_overlay: null,
-                    entrances: {},
-                    building_group: null,
-                    entrances_group: null,
-                    corridors_group: null
-                },
-                building_mods: {
-                    entrance_mods: {}, 
-                    open: true,
-                    orig_entrances: null,
-                    next_new_door_id: 1,
-                    outline_grid_path: [],
-                    con_level: null,
-                    outline_grid_center: null,
-                    effective_grid_walls: [],
-                    normalized_grid_outline: [],
-                    normalized_bounding_rect: [],
-                    normal_offset: null
-                }
-            };            
-
+                 
+            let cell_info = new_empty_grid_cell();
             row.push(cell_info);
         }
         new_grid.push(row);

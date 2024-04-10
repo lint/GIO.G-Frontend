@@ -229,24 +229,16 @@ function delete_building(building_grid_coords) {
     let building_index = current_graph.indexOf(building);
     current_graph.splice(building_index, 1);
 
-    // TODO: do i really need to do this?
-    // reset the cell info for the selected building
-    cell_info.building_data = null;
-    cell_info.building_mods.open = true;
-    cell_info.building_mods.outline_grid_path = [];
-    cell_info.building_mods.entrance_mods = {};
-    cell_info.building_mods.orig_entrances = [];
-    cell_info.building_mods.next_new_door_id = 1;
-    cell_info.building_mods.con_level = null;
-    cell_info.building_mods.effective_grid_walls = [];
-    cell_info.building_mods.outline_grid_center = null;
-    cell_info.building_mods.normalized_bounding_rect = [];
-    cell_info.building_mods.normalized_grid_outline = [];
-    cell_info.building_mods.normal_offset = null;
-    cell_info.shapes.building = null;
-    cell_info.shapes.building_outline = null;
-    cell_info.shapes.entrances = {};
-    cell_info.shapes.building_group = null;
-    cell_info.shapes.entrances_group = null;
-    cell_info.shapes.corridors_group = null;
+    // reset the building cell for any connected buildings
+    let connected_buildings = cell_info.building_data.connected_buildings;
+    if (connected_buildings != null) {
+        for (let i = 0; i < connected_buildings.length; i++) {
+            let connected_coords = grid_coords_for_building_or_door(connected_buildings[i]);
+            grid[connected_coords.y][connected_coords.x] = new_empty_grid_cell();
+        }
+    }
+
+    // reset the main building cell
+    let main_building_coords = grid_coords_for_building_or_door(building);
+    grid[main_building_coords.y][main_building_coords.x] = new_empty_grid_cell();
 }
