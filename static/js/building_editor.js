@@ -57,6 +57,12 @@ function select_building_to_edit(building_grid_coords, can_unselect) {
         return;
     }
 
+    // automatically open the building editor if enabled
+    if (auto_open_building_editor) {
+        let accordion_button = document.getElementById("building-editor-accordion-button");
+        accordion_button.classList.add("accordion-active");
+    }
+
     // set the currently selected editor selected grid cell
     editor_selected_grid_coords = building_grid_coords;
 
@@ -204,7 +210,7 @@ function select_building_to_edit(building_grid_coords, can_unselect) {
         redraw_selected_building(building_grid_coords);
     }
 
-    // update accordian heights
+    // update accordion heights
     update_accordion_heights();
 }
 

@@ -56,6 +56,7 @@ let path_endpoints_enabled = true;
 let road_hiding_drag_enabled = false;
 let can_pan_enabled = true;
 let can_zoom_enabled = true;
+let auto_open_building_editor = true;
 
 let road_rand_weight_min = 0.35;
 let road_rand_weight_max = 1.25;

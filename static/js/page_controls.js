@@ -646,3 +646,9 @@ function handle_panning_toggle_button() {
 function handle_zooming_toggle_button() {
     can_zoom_enabled = !can_zoom_enabled;
 }
+
+
+// toggles building editor auto open variable
+function handle_editor_auto_open_button() {
+    auto_open_building_editor = !auto_open_building_editor;
+}
