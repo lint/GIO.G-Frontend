@@ -431,39 +431,37 @@ html, body {
 
 /* ----------------------------- path statistics ---------------------------- */
 
+.stats-table-container {
+    margin: 5px 0 10px 0;
+}
+
 .stats-table {
-    border: none;
-    border-collapse: collapse;
-    border-spacing: 0;
-    /* table-layout: fixed; */
-    width: 100%;
-    font-size:12px;
+    font-size: 12px;
+    margin-top: 5px;
 }
 
 .stats-table-header {
     text-align: left;
+    font-weight: bold;
+    padding: 5px 5px 0 5px;
 }
 
-.stats-table tr:nth-child(even) {
+.stats-table .stats-table-row:nth-child(even) {
     background-color: #ddd;
 }
 
-/* .stats-table-row {
-    border: none;
+.stats-table-row {
+    display: grid;
+    grid-template-columns: 1.5fr 1fr 1fr 1fr;
 }
 
 .stats-table-cell {
-    border: none;
-} */
+    padding: 5px;
+}
 
 .stats-table-left-col {
     white-space: nowrap;
     font-weight: bold;
-    padding-right: 10px;
-}
-
-#stats-table-con-container {
-    margin-top: 10px;
 }
 
 /* ---------------------------------- misc ---------------------------------- */
