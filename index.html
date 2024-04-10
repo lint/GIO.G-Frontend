@@ -122,13 +122,13 @@
               <label for="path-gen-astro-cb">Astro</label>
               <br>
               <input type="checkbox" id="path-gen-astrog-cb" value="astroG">
-              <label for="path-gen-astrog-cb">Astro-Greedy</label>
+              <label for="path-gen-astrog-cb">Astro-G</label>
               <br>
               <input type="checkbox" id="path-gen-dijkstra-cb" value="dijkstra">
               <label for="path-gen-dijkstra-cb">Dijkstra</label>
               <br>
               <input type="checkbox" id="path-gen-dijkstra-con-cb" value="dijkstraC">
-              <label for="path-gen-dijkstra-con-cb">Dijkstra-Congestion</label>
+              <label for="path-gen-dijkstra-con-cb">Dijkstra-C</label>
               <br>
               <input type="checkbox" id="path-gen-greedy-cb" value="greedy">
               <label for="path-gen-greedy-cb">Greedy</label>
@@ -150,16 +150,16 @@
           </div>
 
           <div class="options-category-container">
-            <span class="subsubtitle">Points:</span>
+            <span class="subsubtitle">Endpoints:</span>
             <div class="options-input-container">
-              <button id="select-path-start-button" type="button" onclick="handle_select_start_building_button()">Select Start Point</button>
-              <span class="subsubtitle">Selected Point:</span>
+              <span id="path-start-building-label" class="subsubtitle">Start:</span>
               <span id="path-start-building-info"></span>
+              <button id="select-path-start-button" type="button" onclick="handle_select_start_building_button()">Select</button>
             </div>
             <div class="options-input-container">
-              <button id="select-path-end-button" type="button" onclick="handle_select_end_building_button()">Select End Point</button>
-              <span class="subsubtitle">Selected Point:</span>
+              <span id="path-end-building-label" class="subsubtitle">End:</span>
               <span id="path-end-building-info"></span>
+              <button id="select-path-end-button" type="button" onclick="handle_select_end_building_button()">Select</button>
             </div>
           </div>
           
@@ -304,7 +304,7 @@
               </span>
             </div>
             <div class="graph-legend-item">
-              <span class="graph-legend-item-name col-1">Astro-Greedy</span>
+              <span class="graph-legend-item-name col-1">Astro-G</span>
               <span id="dashed-line" class="graph-legend-line col-2"></span>
               <span class="options-short-group graph-legend-item-cb-container col-3">
                 <input type="checkbox" id="legend-display-astrog-cb" checked>
@@ -318,7 +318,7 @@
               </span>
             </div>
             <div class="graph-legend-item">
-              <span class="graph-legend-item-name col-1">Dijkstra-Congestion</span>
+              <span class="graph-legend-item-name col-1">Dijkstra-C</span>
               <span id="dotdashed-line" class="graph-legend-line col-2"></span>
               <span class="options-short-group graph-legend-item-cb-container col-3">
                 <input type="checkbox" id="legend-display-dijkstra-con-cb" checked>

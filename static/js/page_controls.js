@@ -364,8 +364,8 @@ function submit_path_gen_form() {
 // update the path start and end selection info text
 function update_path_select_labels() {
 
-    let start_text = "";
-    let end_text = "";
+    let start_text = "(,)";
+    let end_text = "(,)";
     
     // get the id of the currently selected start cell
     if (path_start_selected_grid_coords !== null) {
@@ -378,8 +378,31 @@ function update_path_select_labels() {
         end_text = `(${path_end_selected_grid_coords.x.toFixed(1)}, ${path_end_selected_grid_coords.y.toFixed(1)})`;
     }
     
-    document.getElementById("path-start-building-info").innerHTML = start_text;
-    document.getElementById("path-end-building-info").innerHTML = end_text;
+    // get path start and end point info elements
+    let start_coord_info = document.getElementById("path-start-building-info");
+    let end_coord_info = document.getElementById("path-end-building-info");
+    let start_label = document.getElementById("path-start-building-label");
+    let end_label = document.getElementById("path-end-building-label");
+
+    // set start and end point text and temporarily reset width
+    start_coord_info.innerHTML = start_text;
+    end_coord_info.innerHTML = end_text;
+    start_coord_info.style.width = "";
+    end_coord_info.style.width = "";
+    start_label.style.width = "";
+    end_label.style.width = "";
+
+    // find out which info text is longer
+    let max_value_width = start_coord_info.offsetWidth > end_coord_info.offsetWidth ? start_coord_info.offsetWidth : end_coord_info.offsetWidth;
+    start_coord_info.style.width = max_value_width + "px";
+    end_coord_info.style.width = max_value_width + "px";
+    
+    // find the value text that is longer
+    let max_label_width = start_label.offsetWidth > end_label.offsetWidth ? start_label.offsetWidth : end_label.offsetWidth;
+    start_label.style.width = max_label_width + "px";
+    end_label.style.width = max_label_width + "px";
+
+    update_accordion_heights();
 }
 
 
@@ -422,6 +445,24 @@ function handle_select_end_building_button() {
     is_selecting_path_start = false;
 
     update_path_select_buttons_active();
+}
+
+
+// update the path legend widths 
+function update_path_legend_title_widths() {
+
+    let legend_titles = document.querySelectorAll(".graph-legend-item-name");
+    let max_width = Number.MIN_SAFE_INTEGER;
+
+    legend_titles.forEach(function (element) {
+        if (element.offsetWidth > max_width) {
+            max_width = element.offsetWidth;
+        }
+    });
+    
+    legend_titles.forEach(function (element) {
+        element.style.width = max_width + 5 + "px";
+    });
 }
 
 

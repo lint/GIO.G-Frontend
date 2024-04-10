@@ -187,6 +187,9 @@ document.addEventListener("DOMContentLoaded", function() {
     
     // set the initial values for the path selection buttons
     update_path_select_labels();
+
+    // set the widths for each legend name
+    update_path_legend_title_widths();
     
     // clear necessary content in the building editor
     reset_building_editor();
