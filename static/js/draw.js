@@ -718,17 +718,43 @@ function consolidate_road_line_parts(line_parts) {
 // draws roads in the background 
 function draw_roads(parent) {
 
-    // TODO: find ways to define which parts should be skipped
+    // reset the road layer
+    road_layer.destroyChildren();
+
+    // store which roads should be hidden for vertical and horizontal directions
     let horz_skips = [];
     let vert_skips = [];
     
-    // generate random road widths for each vertical and horizontal road
-    let horz_rand_widths = [];
-    let vert_rand_widths = [];
+    for (let i = 0; i < grid.length + 1; i++) {
+        horz_skips.push([]);
+        vert_skips.push([]);
+    }
 
-    for (let i = 0; i < grid.length; i++) {
-        horz_rand_widths.push(rand_in_range(0.35, 1.25));
-        vert_rand_widths.push(rand_in_range(0.35, 1.25));
+    if (removed_roads_enabled) {
+        
+        // iterate over every grid cell
+        for (let y = 0; y < grid.length; y++) {
+            for (let x = 0; x < grid.length; x++) {
+
+                let cell_info = grid_object_at_coords({x:x, y:y});
+                let right_cell_info = grid_object_at_coords({x:x+1, y:y});
+                let down_cell_info = grid_object_at_coords({x:x, y:y+1});
+
+                // find two left/right empty cells or connected building cells -> vertical road skip
+                if (cell_info !== null && right_cell_info !== null) {
+                    if ((cell_info.building_data === null && right_cell_info.building_data === null) || cell_info === right_cell_info) {
+                        vert_skips[x + 1].push(y);
+                    }
+                }
+                
+                // find two up/down empty cells or connected building cells -> horizontal road skip
+                if (cell_info !== null && down_cell_info !== null) {
+                    if ((cell_info.building_data === null && down_cell_info.building_data === null) || cell_info === down_cell_info) {
+                        horz_skips[y + 1].push(x);
+                    }
+                }
+            }
+        }
     }
 
     let horz_line_parts = [];
@@ -743,13 +769,13 @@ function draw_roads(parent) {
             let start_point = { x: x, y: y };
             let horizontal_end_point = { x: x + 1, y: y };
             
-            if (horz_skips.indexOf(x) === -1) {
+            if (horz_skips[y].indexOf(x) === -1) {
                 horz_line_parts.push({
                     start: start_point,
                     end: horizontal_end_point,
-                    width_weight: horz_rand_widths[y],
-                    start_perpen_width_weight: vert_rand_widths[x] || 1,
-                    end_perpen_width_weight: vert_rand_widths[x+1] || 1
+                    width_weight: horz_roads_rand_weights[y],
+                    start_perpen_width_weight: vert_roads_rand_weights[x] || 1,
+                    end_perpen_width_weight: vert_roads_rand_weights[x+1] || 1
                 });
             }
         }
@@ -763,13 +789,13 @@ function draw_roads(parent) {
             let start_point = { x: x, y: y };
             let vertical_end_point = { x: x, y: y + 1};
 
-            if (vert_skips.indexOf(y) === -1) {
+            if (vert_skips[x].indexOf(y) === -1) {
                 vert_line_parts.push({
                     start: start_point,
                     end: vertical_end_point,
-                    width_weight: vert_rand_widths[x],
-                    start_perpen_width_weight: horz_rand_widths[y] || 1,
-                    end_perpen_width_weight: horz_rand_widths[y+1] || 1
+                    width_weight: vert_roads_rand_weights[x],
+                    start_perpen_width_weight: horz_roads_rand_weights[y] || 1,
+                    end_perpen_width_weight: horz_roads_rand_weights[y+1] || 1
                 });
             }
         }

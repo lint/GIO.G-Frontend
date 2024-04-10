@@ -490,6 +490,14 @@ function handle_roads_visible_button() {
 }
 
 
+// removed roads visibility toggle
+function handle_removed_roads_visible_button() {
+    removed_roads_enabled = !removed_roads_enabled;
+
+    draw_roads(road_layer);
+}
+
+
 // paths visibility toggle
 function handle_paths_visible_button() {
     if (path_layer.visible()) {
@@ -596,20 +604,6 @@ function handle_cell_highlights_visible_button() {
     //         set_overlay_highlight({x:x, y:y}, null);
     //     }
     // }
-}
-
-
-// handle legend visibility toggle
-function handle_legend_visible_button() {
-
-    let legend = document.getElementById("graph-legend");
-    path_legend_enabled = !path_legend_enabled;
-
-    if (path_legend_enabled) {
-        legend.style.display = "";
-    } else {
-        legend.style.display = "none";
-    }
 }
 
 

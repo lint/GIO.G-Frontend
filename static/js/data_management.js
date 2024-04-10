@@ -4,8 +4,31 @@
 /* -------------------------------------------------------------------------- */
 
 
+// process a graph
+function process_graph(buildings, grid_len) {
+
+    // store current graph and config data
+    current_graph = buildings
+
+    // define new empty grid array to store building information
+    grid = create_empty_grid(grid_len);
+
+    // recalculate any cell dimensions
+    calculate_cell_dims(grid_len);
+
+    // actually process every building
+    for (let b = 0; b < buildings.length; b++) {
+        let building = buildings[b];
+        process_building(building);
+    }
+
+    // generate new road widths for the grid
+    generate_random_road_weights();
+}
+
+
 // processes an incoming graph 
-function process_graph(buildings, config) {
+function process_generated_graph(buildings, config) {
 
     // store current graph and config data
     current_graph = buildings;
@@ -14,25 +37,13 @@ function process_graph(buildings, config) {
     // get size of grid based on current configuration 
     let grid_len = calc_grid_bounds(config);
 
-    // define new empty grid array to store building information
-    grid = create_empty_grid(grid_len);
-
-    // recalculate any cell dimensions
-    calculate_cell_dims(grid_len);
-
-    // iterate over every building and process it into the grid
-    for (let b = 0; b < buildings.length; b++) {
-        let building = buildings[b];
-        process_building(building);
-    }
+    // actually process the graph
+    process_graph(buildings, grid_len);
 }
 
 
 // processes a preset graph
 function process_preset_graph(buildings) {
-
-    // store current graph data
-    current_graph = buildings;
 
     let max_grid_len = Number.MIN_SAFE_INTEGER;
 
@@ -51,17 +62,8 @@ function process_preset_graph(buildings) {
         }
     }
 
-    // define new empty grid array to store building information
-    grid = create_empty_grid(max_grid_len);
-    
-    // recalculate any cell dimensions
-    calculate_cell_dims(max_grid_len);
-
-    // actually process every building
-    for (let b = 0; b < buildings.length; b++) {
-        let building = buildings[b];
-        process_building(building);
-    }
+    // actually process the graph
+    process_graph(buildings, max_grid_len);
 }
 
 
@@ -311,6 +313,7 @@ function process_paths(paths) {
     current_paths = paths;
 }
 
+
 /* ---------------------- building selection management --------------------- */
 
 
@@ -388,4 +391,19 @@ function reset_cell_selections() {
     path_start_selected_grid_coords = null;
     path_end_selected_grid_coords = null;
     editor_selected_grid_coords = null;
+}
+
+
+/* ---------------------- road management --------------------------- */
+
+
+// generates random road widths for the given grid size
+function generate_random_road_weights() {
+    horz_roads_rand_weights = [];
+    vert_roads_rand_weights = [];
+
+    for (let i = 0; i < grid.length + 1; i++) {
+        horz_roads_rand_weights.push(rand_in_range(road_rand_weight_min, road_rand_weight_max));
+        vert_roads_rand_weights.push(rand_in_range(road_rand_weight_min, road_rand_weight_max));
+    }
 }

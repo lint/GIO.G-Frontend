@@ -46,16 +46,21 @@ let editor_inset_ratio = 0.05;
 let should_invert_door_y = false;
 let road_size_ratio = 0.1;
 let road_dashes_per_cell = 10;
+let removed_roads_enabled = true;
 let main_stage_scale_by = 1.05;
 let building_clipping_enabled = true;
 let building_corridors_enabled = true;
 let building_con_colors_enabled = true;
-let path_legend_enabled = true;
 let highlight_colors_enabled = true;
 let path_endpoints_enabled = true;
 let road_hiding_drag_enabled = false;
 let can_pan_enabled = true;
 let can_zoom_enabled = true;
+
+let road_rand_weight_min = 0.35;
+let road_rand_weight_max = 1.25;
+let horz_roads_rand_weights = [];
+let vert_roads_rand_weights = [];
 
 // color definitions
 const building_con_colors = {
