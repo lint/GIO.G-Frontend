@@ -57,19 +57,6 @@ function submit_uploaded_graph() {
 }
 
 
-// process the uploaded file
-function process_uploaded_graph(graph_text) {
-
-    // convert the data to a json object
-    let json = JSON.parse(graph_text);
-
-    // TODO: input validation?
-
-    process_preset_graph(json);
-    draw_main_stage();
-}
-
-
 // download an export file of the current graph
 function download_graph_export() {
 
@@ -84,7 +71,7 @@ function download_graph_export() {
     let data = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(filtered_graph, null, json_spaces));
     let file_name = "graph_export.json";
 
-    // create e temporary link node
+    // create temporary link node
     let download_node = document.createElement('a');
     download_node.setAttribute("href", data);
     download_node.setAttribute("download", file_name);
@@ -459,24 +446,6 @@ function handle_select_end_building_button() {
 }
 
 
-// update the path legend widths 
-function update_path_legend_title_widths() {
-
-    let legend_titles = document.querySelectorAll(".graph-legend-item-name");
-    let max_width = Number.MIN_SAFE_INTEGER;
-
-    legend_titles.forEach(function (element) {
-        if (element.offsetWidth > max_width) {
-            max_width = element.offsetWidth;
-        }
-    });
-    
-    legend_titles.forEach(function (element) {
-        element.style.width = max_width + 5 + "px";
-    });
-}
-
-
 /* ----------------------------- display options ---------------------------- */
 
 
@@ -662,4 +631,114 @@ function handle_zooming_toggle_button() {
 // toggles building editor auto open variable
 function handle_editor_auto_open_button() {
     auto_open_building_editor = !auto_open_building_editor;
+}
+
+
+/* -------------------------- path legend and stats ------------------------- */
+
+
+// updates all path sidebar elements
+function update_path_display_sections() {
+    // set the initial values for the path selection buttons (in path recommendation config)
+    update_path_select_labels();
+
+    // set the widths for each legend name
+    update_path_legend_title_widths();
+
+    // update active display statuses for paths in the legend
+    update_path_legend_active_paths();
+
+    // update the path stats tables
+    update_path_stats_tables();
+}
+
+
+// update the path legend widths 
+function update_path_legend_title_widths() {
+
+    let legend_titles = document.querySelectorAll(".graph-legend-item-name");
+    let max_width = Number.MIN_SAFE_INTEGER;
+
+    legend_titles.forEach(function (element) {
+        if (element.offsetWidth > max_width) {
+            max_width = element.offsetWidth;
+        }
+    });
+    
+    legend_titles.forEach(function (element) {
+        element.style.width = max_width + 5 + "px";
+    });
+}
+
+
+// update path legend for current paths
+function update_path_legend_active_paths() {
+
+    // set the disabled class status for each algorithm legend item
+    for (let alg in path_mods) {
+        let path_mod = path_mods[alg];
+        let legend_item = document.getElementById(`graph-legend-item-${alg}`);;
+
+        if (path_mod.has_data) {
+            legend_item.classList.remove("graph-legend-item-disabled");
+        } else {
+            legend_item.classList.add("graph-legend-item-disabled");
+        }
+
+        // set the checkbox status of each item
+        let display_cb = legend_item.querySelector("input[type=checkbox]");
+        display_cb.checked = path_mod.display_active;
+    }
+}
+
+
+// update the path stats tables with the current values
+function update_path_stats_tables() {
+
+    let displayed_count = 0;
+
+    // update the row values and display statuses
+    for (let a = 0; a < path_algs.length; a++) {
+        let alg = path_algs[a];
+        
+        let path_mod = path_mods[alg];
+        let time_row_item = document.getElementById(`stats-table-row-time-${alg}`);
+        let con_row_item = document.getElementById(`stats-table-row-con-${alg}`);
+        
+        // only display rows with data
+        if (path_mod.has_data) {
+            time_row_item.style.display = "";
+            con_row_item.style.display = "";
+            displayed_count++;
+        } else {
+            time_row_item.style.display = "none";
+            con_row_item.style.display = "none";
+            continue;
+        }
+
+        // alternate the background color of the displayed rows
+        if (displayed_count % 2 === 0) {
+            time_row_item.style.backgroundColor = "";
+            con_row_item.style.backgroundColor = "";
+        } else {
+            time_row_item.style.backgroundColor = "#ddd";
+            con_row_item.style.backgroundColor = "#ddd";
+        }
+
+        // get the list of cells to store values in 
+        let time_cells = time_row_item.querySelectorAll(".stats-table-cell");
+        let con_cells = con_row_item.querySelectorAll(".stats-table-cell");
+
+        // update the values
+        let stats = path_mod.data_ref.stats;
+        time_cells[1].innerHTML = stats.time_total.toFixed(1);
+        time_cells[2].innerHTML = stats.time_indoor.toFixed(1);
+        time_cells[3].innerHTML = stats.time_outdoor.toFixed(1);
+        con_cells[1].innerHTML  = stats.congestion_average.toFixed(2);
+        con_cells[2].innerHTML  = stats.congestion_min.toFixed(2);
+        con_cells[3].innerHTML  = stats.congestion_max.toFixed(2);
+    }
+    
+    // update the accordion heights if some rows disabled or not
+    update_accordion_heights();
 }

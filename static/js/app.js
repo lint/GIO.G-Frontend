@@ -22,10 +22,14 @@ let next_config_con_values = {
     high: 0.3
 };
 
+// store list of supported path finding algorithms
+const path_algs = ["astro", "astroG", "dijkstra", "dijkstraC", "greedy"];
+
 // store data about the current graph
 let current_config = default_config;
 let current_graph = null;
 let current_paths = null;
+let path_mods = null;
 let grid = null;
 
 // building selection variables
@@ -190,12 +194,12 @@ document.addEventListener("DOMContentLoaded", function() {
     
     // show any necessary values on the config form
     update_config_form_display();
-    
-    // set the initial values for the path selection buttons
-    update_path_select_labels();
 
-    // set the widths for each legend name
-    update_path_legend_title_widths();
+    // initialize path mods data structure to default values
+    init_path_mods();
+    
+    // update any path display sections in the sidebars
+    update_path_display_sections();
     
     // clear necessary content in the building editor
     reset_building_editor();

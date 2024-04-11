@@ -299,35 +299,35 @@
         <div id="graph-legend">
           <div id="graph-legend-display-title">Display</div>
           <div id="graph-legend-list">
-            <div class="graph-legend-item">
+            <div class="graph-legend-item" id="graph-legend-item-astro">
               <span class="graph-legend-item-name col-1">Astro</span>
               <span id="solid-line" class="graph-legend-line col-2"></span>
               <span class="options-short-group graph-legend-item-cb-container col-3">
                 <input type="checkbox" id="legend-display-astro-cb" checked>
               </span>
             </div>
-            <div class="graph-legend-item">
+            <div class="graph-legend-item" id="graph-legend-item-astroG">
               <span class="graph-legend-item-name col-1">Astro-G</span>
               <span id="dashed-line" class="graph-legend-line col-2"></span>
               <span class="options-short-group graph-legend-item-cb-container col-3">
                 <input type="checkbox" id="legend-display-astrog-cb" checked>
               </span>
             </div>
-            <div class="graph-legend-item">
+            <div class="graph-legend-item" id="graph-legend-item-dijkstra">
               <span class="graph-legend-item-name col-1">Dijkstra</span>
               <span id="dotted-line" class="graph-legend-line col-2"></span>
               <span class="options-short-group graph-legend-item-cb-container col-3">
                 <input type="checkbox" id="legend-display-dijkstra-cb" checked>
               </span>
             </div>
-            <div class="graph-legend-item">
+            <div class="graph-legend-item" id="graph-legend-item-dijkstraC">
               <span class="graph-legend-item-name col-1">Dijkstra-C</span>
               <span id="dotdashed-line" class="graph-legend-line col-2"></span>
               <span class="options-short-group graph-legend-item-cb-container col-3">
                 <input type="checkbox" id="legend-display-dijkstra-con-cb" checked>
               </span>
             </div>
-            <div class="graph-legend-item">
+            <div class="graph-legend-item" id="graph-legend-item-greedy">
               <span class="graph-legend-item-name col-1">Greedy</span>
               <span id="longdashed-line" class="graph-legend-line col-2"></span>
               <span class="options-short-group graph-legend-item-cb-container col-3">
@@ -345,8 +345,8 @@
         <div class="options-category-container stats-table-container" id="stats-table-time-container"> 
           <div class="subtitle">Travel Time (seconds):</div>
           <div class="stats-table" id="stats-table-time">
-            <div class="stats-table-row">
-              <div class="stats-table-header col-1"></div>
+            <div class="stats-table-header-row">
+              <div class="stats-table-header col-1">Algorithm</div>
               <div class="stats-table-header col-2">Total</div>
               <div class="stats-table-header col-3">Indoor</div>
               <div class="stats-table-header col-4">Outdoor</div>
@@ -357,7 +357,7 @@
               <div class="stats-table-cell col-3">0.00</div>
               <div class="stats-table-cell col-4">0.00</div>
             </div>
-            <div class="stats-table-row" id="stats-table-row-time-astrog">
+            <div class="stats-table-row" id="stats-table-row-time-astroG">
               <div class="stats-table-cell stats-table-left-col col-1">Astro-G</div>
               <div class="stats-table-cell col-2">0.00</div>
               <div class="stats-table-cell col-3">0.00</div>
@@ -369,7 +369,7 @@
               <div class="stats-table-cell col-3">0.00</div>
               <div class="stats-table-cell col-4">0.00</div>
             </div>
-            <div class="stats-table-row" id="stats-table-row-time-dijkstrac">
+            <div class="stats-table-row" id="stats-table-row-time-dijkstraC">
               <div class="stats-table-cell stats-table-left-col col-1">Dijkstra-C</div>
               <div class="stats-table-cell col-2">0.00</div>
               <div class="stats-table-cell col-3">0.00</div>
@@ -386,8 +386,8 @@
         <div class="options-category-container stats-table-container" id="stats-table-con-container"> 
           <div class="subtitle">Congestion (# of people / m²):</div>
           <div class="stats-table" id="stats-table-con">
-            <div class="stats-table-row">
-              <div class="stats-table-header"></div>
+            <div class="stats-table-header-row">
+              <div class="stats-table-header">Algorithm</div>
               <div class="stats-table-header">Avg</div>
               <div class="stats-table-header">Min</div>
               <div class="stats-table-header">Max</div>
@@ -398,7 +398,7 @@
               <div class="stats-table-cell">0.00</div>
               <div class="stats-table-cell">0.00</div>
             </div>
-            <div class="stats-table-row" id="stats-table-row-con-astrog">
+            <div class="stats-table-row" id="stats-table-row-con-astroG">
               <div class="stats-table-cell stats-table-left-col">Astro-G</div>
               <div class="stats-table-cell">0.00</div>
               <div class="stats-table-cell">0.00</div>
@@ -410,7 +410,7 @@
               <div class="stats-table-cell">0.00</div>
               <div class="stats-table-cell">0.00</div>
             </div>
-            <div class="stats-table-row" id="stats-table-row-con-dijkstrac">
+            <div class="stats-table-row" id="stats-table-row-con-dijkstraC">
               <div class="stats-table-cell stats-table-left-col">Dijkstra-C</div>
               <div class="stats-table-cell">0.00</div>
               <div class="stats-table-cell">0.00</div>

@@ -70,6 +70,18 @@ function process_preset_graph(buildings) {
 }
 
 
+// process the uploaded file
+function process_uploaded_graph(graph_text) {
+
+    // convert the data to a json object
+    let json = JSON.parse(graph_text);
+
+    // TODO: input validation?
+
+    process_preset_graph(json);
+}
+
+
 // prepare a filtered version of the current graph 
 function filter_current_graph(include_closed_doors_and_buildings, include_few_doors_buildings) {
     
@@ -313,7 +325,61 @@ function init_grid_cell_info(building) {
 function process_paths(paths) {
     current_paths = paths;
 
+    console.log("returned paths", paths);
+
+    // reset the path mods 
+    path_mods = {};
+    path_algs.forEach((alg) => {
+        let path_mod = {
+            display_active: true,
+            has_data: alg in paths,
+            data_ref: alg in paths ? paths[alg] : null
+        };
+        path_mods[alg] = path_mod
+    });
+
+    // draw paths and update sidebar info
+    update_path_legend_active_paths();
+    update_path_stats_tables();
     draw_paths();
+}
+
+
+// handle a path or end point being selected
+function select_path_endpoint(door_grid_coords, building_grid_coords, is_start) {
+
+    // set the new selected grid coords
+    if (is_start) {
+        path_start_selected_grid_coords = door_grid_coords;
+    
+    // set the new selected grid coords
+    } else {
+        path_end_selected_grid_coords = door_grid_coords;
+    }
+
+    draw_point_selection(door_grid_coords, building_grid_coords, selection_layer, is_start);
+
+    // after selection is made, neither selection type should be active
+    is_selecting_path_start = false;
+    is_selecting_path_end = false;
+
+    // update the path options display
+    update_path_select_labels();
+    update_path_select_buttons_active();
+}
+
+
+// initialize the path mods data structure
+function init_path_mods() {
+    path_mods = {};
+    path_algs.forEach((alg) => {
+        let path_mod = {
+            display_active: true,
+            has_data: false,
+            data_ref: null
+        };
+        path_mods[alg] = path_mod
+    });
 }
 
 
@@ -363,30 +429,6 @@ function select_point() {
 //         select_building_to_edit(grid_coords, can_unselect);
 //     }
 // }
-
-
-// handle a path or end point being selected
-function select_path_endpoint(door_grid_coords, building_grid_coords, is_start) {
-
-    // set the new selected grid coords
-    if (is_start) {
-        path_start_selected_grid_coords = door_grid_coords;
-    
-    // set the new selected grid coords
-    } else {
-        path_end_selected_grid_coords = door_grid_coords;
-    }
-
-    draw_point_selection(door_grid_coords, building_grid_coords, selection_layer, is_start);
-
-    // after selection is made, neither selection type should be active
-    is_selecting_path_start = false;
-    is_selecting_path_end = false;
-
-    // update the path options display
-    update_path_select_labels();
-    update_path_select_buttons_active();
-}
 
 
 // reset all selected coordinates

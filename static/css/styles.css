@@ -320,6 +320,11 @@ html, body {
     padding: 0 12px 0 5px;
 }
 
+.graph-legend-item-disabled {
+    pointer-events: none;
+    opacity: 0.35;
+}
+
 .graph-legend-item-name {
     font-weight: bold;
     text-align: left;
@@ -437,7 +442,13 @@ html, body {
 
 .stats-table {
     font-size: 12px;
-    margin-top: 5px;
+    /* margin-top: 5px; */
+}
+
+.stats-table-header-row {
+    border-bottom: solid 2px #444;
+    display: grid;
+    grid-template-columns: 1.5fr 1fr 1fr 1fr;
 }
 
 .stats-table-header {
@@ -446,9 +457,9 @@ html, body {
     padding: 5px 5px 0 5px;
 }
 
-.stats-table .stats-table-row:nth-child(even) {
+/* .stats-table .stats-table-row:nth-child(even) {
     background-color: #ddd;
-}
+} */
 
 .stats-table-row {
     display: grid;

@@ -75,24 +75,29 @@ function recommend_paths(path_configs) {
     
     // // process and draw the paths
     // ).then((jsons) => {
-    //     // associate each returned stats and path with the algorithm name
-    //     let alg_results = path_configs.map(function (path_config, i) {
-    //         return [path_config.algorithm, jsons[i]];
-    //     });
-    //     console.log("paths data: ", alg_results);
+        // associate each returned stats and path with the algorithm name
+        // let alg_results = {};
+        // for (let i = 0; i < path_configs.length; i++) {
+        //     alg_results[path_configs[i].algorithm] = jsons[i];
+        // }
     //     process_paths(alg_results);
     // }).catch(err => console.log(err));
 
-
-    Promise.all([
-        fetch("/static/assets/paths/graph_example_paths_path1.json"),
-        fetch("/static/assets/paths/graph_example_paths_path2.json"),
-        fetch("/static/assets/paths/graph_example_paths_path3.json"),
-    ]).then(responses =>
+    // use local path data for now
+    Promise.all(path_configs.map((path_config) => 
+        fetch(`/static/assets/paths/${path_config.algorithm}.json`)
+    )).then(responses =>
         Promise.all(responses.map(response => response.json()))
-    ).then((json) => {
-        console.log("paths data: ", json);
-        process_paths(json);
+    
+    // process and draw the paths
+    ).then((jsons) => {
+        // associate each returned stats and path with the algorithm name
+        let alg_results = {};
+        for (let i = 0; i < path_configs.length; i++) {
+            alg_results[path_configs[i].algorithm] = jsons[i];
+        }
+        console.log("paths data: ", alg_results);
+        process_paths(alg_results);
     }).catch(err => console.log(err));
 }
 

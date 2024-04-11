@@ -974,17 +974,28 @@ function draw_paths() {
     path_layer = new Konva.Layer();
     stage.add(path_layer);
 
-    // iterate over every current path
-    for (let p = 0; p < current_paths.length; p++) {
+    console.log("path mods: ", path_mods);
 
-        let path = current_paths[p];
-        let path_type = Object.keys(path_type_options)[p]; // TODO: specify path types for specific algorithms?
+    // iterate over every current path
+    for (let a = 0; a < path_algs.length; a++) {
+
+        let alg = path_algs[a];
+        let path_obj = current_paths[alg];
+        let path_mod = path_mods[alg];
+
+        // do not try to display paths that are not present
+        if (!path_mod.has_data) {
+            console.log("no data for path: ", alg);
+            continue;
+        }
+
+        let path_type = Object.keys(path_type_options)[a]; // TODO: change how algorithm path types are selected?
 
         // iterate over every building in the path
-        for (let i = 0; i < path.length - 1; i++) {
+        for (let i = 0; i < path_obj.path.length - 1; i++) {
 
-            let building1 = path[i];
-            let building2 = path[i+1];
+            let building1 = path_obj.path[i];
+            let building2 = path_obj.path[i+1];
     
             let cell_info1 = grid_object_for_id(building1.id);
             let cell_info2 = grid_object_for_id(building2.id);
@@ -1001,7 +1012,7 @@ function draw_paths() {
                 draw_endpoint_path_part(end_point_grid_coords, cell_info2, building2.entrances[0].id, path_layer, path_type);
 
             // check for drawing end path
-            } else if (i + 1 === path.length - 1) {
+            } else if (i + 1 === path_obj.path.length - 1) {
 
                 let end_door = building2.entrances[0];
                 let end_point_grid_coords = {
