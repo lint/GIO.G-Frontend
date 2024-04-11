@@ -298,6 +298,14 @@ function create_door_list_item(building_grid_coords, door_id) {
     delete_span.appendChild(delete_button);
     li.appendChild(delete_span);
 
+    // add event listeners to highlight given door or not when mousing over the list item
+    li.addEventListener("mouseenter", function(e) {
+        draw_entrance_highlight(building_grid_coords, door_id, true);
+    });
+    li.addEventListener("mouseleave", function(e) {
+        draw_entrance_highlight(building_grid_coords, door_id, false);
+    });
+
     return li;
 }
 

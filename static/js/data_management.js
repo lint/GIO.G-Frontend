@@ -221,6 +221,7 @@ function new_empty_grid_cell() {
             building_outline: null,
             selection_overlay: null,
             entrances: {},
+            editor_entrances: {},
             building_group: null,
             entrances_group: null,
             corridors_group: null
@@ -297,7 +298,8 @@ function init_grid_cell_info(building) {
             data_ref: door,
             last_drag_time: 0,
             wall_direction: "none",
-            attached_wall: null
+            attached_wall: null,
+            editor_highlighted: false
         };
     }
 

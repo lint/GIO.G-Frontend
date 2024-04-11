@@ -67,6 +67,43 @@ function get_main_stage_path_dash(path_type) {
 }
 
 
+/* ----------------------------- color selection ---------------------------- */
+
+
+// get the building color for the given cell
+function get_building_color(cell_info) {
+
+    if (building_con_colors_enabled) {
+        let congestion_level = cell_info.building_data.congestion_type || cell_info.building_mods.con_level;
+        let color = building_con_colors[congestion_level];
+
+        if (color != null) {
+            return color;
+        }
+    }
+    
+    // default to constant color if proper color not found
+    return building_con_colors["constant"];
+}
+
+
+// get the corridor color for the given cell
+function get_corridor_color(cell_info) {
+
+    if (building_con_colors_enabled) {
+        let congestion_level = cell_info.building_data.congestion_type || cell_info.building_mods.con_level;
+        let color = corridor_con_colors[congestion_level];
+
+        if (color != null) {
+            return color;
+        }
+    }
+    
+    // default to constant color if proper color not found
+    return corridor_con_colors["constant"];
+}
+
+
 /* ---------------------------- building drawing ---------------------------- */
 
 
@@ -244,6 +281,8 @@ function draw_building(building_grid_coords, parent, for_main_stage) {
 // draw the building shape for the building at the given coordinates
 function draw_building_shape(building_grid_coords, parent, for_main_stage) {
 
+    let cell_dims = get_cell_dims(for_main_stage);
+
     // get the grid cell info object associated with the building
     let cell_info = grid_object_at_coords(building_grid_coords);
     let building_mods = cell_info.building_mods;
@@ -261,7 +300,7 @@ function draw_building_shape(building_grid_coords, parent, for_main_stage) {
     let stage_shape_path = grid_shape_path.map((point) => door_grid_coords_to_stage_coords(point, building_grid_coords, for_main_stage));
     stage_shape_path = flatten_points(stage_shape_path);
 
-    let building_color = building_con_colors_enabled ? building_con_colors[cell_info.building_data.congestion_type || cell_info.building_mods.con_level] : building_con_colors["constant"];
+    let building_color = get_building_color(cell_info);
 
     // construct a building shape given the door coordinates and calculated corners
     let building_shape = new Konva.Line({
@@ -270,7 +309,9 @@ function draw_building_shape(building_grid_coords, parent, for_main_stage) {
         // stroke: 'black',
         // strokeWidth: building_stroke_width,
         closed: true,
-        perfectDrawEnabled: false
+        perfectDrawEnabled: false,
+        // shadowBlur: cell_dims.size / 4,
+        // shadowColor: "red",
     });
     parent.add(building_shape);
 
@@ -375,13 +416,13 @@ function update_building_colors(building_grid_coords) {
 
     // update the building fill color
     if (building_shape !== null) {
-        let building_color = building_con_colors_enabled ? building_con_colors[cell_info.building_mods.con_level] : building_con_colors["constant"];
+        let building_color = get_building_color(cell_info);
         building_shape.fill(building_color);
     }
 
     // update the corridors color
     if (corridors_group !== null) {
-        let corridors_color = building_con_colors_enabled ? corridor_con_colors[cell_info.building_mods.con_level] : corridor_con_colors["constant"];
+        let corridors_color = get_corridor_color(cell_info);
         let corridors = corridors_group.getChildren();
 
         for (let i = 0; i < corridors.length; i++) {
@@ -412,7 +453,7 @@ function draw_building_outline(building_grid_coords, parent, for_main_stage) {
 
     // draw building outline (ensures doors have an outer border along the building shape)
     // let outline_color = building_mods.open ? "black" : "red";
-    let outline_color = building_mods.open ? corridor_con_colors[building_mods.con_level] :  "red";
+    let outline_color = building_mods.open ? get_corridor_color(cell_info) : "red";
     let building_outline = new Konva.Line({
         points: flatten_points(stage_shape_path),
         stroke: outline_color,
@@ -459,6 +500,8 @@ function draw_entrances(building_grid_coords, parent, for_main_stage) {
 
         cell_info.shapes.entrances_group = entrances_group;
         cell_info.shapes.entrances = {};
+    } else {
+        cell_info.shapes.editor_entrances = {};
     }
 
     // define an array to determine door draw order
@@ -497,7 +540,7 @@ function draw_entrances(building_grid_coords, parent, for_main_stage) {
         // convert grid coordinates to stage coordinates
         let door_stage_coords = door_grid_coords_to_stage_coords(door_grid_coords, building_grid_coords, for_main_stage);;
         
-        let door_color = door["accessible"] == 1 ? "blue" : "gray";
+        let door_color = door["accessible"] == 1 ? "#005A9C" : "gray";
         let door_stroke_color = door_mod.open ? "black" : "red";
 
         let door_shape = new Konva.Rect({
@@ -509,7 +552,8 @@ function draw_entrances(building_grid_coords, parent, for_main_stage) {
             strokeWidth: door_dims.stroke,
             x: door_stage_coords.x - door_dims.size/2, // adjust for rect positioning being top left corner
             y: door_stage_coords.y - door_dims.size/2,
-            perfectDrawEnabled: false
+            perfectDrawEnabled: false,
+            shadowForStrokeEnabled: false
         });
         
         if (for_main_stage) {
@@ -518,8 +562,17 @@ function draw_entrances(building_grid_coords, parent, for_main_stage) {
             cell_info.shapes.entrances[door_id] = door_shape;
 
         } else {
+
+            // add necessary info about the building's editor doors to the grid array
+            cell_info.shapes.editor_entrances[door_id] = door_shape;
+
             // enable dragging to reposition doors in editor view
             door_shape.draggable(true);
+
+            // add highlight shadow effect
+            door_shape.shadowBlur(door_dims.size / 2);
+            door_shape.shadowColor("black");
+            door_shape.shadowEnabled(door_mod.editor_highlighted);
 
             // make the current dragged door always appear on top of other doors on drag start
             door_shape.on("dragstart", function (e) {
@@ -595,6 +648,22 @@ function draw_entrances(building_grid_coords, parent, for_main_stage) {
 }
 
 
+// highlights the currently selected door or not by adding a shadow effect
+function draw_entrance_highlight(building_grid_coords, door_id, is_highlighting) {
+
+    let cell_info = grid_object_at_coords(building_grid_coords);
+    let door_shape = cell_info.shapes.editor_entrances[door_id];
+    cell_info.building_mods.entrance_mods[door_id].editor_highlighted = is_highlighting;
+
+    if (door_shape === null) {
+        return;
+    }
+
+    // enable or disable the shadow
+    door_shape.shadowEnabled(is_highlighting);
+}
+
+
 // draw corridors for the building at the given grid coordinates
 function draw_corridors(building_grid_coords, parent, for_main_stage) {
 
@@ -604,7 +673,7 @@ function draw_corridors(building_grid_coords, parent, for_main_stage) {
     let building_mods = cell_info.building_mods;
     let door_mods = building_mods.entrance_mods;
 
-    let corridor_color = building_con_colors_enabled ? corridor_con_colors[cell_info.building_data.congestion_type || cell_info.building_mods.con_level] : corridor_con_colors["constant"];
+    let corridor_color = get_corridor_color(cell_info);
     let corridor_width = door_dims.size / 3;
 
     // create new corridors group
