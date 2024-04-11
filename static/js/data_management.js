@@ -122,32 +122,31 @@ function process_building(building) {
     // update_deep_doors(building);
 
     // initialize the info object for the given building
-    init_grid_cell_info(building);
+    let cell_info = init_grid_cell_info(building);
 
     // create the building outline path and effective walls
-    create_building_outline_path(building_grid_coords);
-    find_building_effective_walls(building_grid_coords);
+    create_building_outline_path(cell_info);
+    find_building_effective_walls(cell_info);
 
     // find the bounding rectangle around the building outline shape
-    find_building_bounding_rectangle(building_grid_coords);
+    find_building_bounding_rectangle(cell_info);
 
     // update door positions to respect effective walls
-    update_doors_to_effective_walls(building_grid_coords);
+    update_doors_to_effective_walls(cell_info);
 
     // find building center point
-    find_building_center(building_grid_coords);
+    find_building_center(cell_info);
 
     // make building available at connected cell coordinates
-    setup_connected_grid_cell_info(building_grid_coords);
+    setup_connected_grid_cell_info(cell_info);
 }
 
 
 // link cell info building data available at the connected cell coordinates
-function setup_connected_grid_cell_info(building_grid_coords) {
+function setup_connected_grid_cell_info(cell_info) {
 
     // TODO: this probably has further implications for other parts of the code
 
-    let cell_info = grid_object_at_coords(building_grid_coords);
     let connected_buildings = cell_info.building_data.connected_buildings;
 
     if (connected_buildings == null) {
@@ -156,7 +155,6 @@ function setup_connected_grid_cell_info(building_grid_coords) {
 
     for (let i = 0; i < connected_buildings.length; i++) {
         let building_coords = grid_coords_for_building_or_door(connected_buildings[i]);
-
         grid[building_coords.y][building_coords.x] = cell_info;
     }
 }
@@ -203,11 +201,9 @@ function grid_object_for_id(building_id) {
 }
 
 
-// helper method to get the door object at the building at the provided coordinates
-function door_object_at_coords(grid_coords, door_id) {
-    let cell_info = grid_object_at_coords(grid_coords);
+// helper method to get the door object from stored data references
+function door_object_for_id(cell_info, door_id) {
     let door_mods = cell_info.building_mods.entrance_mods;
-
     return door_mods[door_id]["data_ref"];
 }
 
@@ -392,7 +388,7 @@ function select_path_endpoint(door_grid_coords, building_grid_coords, is_start) 
 function reset_cell_selections() {
     path_start_selected_grid_coords = null;
     path_end_selected_grid_coords = null;
-    editor_selected_grid_coords = null;
+    editor_selected_cell_info = null;
 }
 
 

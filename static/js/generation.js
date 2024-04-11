@@ -141,9 +141,9 @@ function generate_building(building_grid_coords) {
 
 
 // adds a new door to the given building
-function add_new_building_door(building_grid_coords) {
+function add_new_building_door(cell_info) {
 
-    let cell_info = grid_object_at_coords(building_grid_coords);
+    let building_grid_coords = grid_coords_for_building_or_door(cell_info.building_data);
     let building_mods = cell_info.building_mods;
     let door_id = building_mods.next_new_door_id++;
 
@@ -163,7 +163,10 @@ function add_new_building_door(building_grid_coords) {
     let door_mod =  {
         open: true,
         data_ref: door,
-        last_drag_time: 0
+        last_drag_time: 0,
+        wall_direction: "none",
+        attached_wall: null,
+        editor_highlighted: false
     };
 
     // add new door structures to grid data
@@ -175,9 +178,8 @@ function add_new_building_door(building_grid_coords) {
 
 
 // deletes a given door from the given building
-function delete_building_door(building_grid_coords, door_id) {
+function delete_building_door(cell_info, door_id) {
     
-    let cell_info = grid_object_at_coords(building_grid_coords);
     let doors = cell_info.building_data.entrances;
 
     // iterate over the doors array
@@ -205,7 +207,7 @@ function add_new_building(building_grid_coords) {
 
     // if there is a building at the given location, delete it first
     if (cell_info.building_data !== null) {
-        delete_building(building_grid_coords);
+        delete_building(cell_info);
     }
 
     // create a new building object
@@ -220,9 +222,8 @@ function add_new_building(building_grid_coords) {
 
 
 // deletes a building at the given coords 
-function delete_building(building_grid_coords) {
+function delete_building(cell_info) {
 
-    let cell_info = grid_object_at_coords(building_grid_coords);
     let building = cell_info.building_data;
 
     // remove the building from the graph data

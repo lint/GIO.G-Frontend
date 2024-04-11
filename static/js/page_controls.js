@@ -530,7 +530,7 @@ function handle_clipping_visible_button() {
     }
 
     // redraw the building in the editor
-    redraw_selected_building(editor_selected_grid_coords);
+    redraw_selected_building(editor_selected_cell_info);
 }
 
 
@@ -557,7 +557,7 @@ function handle_corridors_visible_button() {
 
     building_corridors_enabled = !building_corridors_enabled;
 
-    redraw_selected_building(editor_selected_grid_coords);
+    redraw_selected_building(editor_selected_cell_info);
 }
 
 
@@ -580,7 +580,7 @@ function handle_congestion_colors_button() {
         }
     }
 
-    redraw_selected_building(editor_selected_grid_coords);
+    redraw_selected_building(editor_selected_cell_info);
 }
 
 

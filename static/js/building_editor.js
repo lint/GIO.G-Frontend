@@ -43,17 +43,15 @@ function select_building_to_edit(building_grid_coords, can_unselect) {
         return;
     }
 
-    let building_mods = cell_info.building_mods;
-
     console.log("cell info:", cell_info);
 
     // reset the building editor elements
     reset_building_editor();
 
     // unselect if clicked same building (by doing nothing)
-    if (editor_selected_grid_coords !== null && coords_eq(building_grid_coords, editor_selected_grid_coords) && can_unselect) {
-        console.log("unselecting", editor_selected_grid_coords);
-        editor_selected_grid_coords = null;
+    if (editor_selected_cell_info !== null && cell_info === editor_selected_cell_info && can_unselect) {
+        console.log("unselecting", editor_selected_cell_info);
+        editor_selected_cell_info = null;
         return;
     }
 
@@ -64,7 +62,7 @@ function select_building_to_edit(building_grid_coords, can_unselect) {
     }
 
     // set the currently selected editor selected grid cell
-    editor_selected_grid_coords = building_grid_coords;
+    editor_selected_cell_info = cell_info;
 
     // get container elements to build elements into
     let info_container = document.getElementById("selected-cell-info-controls-container");
@@ -122,7 +120,7 @@ function select_building_to_edit(building_grid_coords, can_unselect) {
         let add_door_button = document.createElement("button");
         add_door_button.innerHTML = "+ Door";
         add_door_button.addEventListener("click", function (e) {
-            handle_add_door_button(building_grid_coords);
+            handle_add_door_button(cell_info);
         });
         add_door_button_container.appendChild(add_door_button);
 
@@ -132,7 +130,7 @@ function select_building_to_edit(building_grid_coords, can_unselect) {
         
         // iterate over every door in the building
         for (let door_id in cell_info.building_mods.entrance_mods) {
-            let door_list_item = create_door_list_item(building_grid_coords, door_id);
+            let door_list_item = create_door_list_item(cell_info, door_id);
             edit_doors_list.appendChild(door_list_item);
         }
         doors_list_container.appendChild(edit_doors_list);
@@ -147,8 +145,8 @@ function select_building_to_edit(building_grid_coords, can_unselect) {
         building_open_container.appendChild(building_open_title);
 
         // create span wrapped radios and label for each congestion level
-        let open_radio = create_open_radio(building_grid_coords, "open");
-        let closed_radio = create_open_radio(building_grid_coords, "closed");
+        let open_radio = create_open_radio(cell_info, "open");
+        let closed_radio = create_open_radio(cell_info, "closed");
         building_open_container.appendChild(open_radio);
         building_open_container.appendChild(closed_radio);
 
@@ -175,9 +173,9 @@ function select_building_to_edit(building_grid_coords, can_unselect) {
             building_con_container.appendChild(building_con_label);
 
             // create span wrapped radios and label for each congestion level
-            let low_con_radio = create_con_radio(building_grid_coords, "low");
-            let med_con_radio = create_con_radio(building_grid_coords, "med");
-            let high_con_radio = create_con_radio(building_grid_coords, "high");
+            let low_con_radio = create_con_radio(cell_info, "low");
+            let med_con_radio = create_con_radio(cell_info, "med");
+            let high_con_radio = create_con_radio(cell_info, "high");
 
             building_con_container.appendChild(low_con_radio);
             building_con_container.appendChild(med_con_radio);
@@ -188,7 +186,7 @@ function select_building_to_edit(building_grid_coords, can_unselect) {
         let delete_building_button = document.createElement("button");
         delete_building_button.innerHTML = "Delete Building";
         delete_building_button.addEventListener("click", function (e) {
-            handle_delete_building_button(building_grid_coords);
+            handle_delete_building_button(cell_info);
         });
 
         building_actions_container.appendChild(delete_building_button);
@@ -207,7 +205,7 @@ function select_building_to_edit(building_grid_coords, can_unselect) {
 
     // redraw the selected building in both the editor stage and main stage
     if (cell_info.building_data !== null) {
-        redraw_selected_building(building_grid_coords);
+        redraw_selected_building(cell_info);
     }
 
     // update accordion heights
@@ -216,10 +214,9 @@ function select_building_to_edit(building_grid_coords, can_unselect) {
 
 
 // returns a new list item for a given door at a given building
-function create_door_list_item(building_grid_coords, door_id) {
+function create_door_list_item(cell_info, door_id) {
 
-    let cell_info = grid_object_at_coords(building_grid_coords);
-    let door = door_object_at_coords(building_grid_coords, door_id);
+    let door = door_object_for_id(cell_info, door_id);
     let door_mod = cell_info.building_mods.entrance_mods[door_id];
 
     // create a list item to contain door properties
@@ -262,7 +259,7 @@ function create_door_list_item(building_grid_coords, door_id) {
     open_chkbox.id = open_chkbox_id;
     open_chkbox.checked = door_mod.open;
     open_chkbox.addEventListener("change", function(e) {
-        door_open_checkbox_checked(building_grid_coords, door_id);
+        door_open_checkbox_checked(cell_info, door_id);
     });
     
     // create label and input checkbox to represent whether a door is accessible or not
@@ -275,7 +272,7 @@ function create_door_list_item(building_grid_coords, door_id) {
     access_chkbox.id = access_chkbox_id;
     access_chkbox.checked = door["accessible"];
     access_chkbox.addEventListener("change", function(e) {
-        door_accessible_checkbox_checked(building_grid_coords, door_id);
+        door_accessible_checkbox_checked(cell_info, door_id);
     });
 
     // create button to delete the door
@@ -283,7 +280,7 @@ function create_door_list_item(building_grid_coords, door_id) {
     delete_button.innerHTML = "Delete";
     delete_button.classList.add("edit-doors-list-item-control");
     delete_button.addEventListener("click", function (e) {
-        handle_delete_door_button(building_grid_coords, door_id);
+        handle_delete_door_button(cell_info, door_id);
     });
 
     // add created items as children to the list item
@@ -300,10 +297,10 @@ function create_door_list_item(building_grid_coords, door_id) {
 
     // add event listeners to highlight given door or not when mousing over the list item
     li.addEventListener("mouseenter", function(e) {
-        draw_entrance_highlight(building_grid_coords, door_id, true);
+        draw_entrance_highlight(cell_info, door_id, true);
     });
     li.addEventListener("mouseleave", function(e) {
-        draw_entrance_highlight(building_grid_coords, door_id, false);
+        draw_entrance_highlight(cell_info, door_id, false);
     });
 
     return li;
@@ -311,9 +308,8 @@ function create_door_list_item(building_grid_coords, door_id) {
 
 
 // creates a radio option and label for congestion level for a given building
-function create_con_radio(building_grid_coords, con_level) {
+function create_con_radio(cell_info, con_level) {
 
-    let cell_info = grid_object_at_coords(building_grid_coords);
     let building_mods = cell_info.building_mods;
 
     let con_radio_id = `building-${con_level}-con-radio`;
@@ -336,7 +332,7 @@ function create_con_radio(building_grid_coords, con_level) {
     con_radio.name = "con_level";
     con_radio.addEventListener("change", function(e) {
         if (this.checked) {
-            building_con_radio_checked(building_grid_coords, con_level);
+            building_con_radio_checked(cell_info, con_level);
         }
     });
     
@@ -349,9 +345,8 @@ function create_con_radio(building_grid_coords, con_level) {
 
 
 // creates a radio option and label for building openness status
-function create_open_radio(building_grid_coords, openness) {
+function create_open_radio(cell_info, openness) {
 
-    let cell_info = grid_object_at_coords(building_grid_coords);
     let building_mods = cell_info.building_mods;
 
     let openness_id = `building-availability-${openness}`;
@@ -373,7 +368,7 @@ function create_open_radio(building_grid_coords, openness) {
     radio.name = "building-availability";
     radio.addEventListener("change", function(e) {
         if (this.checked) {
-            building_open_radio_changed(building_grid_coords, openness);
+            building_open_radio_changed(cell_info, openness);
         }
     });
 
@@ -388,11 +383,11 @@ function create_open_radio(building_grid_coords, openness) {
 
 
 // handle the selected building delete button click
-function handle_delete_building_button(building_grid_coords) {
+function handle_delete_building_button(cell_info) {
 
-    console.log("building deleted: ", building_grid_coords);
+    console.log("building deleted: ", cell_info);
 
-    let cell_info = grid_object_at_coords(building_grid_coords);
+    let building_grid_coords = grid_coords_for_building_or_door(cell_info.building_data);
 
     // delete the building group from the main stage
     let group = cell_info.shapes.building_group;
@@ -401,7 +396,7 @@ function handle_delete_building_button(building_grid_coords) {
     }
 
     // remove the building from the graph & grid data structures
-    delete_building(building_grid_coords);
+    delete_building(cell_info);
 
     // reselect the empty cell
     select_building_to_edit(building_grid_coords, false);
@@ -415,8 +410,11 @@ function handle_add_building_button(building_grid_coords) {
     // create a new building object
     add_new_building(building_grid_coords);
 
+    // get the cell info for the new building
+    let cell_info = grid_object_at_coords(building_grid_coords);
+
     // draw the building on the main stage
-    draw_building(building_grid_coords, building_layer, true);
+    draw_building(cell_info, building_layer, true);
 
     // reselect the filled cell
     select_building_to_edit(building_grid_coords, false);
@@ -424,10 +422,9 @@ function handle_add_building_button(building_grid_coords) {
 
 
 // handle the selected building open checkbox being changed
-function building_open_radio_changed(building_grid_coords, openness) {
+function building_open_radio_changed(cell_info, openness) {
 
     // get the information for the given building
-    let cell_info = grid_object_at_coords(building_grid_coords);
     let building = cell_info.building_data;
     let building_mods = cell_info.building_mods;
 
@@ -435,16 +432,15 @@ function building_open_radio_changed(building_grid_coords, openness) {
     building_mods.open = openness === "open";
     
     // redraw the building to reflect the changes in accessibility
-    redraw_selected_building(building_grid_coords);
+    redraw_selected_building(cell_info);
 }
 
 
 // handle the selected building congestion radio being checked
-function building_con_radio_checked(building_grid_coords, con_level) {
+function building_con_radio_checked(cell_info, con_level) {
     console.log("new con level: ", con_level);
 
     // get the information for the given building
-    let cell_info = grid_object_at_coords(building_grid_coords);
     let building = cell_info.building_data;
     let building_mods = cell_info.building_mods;
 
@@ -456,7 +452,7 @@ function building_con_radio_checked(building_grid_coords, con_level) {
     building_mods.con_level = con_level;
 
     // redraw the building to reflect the changes in congestion
-    redraw_selected_building(building_grid_coords);
+    redraw_selected_building(cell_info);
 }
 
 
@@ -464,10 +460,10 @@ function building_con_radio_checked(building_grid_coords, con_level) {
 
 
 // handle dragging an entrance in the drag editor
-function selected_door_moved(building_grid_coords, door_id, editor_door_shape) {
+function selected_door_moved(cell_info, door_id, editor_door_shape) {
 
-    let cell_info = grid_object_at_coords(building_grid_coords);
-    let door = door_object_at_coords(building_grid_coords, door_id);
+    let door = door_object_for_id(cell_info, door_id);
+    let building_grid_coords = grid_coords_for_building_or_door(cell_info.building_data);
     let door_mods = cell_info.building_mods.entrance_mods
     let door_mod = door_mods[door_id];
 
@@ -488,31 +484,27 @@ function selected_door_moved(building_grid_coords, door_id, editor_door_shape) {
     door_mod.last_drag_time = Date.now();
     
     // redraw the building to reflect the changes in position
-    redraw_selected_building(building_grid_coords);
+    redraw_selected_building(cell_info);
 }
 
 
 // handle the open checkbox being clicked for a given building door
-function door_open_checkbox_checked(building_grid_coords, door_id) {
+function door_open_checkbox_checked(cell_info, door_id) {
 
-    let cell_info = grid_object_at_coords(building_grid_coords);
-    let door = door_object_at_coords(building_grid_coords, door_id);
-    let doors = cell_info.building_data.entrances;
     let door_mod = cell_info.building_mods.entrance_mods[door_id];
 
     // toggle the door's open status
     door_mod.open = !door_mod.open;
     
     // redraw the building to reflect the changes in accessibility
-    redraw_selected_building(building_grid_coords);
+    redraw_selected_building(cell_info);
 }
 
 
 // handle the accessible checkbox being clicked for a given building door
-function door_accessible_checkbox_checked(building_grid_coords, door_id) {
+function door_accessible_checkbox_checked(cell_info, door_id) {
 
-    let cell_info = grid_object_at_coords(building_grid_coords);
-    let door = door_object_at_coords(building_grid_coords, door_id);
+    let door = door_object_for_id(cell_info, door_id);
 
     // get the previous accessibility status
     let prev_access = door["accessible"];
@@ -522,23 +514,23 @@ function door_accessible_checkbox_checked(building_grid_coords, door_id) {
     door["accessible"] = new_access;
     
     // redraw the building to reflect the changes in accessibility
-    redraw_selected_building(building_grid_coords);
+    redraw_selected_building(cell_info);
 }
 
 
 // remove the door with the given id from the given buildling
-function handle_delete_door_button(building_grid_coords, door_id) {
-    console.log("delete door: ", building_grid_coords, door_id);
+function handle_delete_door_button(cell_info, door_id) {
+    console.log("delete door: ", cell_info, door_id);
 
     // remove the door from the grid data structure
-    delete_building_door(building_grid_coords, door_id);
+    delete_building_door(cell_info, door_id);
 
     // remove the door list item from the editor
     let li = document.getElementById(`door-${door_id}-list-item`);
     li.parentNode.removeChild(li);
 
     // redraw the building to reflect the changes in doors
-    redraw_selected_building(building_grid_coords);
+    redraw_selected_building(cell_info);
 
     // update accordian heights
     update_accordion_heights();
@@ -546,19 +538,19 @@ function handle_delete_door_button(building_grid_coords, door_id) {
 
 
 // adds a new door to the given building 
-function handle_add_door_button(building_grid_coords) {
-    console.log("add door: ", building_grid_coords);
+function handle_add_door_button(cell_info) {
+    console.log("add door: ", cell_info);
 
     // add a new door to the grid data structure
-    let door_id = add_new_building_door(building_grid_coords);
+    let door_id = add_new_building_door(cell_info);
  
     // add a new door list item to the editor list
-    let li = create_door_list_item(building_grid_coords, door_id);
+    let li = create_door_list_item(cell_info, door_id);
     let ul = document.getElementById("edit-doors-list");
     ul.appendChild(li);
 
     // redraw the building to display the new door
-    redraw_selected_building(building_grid_coords);
+    redraw_selected_building(cell_info);
 
     // update accordian heights
     update_accordion_heights();

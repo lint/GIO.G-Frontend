@@ -29,7 +29,7 @@ let current_paths = null;
 let grid = null;
 
 // building selection variables
-let editor_selected_grid_coords = null;
+let editor_selected_cell_info = null;
 let path_start_selected_grid_coords = null;
 let path_end_selected_grid_coords = null;
 let path_start_selection_shape = null;

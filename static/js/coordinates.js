@@ -331,9 +331,8 @@ function check_deep_door(neighbor1, target, neighbor2, reference) {
 
 
 // creates the building outline grid path for the building at the given coordinates
-function create_building_outline_path(building_grid_coords) {
+function create_building_outline_path(cell_info) {
 
-    let cell_info = grid_object_at_coords(building_grid_coords);
     let doors = cell_info.building_data.entrances;
 
     // store coordinates to draw building shape
@@ -380,9 +379,8 @@ function create_building_outline_path(building_grid_coords) {
 
 
 // calculates the building's effective wall grid lines (prevents doors from being positioned in corners)
-function find_building_effective_walls(building_grid_coords) {
+function find_building_effective_walls(cell_info) {
 
-    let cell_info = grid_object_at_coords(building_grid_coords);
     let grid_path = cell_info.building_mods.outline_grid_path;
 
     // calculate the usable wall lines for door placement
@@ -413,9 +411,7 @@ function find_building_effective_walls(building_grid_coords) {
 
 
 // find the bounding rectangle for a building
-function find_building_bounding_rectangle(building_grid_coords) {
-
-    let cell_info = grid_object_at_coords(building_grid_coords);
+function find_building_bounding_rectangle(cell_info) {
 
     let grid_shape_path = cell_info.building_mods.outline_grid_path;
     // let entrance_points = grid_shape_path.map((door) => grid_coords_for_building_or_door(door));
@@ -429,9 +425,8 @@ function find_building_bounding_rectangle(building_grid_coords) {
 
 
 // updates all door coordinates for a building to the effective walls
-function update_doors_to_effective_walls(building_grid_coords) {
+function update_doors_to_effective_walls(cell_info) {
     
-    let cell_info = grid_object_at_coords(building_grid_coords);
     let doors = cell_info.building_data.entrances;
     let door_mods = cell_info.building_mods.entrance_mods;
     let effective_walls = cell_info.building_mods.effective_grid_walls;
@@ -464,9 +459,8 @@ function update_doors_to_effective_walls(building_grid_coords) {
 
 
 // find the center coordinate of the building shape
-function find_building_center(building_grid_coords) {
+function find_building_center(cell_info) {
 
-    let cell_info = grid_object_at_coords(building_grid_coords);
     let outline_grid_path = cell_info.building_mods.outline_grid_path;
 
     // convert the outline grid path to the input needed by polylabel and then find its center point
@@ -478,11 +472,10 @@ function find_building_center(building_grid_coords) {
 
 
 // get the door grid path to center coordinate
-function door_grid_path_to_center(building_grid_coords, door_id) {
+function door_grid_path_to_center(cell_info, door_id) {
 
     // TODO: this does lots of repeated calculations if called multiple times in a row... fix it
 
-    let cell_info = grid_object_at_coords(building_grid_coords);
     let door_mods = cell_info.building_mods.entrance_mods;
     let door_mod = door_mods[door_id];
 
@@ -542,9 +535,9 @@ function door_grid_path_to_center(building_grid_coords, door_id) {
 
 
 // get the door grid path to center coordinate
-function door_grid_path_to_border(building_grid_coords, door_id, outline_offset, door_offset) {
+function door_grid_path_to_border(cell_info, door_id, outline_offset, door_offset) {
 
-    let cell_info = grid_object_at_coords(building_grid_coords);
+    let building_grid_coords = grid_coords_for_building_or_door(cell_info.building_data);
     let door_mods = cell_info.building_mods.entrance_mods;
     let door_mod = door_mods[door_id];
 
