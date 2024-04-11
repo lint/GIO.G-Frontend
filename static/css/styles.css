@@ -58,17 +58,17 @@ html, body {
 }
 
 #navbar-title-name {
-    font-size: 18px;
+    font-size: 22px;
     font-weight: bold;
 }
 
 #navbar-title-separator {
-    font-size: 18px;
+    font-size: 22px;
     font-weight: bold;
 }
 
 #navbar-title-expanded {
-    font-size: 16px;
+    font-size: 22px;
 }
 
 #navbar-admt-container {
@@ -79,7 +79,7 @@ html, body {
 }
 
 #navbar-admt-title {
-    font-size: 18px;
+    font-size: 22px;
     font-weight: bold;
 }
 

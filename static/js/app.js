@@ -168,6 +168,8 @@ let road_hide_cur_pos = null;
 let is_dragging_road_hide = false;
 let road_hiding_bounds_rect = null;
 
+// store the current year
+let year_text = new Date().getFullYear()
 
 
 /* -------------------------------------------------------------------------- */
@@ -203,6 +205,9 @@ document.addEventListener("DOMContentLoaded", function() {
     let preset = "graph_25_0.75.json"
     update_preset_select_display(preset)
     load_preset_graph(preset);
+
+    // update the current year for the copyright date
+    document.getElementById("navbar-copyright-year").innerHTML = year_text;
 });
 
 
