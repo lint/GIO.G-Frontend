@@ -303,8 +303,10 @@ function submit_path_gen_form() {
     let access_radio_value = path_gen_form.querySelector("input[name=accessibility-type]:checked").value;
 
     let selected_algs = [];
-    let start_id = null;
-    let end_id = null;
+    let start_x = null;
+    let start_y = null;
+    let end_x = null;
+    let end_y = null;
 
     // iterate over every checkbox in the form and return the value of selected algs
     for (let i = 0; i < alg_chkboxes.length; i++) {
@@ -327,18 +329,20 @@ function submit_path_gen_form() {
 
     // check if there is a selected start cell
     if (path_start_selected_grid_coords === null) {
-        error_message += "ERROR: Select a start cell\n";
+        error_message += "ERROR: Select a start point\n";
         has_error = true;
     } else {
-        start_id = grid_cell_id_for_coords(path_start_selected_grid_coords);
+        start_x = path_start_selected_grid_coords.x;
+        start_y = path_start_selected_grid_coords.y;
     }
 
     // check if there is a selected end cell
     if (path_end_selected_grid_coords === null) {
-        error_message += "ERROR: Select an end cell\n"
+        error_message += "ERROR: Select an end point\n"
         has_error = true;
     } else {
-        end_id = grid_cell_id_for_coords(path_end_selected_grid_coords);
+        end_x = path_end_selected_grid_coords.x;
+        end_y = path_end_selected_grid_coords.y;
     }
 
     // TODO: reenable this
@@ -349,15 +353,22 @@ function submit_path_gen_form() {
     // }
 
     // create an object containing the path recommendation options
-    let path_options = {
-        algs: selected_algs,
+    let path_config = {
         accessible: access_radio_value === "accessible",
-        start_id: start_id,
-        end_id: end_id
+        start_x: start_x,
+        start_y: start_y,
+        end_x: end_x,
+        end_y: end_y
     };
 
-    // visualize returned path
-    recommend_path(path_options);
+    let path_configs = selected_algs.map((alg) => {
+        let config = {...path_config};
+        config.algorithm = alg;
+        return config;
+    });
+
+    // visualize returned paths
+    recommend_paths(path_configs);
 }
 
 

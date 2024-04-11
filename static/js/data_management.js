@@ -24,6 +24,9 @@ function process_graph(buildings, grid_len) {
 
     // generate new road widths for the grid
     generate_random_road_weights();
+
+    // draw the graph on the main stage
+    draw_main_stage();
 }
 
 
@@ -309,6 +312,8 @@ function init_grid_cell_info(building) {
 // process returned path recommendation results
 function process_paths(paths) {
     current_paths = paths;
+
+    draw_paths();
 }
 
 
