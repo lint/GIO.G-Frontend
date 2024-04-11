@@ -341,6 +341,13 @@ function process_paths(paths) {
     // draw paths and update sidebar info
     update_path_legend_active_paths();
     update_path_stats_tables();
+
+    if (auto_open_sections_enabled) {
+        set_accordion_opened("building-editor-accordion-button", false);
+        set_accordion_opened("path-legend-accordion-button", true);
+        set_accordion_opened("path-stats-accordion-button", true);
+    }
+
     draw_paths();
 }
 

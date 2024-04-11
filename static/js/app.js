@@ -60,7 +60,7 @@ let path_endpoints_enabled = true;
 let road_hiding_drag_enabled = false;
 let can_pan_enabled = true;
 let can_zoom_enabled = true;
-let auto_open_building_editor = true;
+let auto_open_sections_enabled = true;
 
 let road_rand_weight_min = 0.35;
 let road_rand_weight_max = 1.25;
@@ -180,21 +180,10 @@ document.addEventListener("DOMContentLoaded", function() {
 
     // create the stages to fit to parent containers
     create_stages();
-
-    // generate a graph with the default config
-    // generate_graph(default_config);
-
-    // load a preset graph
-    let preset = "graph_25_0.75.json"
-    update_preset_select_display(preset)
-    load_preset_graph(preset);
-
-    // create congestion multi thumb slider
-    create_congestion_slider();
     
-    // show any necessary values on the config form
-    update_config_form_display();
-
+    // initialize graph gen config form
+    setup_graph_gen_form();
+    
     // initialize path mods data structure to default values
     init_path_mods();
     
@@ -204,8 +193,16 @@ document.addEventListener("DOMContentLoaded", function() {
     // clear necessary content in the building editor
     reset_building_editor();
     
-    // update sidebar accordion cell heights
-    update_accordion_heights();
+    // set up the accordion button event listeners and transitions
+    setup_accordion_buttons();
+
+    // generate a graph with the default config
+    // generate_graph(default_config);
+
+    // load a preset graph
+    let preset = "graph_25_0.75.json"
+    update_preset_select_display(preset)
+    load_preset_graph(preset);
 });
 
 

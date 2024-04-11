@@ -86,36 +86,39 @@ function download_graph_export() {
 /* -------------------------- config form controls -------------------------- */
 
 
-// detect when changes are made to the config form
-document.getElementById("config-form-container").addEventListener("input", function (e) {
-    update_config_form_display();
-});
+// set up accordion buttons after page load
+function setup_accordion_buttons() {
+    
+    // add event listeners to each accordion button
+    Array.from(document.getElementsByClassName("accordion-button")).forEach(function (button) {
 
-// add event listeners to each accordion button
-Array.from(document.getElementsByClassName("accordion-button")).forEach(function (button) {
-    button.addEventListener("click", function() {
-        this.classList.toggle("accordion-active");
-        let panel = this.nextElementSibling;
-
+        let panel = button.nextElementSibling;
+        
         // set panel transition here so that it animates every time except for initially expanded nodes on page load
         panel.style.transition = "max-height 0.3s ease-out";
 
-        if (panel.style.maxHeight) {
-          panel.style.maxHeight = null;
-        } else {
-          panel.style.maxHeight = panel.scrollHeight + panel.offsetHeight + "px";
-        } 
+        button.addEventListener("click", function() {
+            this.classList.toggle("accordion-active");
+
+            if (panel.style.maxHeight) {
+                panel.style.maxHeight = null;
+            } else {
+                panel.style.maxHeight = panel.scrollHeight + panel.offsetHeight + "px";
+            } 
+        });
     });
-});
+    
+    update_accordion_heights();
+}
 
 
 // update all accordion heights 
 function update_accordion_heights() {
-
+    
     Array.from(document.getElementsByClassName("accordion-button")).forEach(function (button) {
         
         let panel = button.nextElementSibling;
-
+        
         // set the max height of the panel
         if (button.classList.contains("accordion-active")) {
             panel.style.maxHeight = panel.scrollHeight + "px";
@@ -126,8 +129,24 @@ function update_accordion_heights() {
 }
 
 
+// set up the graph gen config forms
+function setup_graph_gen_form() {
+    
+    // create congestion multi thumb slider
+    create_congestion_slider();
+
+    // show any necessary values on the config form
+    update_graph_gen_form_display();
+    
+    // detect when changes are made to the config form
+    document.getElementById("config-form-container").addEventListener("input", function (e) {
+        update_graph_gen_form_display();
+    });
+}
+
+
 // update config form visuals based on the input values
-function update_config_form_display() {
+function update_graph_gen_form_display() {
 
     let config_form = document.getElementById("config-form-container");
     let range_inputs = config_form.querySelectorAll("input[type=range]");
@@ -169,7 +188,7 @@ function update_config_form_display() {
 
 
 // attempt to submit the configuration form
-function submit_config_form() {
+function submit_graph_gen_form() {
 
     // get the input elements
     let num_buildings_input = document.getElementById("num-buildings-input");
@@ -629,8 +648,8 @@ function handle_zooming_toggle_button() {
 
 
 // toggles building editor auto open variable
-function handle_editor_auto_open_button() {
-    auto_open_building_editor = !auto_open_building_editor;
+function handle_auto_open_button() {
+    auto_open_sections_enabled = !auto_open_sections_enabled;
 }
 
 
@@ -740,5 +759,25 @@ function update_path_stats_tables() {
     }
     
     // update the accordion heights if some rows disabled or not
+    update_accordion_heights();
+}
+
+
+/* ---------------------------------- misc ---------------------------------- */
+
+
+// open or close a given accordion section
+function set_accordion_opened(accordion_button_id, is_open) {
+    let accordion_button = document.getElementById(accordion_button_id);
+
+    if (is_open) {
+        accordion_button.classList.add("accordion-active");
+    } else {
+        accordion_button.classList.remove("accordion-active");
+    }
+
+    let panel = accordion_button.nextElementSibling;
+    console.log("transition:", panel.style.transition);
+
     update_accordion_heights();
 }

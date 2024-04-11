@@ -104,7 +104,7 @@
         </div>
 
         <div class="options-category-container">
-          <button type="button" onclick="submit_config_form()">Submit</button>
+          <button type="button" onclick="submit_graph_gen_form()">Submit</button>
         </div>
       </div>
       </div>
@@ -231,6 +231,7 @@
             <button type="button" onclick="handle_congestion_colors_button()">Toggle Congestion Colors</button>
             <button type="button" onclick="handle_cell_highlights_visible_button()">Toggle Selection Highlight</button>
             <button type="button" onclick="handle_path_endpoint_visibility_button()">Toggle Path Endpoints</button>
+            <button type="button" onclick="handle_auto_open_button()">Toggle Auto Open Sections</button>
           </div>
         </div>     
       </div>   
@@ -257,9 +258,6 @@
           </div>
           <div class="options-category-container">
             <button type="button" onclick="handle_zooming_toggle_button()">Toggle Zooming</button>
-          </div>
-          <div class="options-category-container">
-            <button type="button" onclick="handle_editor_auto_open_button()">Toggle Building Editor Auto Open</button>
           </div>
         </div>
       </div>
@@ -293,7 +291,7 @@
       </div>
     </div>
 
-    <button class="accordion-button title accordion-active">Path Legend</button>
+    <button class="accordion-button title" id="path-legend-accordion-button">Path Legend</button>
     <div class="options-section">
       <div class="options-section-inner-container">
         <div id="graph-legend">
@@ -339,7 +337,7 @@
       </div>
     </div>
 
-    <button class="accordion-button title">Path Statistics</button>
+    <button class="accordion-button title" id="path-stats-accordion-button">Path Statistics</button>
     <div class="options-section">
       <div class="options-section-inner-container">
         <div class="options-category-container stats-table-container" id="stats-table-time-container"> 

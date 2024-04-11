@@ -56,9 +56,8 @@ function select_building_to_edit(building_grid_coords, can_unselect) {
     }
 
     // automatically open the building editor if enabled
-    if (auto_open_building_editor) {
-        let accordion_button = document.getElementById("building-editor-accordion-button");
-        accordion_button.classList.add("accordion-active");
+    if (auto_open_sections_enabled) {
+        set_accordion_opened("building-editor-accordion-button", true);
     }
 
     // set the currently selected editor selected grid cell
