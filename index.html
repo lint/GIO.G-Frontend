@@ -121,14 +121,14 @@
               <input type="checkbox" id="path-gen-astro-cb" value="astro" checked>
               <label for="path-gen-astro-cb">Astro</label>
               <br>
+              <input type="checkbox" id="path-gen-dijkstra-con-cb" value="dijkstraC">
+              <label for="path-gen-dijkstra-con-cb">Astro-C</label>
+              <br>
               <input type="checkbox" id="path-gen-astrog-cb" value="astroG">
               <label for="path-gen-astrog-cb">Astro-G</label>
               <br>
               <input type="checkbox" id="path-gen-dijkstra-cb" value="dijkstra">
               <label for="path-gen-dijkstra-cb">Dijkstra</label>
-              <br>
-              <input type="checkbox" id="path-gen-dijkstra-con-cb" value="dijkstraC">
-              <label for="path-gen-dijkstra-con-cb">Dijkstra-C</label>
               <br>
               <input type="checkbox" id="path-gen-greedy-cb" value="greedy">
               <label for="path-gen-greedy-cb">Greedy</label>
@@ -304,6 +304,13 @@
                 <input type="checkbox" id="legend-display-astro-cb" onChange="path_display_checkbox_changed(this.value, this.checked)" value="astro" checked>
               </span>
             </div>
+            <div class="graph-legend-item" id="graph-legend-item-dijkstraC">
+              <span class="graph-legend-item-name col-1">Astro-C</span>
+              <span id="dotdashed-line" class="graph-legend-line col-2"></span>
+              <span class="options-short-group graph-legend-item-cb-container col-3">
+                <input type="checkbox" id="legend-display-dijkstra-con-cb" onChange="path_display_checkbox_changed(this.value, this.checked)" value="dijkstraC" checked>
+              </span>
+            </div>
             <div class="graph-legend-item" id="graph-legend-item-astroG">
               <span class="graph-legend-item-name col-1">Astro-G</span>
               <span id="dashed-line" class="graph-legend-line col-2"></span>
@@ -316,13 +323,6 @@
               <span id="dotted-line" class="graph-legend-line col-2"></span>
               <span class="options-short-group graph-legend-item-cb-container col-3">
                 <input type="checkbox" id="legend-display-dijkstra-cb" onChange="path_display_checkbox_changed(this.value, this.checked)" value="dijkstra" checked>
-              </span>
-            </div>
-            <div class="graph-legend-item" id="graph-legend-item-dijkstraC">
-              <span class="graph-legend-item-name col-1">Dijkstra-C</span>
-              <span id="dotdashed-line" class="graph-legend-line col-2"></span>
-              <span class="options-short-group graph-legend-item-cb-container col-3">
-                <input type="checkbox" id="legend-display-dijkstra-con-cb" onChange="path_display_checkbox_changed(this.value, this.checked)" value="dijkstraC" checked>
               </span>
             </div>
             <div class="graph-legend-item" id="graph-legend-item-greedy">
@@ -341,7 +341,7 @@
     <div class="options-section">
       <div class="options-section-inner-container">
         <div class="options-category-container stats-table-container" id="stats-table-time-container"> 
-          <div class="subtitle">Travel Time (seconds):</div>
+          <div class="subtitle">Travel Time (minutes):</div>
           <div class="stats-table" id="stats-table-time">
             <div class="stats-table-header-row">
               <div class="stats-table-header col-1">Algorithm</div>
@@ -355,6 +355,12 @@
               <div class="stats-table-cell col-3">0.00</div>
               <div class="stats-table-cell col-4">0.00</div>
             </div>
+            <div class="stats-table-row" id="stats-table-row-time-dijkstraC">
+              <div class="stats-table-cell stats-table-left-col col-1">Astro-C</div>
+              <div class="stats-table-cell col-2">0.00</div>
+              <div class="stats-table-cell col-3">0.00</div>
+              <div class="stats-table-cell col-4">0.00</div>
+            </div>
             <div class="stats-table-row" id="stats-table-row-time-astroG">
               <div class="stats-table-cell stats-table-left-col col-1">Astro-G</div>
               <div class="stats-table-cell col-2">0.00</div>
@@ -363,12 +369,6 @@
             </div>
             <div class="stats-table-row" id="stats-table-row-time-dijkstra">
               <div class="stats-table-cell stats-table-left-col col-1">Dijkstra</div>
-              <div class="stats-table-cell col-2">0.00</div>
-              <div class="stats-table-cell col-3">0.00</div>
-              <div class="stats-table-cell col-4">0.00</div>
-            </div>
-            <div class="stats-table-row" id="stats-table-row-time-dijkstraC">
-              <div class="stats-table-cell stats-table-left-col col-1">Dijkstra-C</div>
               <div class="stats-table-cell col-2">0.00</div>
               <div class="stats-table-cell col-3">0.00</div>
               <div class="stats-table-cell col-4">0.00</div>
@@ -396,6 +396,12 @@
               <div class="stats-table-cell">0.00</div>
               <div class="stats-table-cell">0.00</div>
             </div>
+            <div class="stats-table-row" id="stats-table-row-con-dijkstraC">
+              <div class="stats-table-cell stats-table-left-col">Astro-C</div>
+              <div class="stats-table-cell">0.00</div>
+              <div class="stats-table-cell">0.00</div>
+              <div class="stats-table-cell">0.00</div>
+            </div>
             <div class="stats-table-row" id="stats-table-row-con-astroG">
               <div class="stats-table-cell stats-table-left-col">Astro-G</div>
               <div class="stats-table-cell">0.00</div>
@@ -404,12 +410,6 @@
             </div>
             <div class="stats-table-row" id="stats-table-row-con-dijkstra">
               <div class="stats-table-cell stats-table-left-col">Dijkstra</div>
-              <div class="stats-table-cell">0.00</div>
-              <div class="stats-table-cell">0.00</div>
-              <div class="stats-table-cell">0.00</div>
-            </div>
-            <div class="stats-table-row" id="stats-table-row-con-dijkstraC">
-              <div class="stats-table-cell stats-table-left-col">Dijkstra-C</div>
               <div class="stats-table-cell">0.00</div>
               <div class="stats-table-cell">0.00</div>
               <div class="stats-table-cell">0.00</div>

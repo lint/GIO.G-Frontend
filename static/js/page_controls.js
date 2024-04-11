@@ -750,9 +750,9 @@ function update_path_stats_tables() {
 
         // update the values
         let stats = path_mod.data_ref.stats;
-        time_cells[1].innerHTML = stats.time_total.toFixed(1);
-        time_cells[2].innerHTML = stats.time_indoor.toFixed(1);
-        time_cells[3].innerHTML = stats.time_outdoor.toFixed(1);
+        time_cells[1].innerHTML = (stats.time_total / 60).toFixed(2);
+        time_cells[2].innerHTML = (stats.time_indoor / 60).toFixed(2);
+        time_cells[3].innerHTML = (stats.time_outdoor / 60).toFixed(2);
         con_cells[1].innerHTML  = stats.congestion_average.toFixed(2);
         con_cells[2].innerHTML  = stats.congestion_min.toFixed(2);
         con_cells[3].innerHTML  = stats.congestion_max.toFixed(2);
