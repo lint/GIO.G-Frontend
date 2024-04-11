@@ -333,7 +333,8 @@ function process_paths(paths) {
         let path_mod = {
             display_active: true,
             has_data: alg in paths,
-            data_ref: alg in paths ? paths[alg] : null
+            data_ref: alg in paths ? paths[alg] : null,
+            shape: null
         };
         path_mods[alg] = path_mod
     });
@@ -383,7 +384,8 @@ function init_path_mods() {
         let path_mod = {
             display_active: true,
             has_data: false,
-            data_ref: null
+            data_ref: null,
+            shape: null
         };
         path_mods[alg] = path_mod
     });

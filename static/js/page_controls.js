@@ -763,6 +763,25 @@ function update_path_stats_tables() {
 }
 
 
+// detect path display checkbox changed
+function path_display_checkbox_changed(alg, is_checked) {
+    console.log("checked display path: ", alg, is_checked)
+
+    let path_mod = path_mods[alg];
+    let path_shape = path_mod.shape;
+
+    if (path_shape === null) {
+        return;
+    }
+
+    if (is_checked) {
+        path_shape.show();
+    } else {
+        path_shape.hide();
+    }
+}
+
+
 /* ---------------------------------- misc ---------------------------------- */
 
 

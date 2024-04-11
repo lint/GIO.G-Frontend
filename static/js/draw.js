@@ -991,6 +991,11 @@ function draw_paths() {
 
         let path_type = Object.keys(path_type_options)[a]; // TODO: change how algorithm path types are selected?
 
+        // create a group for each path
+        let path_group = new Konva.Group();
+        path_layer.add(path_group);
+        path_mod.shape = path_group;
+
         // iterate over every building in the path
         for (let i = 0; i < path_obj.path.length - 1; i++) {
 
@@ -1009,7 +1014,7 @@ function draw_paths() {
                     y: start_door.y
                 };
 
-                draw_endpoint_path_part(end_point_grid_coords, cell_info2, building2.entrances[0].id, path_layer, path_type);
+                draw_endpoint_path_part(end_point_grid_coords, cell_info2, building2.entrances[0].id, path_group, path_type);
 
             // check for drawing end path
             } else if (i + 1 === path_obj.path.length - 1) {
@@ -1020,7 +1025,7 @@ function draw_paths() {
                     y: end_door.y
                 };
 
-                draw_endpoint_path_part(end_point_grid_coords, cell_info1, building1.entrances[0].id, path_layer, path_type);
+                draw_endpoint_path_part(end_point_grid_coords, cell_info1, building1.entrances[0].id, path_group, path_type);
 
             // drawing path between or inside buildings
             } else {
@@ -1032,9 +1037,9 @@ function draw_paths() {
                 
                 // draw internal path if buildings have the same id
                 if (building1.id === building2.id) {
-                    draw_internal_path_part(cell_info1, building1.entrances[0].id, building2.entrances[0].id, path_layer, path_type);
+                    draw_internal_path_part(cell_info1, building1.entrances[0].id, building2.entrances[0].id, path_group, path_type);
                 } else {
-                    draw_external_path_part(cell_info1, null, building1.entrances[0].id, cell_info2, null, building2.entrances[0].id, path_layer, path_type);
+                    draw_external_path_part(cell_info1, null, building1.entrances[0].id, cell_info2, null, building2.entrances[0].id, path_group, path_type);
                 }
             }
         }
