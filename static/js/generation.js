@@ -143,13 +143,18 @@ function generate_building(building_grid_coords) {
 // adds a new door to the given building
 function add_new_building_door(cell_info) {
 
+    console.log("add door to building: ", cell_info);
+
     let building_grid_coords = grid_coords_for_building_or_door(cell_info.building_data);
     let building_mods = cell_info.building_mods;
     let door_id = building_mods.next_new_door_id++;
 
+    // randomly select one of the merged buildings to generate the door for
+    let possible_building_grid_coords = [building_grid_coords, ...building_mods.connected_building_coords.map(coords => grid_coords_for_building_or_door(coords))];
+    let rand_building_grid_coords = possible_building_grid_coords[Math.round(Math.random() * (possible_building_grid_coords.length - 1))];
+ 
     // generate a new door object
-    let door = generate_new_doors(building_grid_coords, 1, door_id)[0];
-
+    let door = generate_new_doors(rand_building_grid_coords, 1, door_id)[0];
     let door_grid_coords = grid_coords_for_building_or_door(door);
 
     // move the door point to the outline of the building
@@ -231,7 +236,7 @@ function delete_building(cell_info) {
     current_graph.splice(building_index, 1);
 
     // reset the building cell for any connected buildings
-    let connected_buildings = cell_info.building_data.connected_buildings;
+    let connected_buildings = cell_info.building_mods.connected_building_coords;
     if (connected_buildings != null) {
         for (let i = 0; i < connected_buildings.length; i++) {
             let connected_coords = grid_coords_for_building_or_door(connected_buildings[i]);

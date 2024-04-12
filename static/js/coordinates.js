@@ -266,12 +266,12 @@ function building_or_door_coords_for_grid_coords(grid_coords) {
 // a "deep" door is one where it's x or y coordinate is lower than both adjacent doors' x or y coordinates respectively
 function update_deep_doors(building) {
 
+    // let building = cell_info.building_data;
     let doors = building.entrances;
-    let found_deep_door = false;
 
     // does not apply to buildings with three or less doors
     if (doors.length <= 3) {
-        return found_deep_door;
+        return
     }
 
     // iterate over every door
@@ -337,7 +337,13 @@ function check_deep_door(neighbor1, target, neighbor2, reference) {
 // creates the building outline grid path for the building at the given coordinates
 function create_building_outline_path(cell_info) {
 
-    let doors = cell_info.building_data.entrances;
+    // get list of doors based on door mods (in case of closed doors being removed from main list)
+    let doors = [];
+    for (let door_id in cell_info.building_mods.entrance_mods) {
+        doors.push(cell_info.building_mods.entrance_mods[door_id].data_ref);
+    }
+    doors.sort((a, b) => a.id - b.id);
+    // doors = sort_points_for_polygon(doors).reverse();
 
     // store coordinates to draw building shape
     let grid_shape_path = [];
@@ -358,20 +364,20 @@ function create_building_outline_path(cell_info) {
         let door2_grid_coords = grid_coords_for_building_or_door(door2);
 
         // find the corner or corner cutout for the next door
-        if (door2_deep_status !== null || updating_2nd_deep_half) {
-            let corner_path = calc_cutout_corner_between_points(door1_grid_coords, door2_grid_coords, true, 0.5);
-            grid_shape_path.push(door1_grid_coords, ...corner_path);
+        // if (door2_deep_status !== null || updating_2nd_deep_half) {
+        //     let corner_path = calc_cutout_corner_between_points(door1_grid_coords, door2_grid_coords, true, 0.5);
+        //     grid_shape_path.push(door1_grid_coords, ...corner_path);
 
-            if (door2_deep_status !== null) {
-                updating_2nd_deep_half = true;
-            } else if (updating_2nd_deep_half) {
-                updating_2nd_deep_half = false;
-            }
+        //     if (door2_deep_status !== null) {
+        //         updating_2nd_deep_half = true;
+        //     } else if (updating_2nd_deep_half) {
+        //         updating_2nd_deep_half = false;
+        //     }
 
-        } else {
+        // } else {
             let corner = calc_corner_between_points(door1_grid_coords, door2_grid_coords, true, false);
             grid_shape_path.push(door1_grid_coords, corner);
-        }
+        // }
     }
 
     // simplify the grid path by removing duplicate points and points on the same line

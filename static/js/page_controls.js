@@ -430,15 +430,15 @@ function update_path_select_buttons_active() {
     let end_button = document.getElementById("select-path-end-button");
 
     if (is_selecting_path_start) {
-        start_button.classList.add("path-endpoints-button-active");
+        start_button.classList.add("select-button-active");
     } else {
-        start_button.classList.remove("path-endpoints-button-active");
+        start_button.classList.remove("select-button-active");
     }
 
     if (is_selecting_path_end) {
-        end_button.classList.add("path-endpoints-button-active");
+        end_button.classList.add("select-button-active");
     } else {
-        end_button.classList.remove("path-endpoints-button-active");
+        end_button.classList.remove("select-button-active");
     }
 }
 
@@ -449,8 +449,11 @@ function handle_select_start_building_button() {
     // toggle the variables for currently selecting start / end
     is_selecting_path_start = !is_selecting_path_start;
     is_selecting_path_end = false;
+    is_selecting_new_connection = false;
 
+    // update selection buttons colors
     update_path_select_buttons_active();
+    update_new_connection_button_active();
 }
 
 
@@ -460,8 +463,11 @@ function handle_select_end_building_button() {
     // toggle the variables for currently selecting start / end
     is_selecting_path_end = !is_selecting_path_end;
     is_selecting_path_start = false;
+    is_selecting_new_connection = false;
 
+    // update selection buttons colors
     update_path_select_buttons_active();
+    update_new_connection_button_active();
 }
 
 
@@ -524,7 +530,7 @@ function handle_clipping_visible_button() {
                 continue;
             }
             
-            draw_building({x:x, y:y}, building_layer, true);
+            draw_building(cell_info, building_layer, true);
         }
     }
 
@@ -794,9 +800,6 @@ function set_accordion_opened(accordion_button_id, is_open) {
     } else {
         accordion_button.classList.remove("accordion-active");
     }
-
-    let panel = accordion_button.nextElementSibling;
-    console.log("transition:", panel.style.transition);
 
     update_accordion_heights();
 }

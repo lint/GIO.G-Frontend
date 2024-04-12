@@ -126,28 +126,25 @@ function filter_current_graph(include_closed_doors_and_buildings, include_few_do
 
 
 // process a given building a set its grid information
-function process_building(building) {
-
-    // get building x and y coordinates (convert 1-indexed to 0-indexed)
-    let building_grid_coords = grid_coords_for_building_or_door(building);
-
-    // TODO: improve ordering and organizing of these functions calls?
-
-    // update any coordinates of deep doors in the building
-    // update_deep_doors(building);
+function process_building(building, cell_info_override=null) {
 
     // initialize the info object for the given building
-    let cell_info = init_grid_cell_info(building);
+    let cell_info = cell_info_override !== null ? cell_info_override : init_grid_cell_info(building);
+    
+    // update any coordinates of deep doors in the building
+    update_deep_doors(building || cell_info.building_data);
 
-    // create the building outline path and effective walls
+    // create the building outline path 
     create_building_outline_path(cell_info);
-    find_building_effective_walls(cell_info);
 
-    // find the bounding rectangle around the building outline shape
-    find_building_bounding_rectangle(cell_info);
+    // calculate effective walls to prevent doors in corners
+    find_building_effective_walls(cell_info);
 
     // update door positions to respect effective walls
     update_doors_to_effective_walls(cell_info);
+
+    // find the bounding rectangle around the building outline shape
+    find_building_bounding_rectangle(cell_info);
 
     // find building center point
     find_building_center(cell_info);
@@ -162,8 +159,7 @@ function setup_connected_grid_cell_info(cell_info) {
 
     // TODO: this probably has further implications for other parts of the code
 
-    let connected_buildings = cell_info.building_data.connected_buildings;
-
+    let connected_buildings = cell_info.building_mods.connected_building_coords;
     if (connected_buildings == null) {
         return;
     }
@@ -248,7 +244,8 @@ function new_empty_grid_cell() {
             effective_grid_walls: [],
             normalized_grid_outline: [],
             normalized_bounding_rect: [],
-            normal_offset: null
+            normal_offset: null,
+            connected_building_coords: []
         }
     };
 
@@ -314,7 +311,94 @@ function init_grid_cell_info(building) {
         };
     }
 
+    // get coordinates for every merged building
+    let connected_building_coords = [];
+
+    if (cell_info.building_data.merged_x != null) {
+        for (let i = 0; i < cell_info.building_data.merged_x.length; i++) {
+            let coords = {
+                x: cell_info.building_data.merged_x[i],
+                y: cell_info.building_data.merged_y[i]
+            };
+            connected_building_coords.push(coords);
+        }
+    }
+
+    cell_info.building_mods.connected_building_coords = connected_building_coords;
+
     return cell_info;
+}
+
+
+// merge two buildings together into one
+function merge_buildings(cell_info1, cell_info2) {
+
+    if (cell_info1 === cell_info2 || cell_info1 === null || cell_info2 === null) {
+        return;
+    }
+
+    let building1 = cell_info1.building_data;
+    let building2 = cell_info2.building_data;
+
+    let building_mods1 = cell_info1.building_mods;
+    let building_mods2 = cell_info2.building_mods;
+
+    // remove new connection from graph list
+    let connection_graph_index = current_graph.indexOf(building2);
+    if (connection_graph_index > -1) {
+        current_graph.splice(connection_graph_index, 1); 
+    }
+
+    if (building1.merged_x == null) {
+        building1.merged_x = [];
+        building1.merged_y = [];
+    }
+    
+    // add new connection to original building's merged coordinate list
+    building1.merged_x.push(building2.x);
+    building1.merged_y.push(building2.y);
+    building_mods1.connected_building_coords.push({x: building2.x, y: building2.y});
+    building_mods1.connected_building_coords = building_mods1.connected_building_coords.concat(building_mods2.connected_building_coords);
+    for (let i = 0; i < building_mods2.connected_building_coords.length; i++) {
+        let connected_connected_building_coords = building_mods2.connected_building_coords[i];
+        building1.merged_x.push(connected_connected_building_coords.x);
+        building1.merged_y.push(connected_connected_building_coords.y);
+    }
+
+    console.log(cell_info1);
+    console.log(cell_info2);
+
+    // combine doors from both buildings
+    let door_counter = 0;
+    let new_doors = [];
+    let new_door_mods = {};
+
+    for (let orig_door_id in building_mods1.entrance_mods) {
+
+        let door = building_mods1.entrance_mods[orig_door_id].data_ref;
+        let new_door_id = ++door_counter
+        
+        door.id = new_door_id;
+        new_doors.push(door);
+        new_door_mods[new_door_id] = building_mods1.entrance_mods[orig_door_id];
+    }
+
+    for (let orig_door_id in building_mods2.entrance_mods) {
+
+        let door = building_mods2.entrance_mods[orig_door_id].data_ref;
+        let new_door_id = ++door_counter
+        
+        door.id = new_door_id;
+        new_doors.push(door);
+        new_door_mods[new_door_id] = building_mods2.entrance_mods[orig_door_id];
+    }
+
+    building1.entrances = new_doors;
+    building_mods1.entrance_mods = new_door_mods;
+    building_mods1.next_new_door_id = ++door_counter;
+
+    // reprocess the merged building for additional calculations
+    process_building(null, cell_info1);
 }
 
 
@@ -415,29 +499,12 @@ function select_point() {
         select_path_endpoint(grid_coords.door, grid_coords.building, true);
     } else if (is_selecting_path_end) {
         select_path_endpoint(grid_coords.door, grid_coords.building, false);
+    } else if (is_selecting_new_connection) {
+        select_new_building_connection(grid_coords.building);
     } else {
         select_building_to_edit(grid_coords.building, true);
     }
 }
-
-
-// handler for when a given grid cell has been clicked
-// function select_grid_cell(grid_coords, can_unselect) {
-
-//     // do not select when currently panning
-//     if (grid === null || is_panning) {
-//         return;
-//     }
-
-//     // determine the selection to make based on the current system state
-//     if (is_selecting_path_start) {
-//         select_path_endpoint(grid_coords, true);
-//     } else if (is_selecting_path_end) {
-//         select_path_endpoint(grid_coords, false);
-//     } else {
-//         select_building_to_edit(grid_coords, can_unselect);
-//     }
-// }
 
 
 // reset all selected coordinates
@@ -445,6 +512,65 @@ function reset_cell_selections() {
     path_start_selected_grid_coords = null;
     path_end_selected_grid_coords = null;
     editor_selected_cell_info = null;
+    new_connection_start_cell_info = null;
+
+    is_selecting_path_start = false;
+    is_selecting_path_end = false;
+    is_selecting_new_connection = false;
+
+    update_path_select_buttons_active();
+    update_new_connection_button_active();
+}
+
+// handle a new building being selected to connect to
+function select_new_building_connection(connection_grid_coords) {
+
+    let connection_cell_info = grid_object_at_coords(connection_grid_coords);
+    let main_building_grid_coords = grid_coords_for_building_or_door(new_connection_start_cell_info.building_data);
+    let all_main_coords = [main_building_grid_coords, ...new_connection_start_cell_info.building_mods.connected_building_coords.map(coords => grid_coords_for_building_or_door(coords))];
+
+    // check cases in which to not connect
+    if (connection_cell_info === null) {
+        console.log("selected building to connect to is outside grid bounds");
+        return;
+    } else if (connection_cell_info === new_connection_start_cell_info) {
+        console.log("selected building to connect to is the current building");
+        return;
+    } else if (!all_main_coords.some(coords => coords_are_adjacent(connection_grid_coords, coords))) {
+        console.log("can only merge with adjacent buildings");
+        return;
+    }
+
+    if (connection_cell_info.building_data === null) {
+        // TODO: create new building if connecting to empty cell?
+        return;
+    }
+
+    console.log("combining with building: ", connection_grid_coords);
+
+    // remove selected building shape from main stage
+    connection_cell_info.shapes.building_group.destroy();
+
+    // merge buildings together
+    merge_buildings(new_connection_start_cell_info, connection_cell_info);
+
+    // reset building editor
+    reset_building_editor();
+
+    // reselect building
+    select_building_to_edit(main_building_grid_coords, false);
+
+    // redraw new merged building
+    redraw_selected_building(new_connection_start_cell_info);
+
+    // reset connection button
+    is_selecting_new_connection = false;
+    new_connection_start_cell_info = null;
+    update_path_select_buttons_active();
+    update_new_connection_button_active();
+
+    // redraw roads 
+    draw_roads(road_layer);
 }
 
 

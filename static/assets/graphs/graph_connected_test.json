@@ -2,9 +2,8 @@
   "id" : 4,
   "x" : 1,
   "y" : 5,
-  "connected_buildings": [
-    {"x": 1, "y": 6}
-  ],
+  "merged_x": [1],
+  "merged_y": [6],
   "entrances" : [ {
     "id" : 1,
     "x" : 0.8756370462690755,

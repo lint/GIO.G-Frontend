@@ -8,7 +8,6 @@
 function reset_building_editor() {
 
     // get selected building elements
-    let info_container = document.getElementById("selected-cell-info-controls-container");
     let info_text_container = document.getElementById("selected-cell-info-text-container");
     let doors_list_container = document.getElementById("selected-building-doors-container");
     let building_options_container = document.getElementById("selected-building-options-container");
@@ -20,10 +19,10 @@ function reset_building_editor() {
     building_options_container.innerHTML = "";
     building_actions_container.innerHTML = "";
 
-    info_container.style.display = "none";
+    info_text_container.style.display = "none";
     doors_list_container.style.display = "none";
     building_options_container.style.display = "none";
-    // building_actions_container.style.display = "none";
+    building_actions_container.style.display = "none";
 
     // clear the editor stage
     editor_stage.destroyChildren();
@@ -64,24 +63,26 @@ function select_building_to_edit(building_grid_coords, can_unselect) {
     editor_selected_cell_info = cell_info;
 
     // get container elements to build elements into
-    let info_container = document.getElementById("selected-cell-info-controls-container");
     let info_text_container = document.getElementById("selected-cell-info-text-container");
     let doors_list_container = document.getElementById("selected-building-doors-container");
     let building_options_container = document.getElementById("selected-building-options-container");
     let building_actions_container = document.getElementById("selected-building-actions-container");
-
-    info_container.style.display = "flex";
 
     // create content for the current selected grid cell
     let cell_info_label = document.createElement("span");
     cell_info_label.classList.add("subsubtitle");
     cell_info_label.innerHTML = "Grid Cell: ";
     info_text_container.appendChild(cell_info_label);
-
+    
     let cell_info_content = document.createElement("span");
     cell_info_content.innerHTML = `(${building_grid_coords.x + 1}, ${building_grid_coords.y + 1})  `;
     info_text_container.appendChild(cell_info_content);
+
+    // set display styles for elements that appear for empty or non-empty cells
+    info_text_container.style.display = "";
+    building_actions_container.style.display = "";
     
+    // check if a building is present in the grid cell
     if (cell_info.building_data !== null) {
 
         doors_list_container.style.display = "block";
@@ -187,10 +188,17 @@ function select_building_to_edit(building_grid_coords, can_unselect) {
         delete_building_button.addEventListener("click", function (e) {
             handle_delete_building_button(cell_info);
         });
-
         building_actions_container.appendChild(delete_building_button);
-        
 
+        // create a button to connect with another building
+        let connect_building_button = document.createElement("button");
+        connect_building_button.id = "select-building-connection-button";
+        connect_building_button.innerHTML = "Select New Connection";
+        connect_building_button.addEventListener("click", function (e) {
+            handle_select_connect_building_button(cell_info);
+        });
+        building_actions_container.appendChild(connect_building_button);
+        
     } else {
 
         // create a button to create a new
@@ -399,6 +407,9 @@ function handle_delete_building_button(cell_info) {
 
     // reselect the empty cell
     select_building_to_edit(building_grid_coords, false);
+
+    // redraw roads considering new building
+    draw_roads(road_layer);
 }
 
 // handle the selected empty grid cell add button click
@@ -417,6 +428,9 @@ function handle_add_building_button(building_grid_coords) {
 
     // reselect the filled cell
     select_building_to_edit(building_grid_coords, false);
+    
+    // redraw roads considering new building
+    draw_roads(road_layer);
 }
 
 
@@ -452,6 +466,36 @@ function building_con_radio_checked(cell_info, con_level) {
 
     // redraw the building to reflect the changes in congestion
     redraw_selected_building(cell_info);
+}
+
+
+// handle the selected building being chosen for another building to connect to button
+function handle_select_connect_building_button(cell_info) {
+
+    // toggle the variables for currently selecting
+    is_selecting_new_connection = !is_selecting_new_connection;
+    is_selecting_path_end = false;
+    is_selecting_path_start = false;
+
+    // update button selection classes
+    update_path_select_buttons_active();
+    update_new_connection_button_active();
+
+    // set the start building
+    new_connection_start_cell_info = cell_info;
+}
+
+
+// update the connect new building button selection status
+function update_new_connection_button_active() {
+    let connection_button = document.getElementById("select-building-connection-button");
+    if (connection_button !== null) {
+        if (is_selecting_new_connection) {
+            connection_button.classList.add("select-button-active");
+        } else {
+            connection_button.classList.remove("select-button-active");
+        }
+    }
 }
 
 

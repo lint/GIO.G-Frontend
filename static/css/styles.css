@@ -164,7 +164,7 @@ html, body {
     padding-left: 5px;
 }
 
-.path-endpoints-button-active {
+.select-button-active {
     color: blue;
 }
 
@@ -407,15 +407,11 @@ html, body {
     padding-left: 10px;
 }
 
-#selected-cell-info-controls-container {
+#selected-building-actions-container {
     display: flex;
     flex-direction: row;
     flex-wrap: wrap;
-    gap: 10px;
-    /* text-align: center; */
-}
-
-#selected-cell-info-text-container {
+    gap: 5px;
 }
 
 #selected-cell-info-text-container span {

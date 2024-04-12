@@ -40,6 +40,8 @@ let path_start_selection_shape = null;
 let path_end_selection_shape = null;
 let is_selecting_path_start = false;
 let is_selecting_path_end = false;
+let is_selecting_new_connection = false;
+let new_connection_start_cell_info = null;
 
 // stage display variables
 let main_cell_dims = null;

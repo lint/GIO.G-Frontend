@@ -490,6 +490,61 @@ function invert_rect_coords(r1, r2){
 }
 
 
+// determine if a pair of coordinates are adjacent
+function coords_are_adjacent(p1, p2) {
+
+    let p1_left = {x:p1.x-1, y:p1.y};
+    let p1_right = {x:p1.x+1, y:p1.y};
+    let p1_up = {x:p1.x, y:p1.y+1};
+    let p1_down = {x:p1.x, y:p1.y-1};
+
+    return coords_eq(p1_left, p2) || coords_eq(p1_right, p2) || coords_eq(p1_up, p2) || coords_eq(p1_down, p2);
+}
+
+
+/* ------------------------------ point sorting ----------------------------- */
+
+
+// sort points such that they form a polygon
+function sort_points_for_convex_polygon(points) {
+    
+    points = points.splice(0);
+    
+    let p0 = {};
+    p0.y = Math.min.apply(null, points.map(p=>p.y));
+    p0.x = Math.max.apply(null, points.filter(p=>p.y == p0.y).map(p=>p.x));
+
+    points.sort((a,b) => point_angle_compare(p0, a, b));
+    return points;
+};
+
+
+// comparison function using angle between points
+function point_angle_compare(p0, a, b) {
+    let left = point_left_compare(p0, a, b);
+    
+    if (left == 0) {
+        return point_dist_compare(p0, a, b);
+    }
+
+    return left;
+}
+
+
+// comparision function using right/left location
+function point_left_compare(p0, a, b) {
+    return (a.x-p0.x) * (b.y-p0.y) - (b.x-p0.x) * (a.y-p0.y);
+}
+
+
+// comparision function using point distance
+function point_dist_compare(p0, a, b) {
+    let dist_a = (p0.x-a.x) * (p0.x-a.x) + (p0.y-a.y) * (p0.y-a.y);
+    let dist_b = (p0.x-b.x) * (p0.x-b.x) + (p0.y-b.y) * (p0.y-b.y);
+    return dist_a - dist_b;
+}
+
+
 /* ---------------------------- random functions ---------------------------- */
 
 
