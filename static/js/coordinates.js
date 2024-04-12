@@ -151,6 +151,10 @@ function door_main_stage_coords_to_grid_coords_rounding(door_stage_coords) {
         y: round_partial(door_stage_coords.y - (cell_dims.size + cell_dims.spacing/2) / 2, resolution)
     };
     let building_grid_coords = main_stage_coords_to_grid_coords(building_stage_coords);
+    building_grid_coords = {
+        x: Math.round(building_grid_coords.x),
+        y: Math.round(building_grid_coords.y)
+    };
 
     return {
         door: door_stage_coords_to_grid_coords(door_stage_coords, building_grid_coords, true),
