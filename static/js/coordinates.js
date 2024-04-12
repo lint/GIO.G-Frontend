@@ -343,7 +343,7 @@ function create_building_outline_path(cell_info) {
         doors.push(cell_info.building_mods.entrance_mods[door_id].data_ref);
     }
     doors.sort((a, b) => a.id - b.id);
-    // doors = sort_points_for_polygon(doors).reverse();
+    // doors = sort_points_for_convex_polygon(doors).reverse();
 
     // store coordinates to draw building shape
     let grid_shape_path = [];
@@ -364,20 +364,20 @@ function create_building_outline_path(cell_info) {
         let door2_grid_coords = grid_coords_for_building_or_door(door2);
 
         // find the corner or corner cutout for the next door
-        // if (door2_deep_status !== null || updating_2nd_deep_half) {
-        //     let corner_path = calc_cutout_corner_between_points(door1_grid_coords, door2_grid_coords, true, 0.5);
-        //     grid_shape_path.push(door1_grid_coords, ...corner_path);
+        if (door2_deep_status !== null || updating_2nd_deep_half) {
+            let corner_path = calc_cutout_corner_between_points(door1_grid_coords, door2_grid_coords, true, 0.5);
+            grid_shape_path.push(door1_grid_coords, ...corner_path);
 
-        //     if (door2_deep_status !== null) {
-        //         updating_2nd_deep_half = true;
-        //     } else if (updating_2nd_deep_half) {
-        //         updating_2nd_deep_half = false;
-        //     }
+            if (door2_deep_status !== null) {
+                updating_2nd_deep_half = true;
+            } else if (updating_2nd_deep_half) {
+                updating_2nd_deep_half = false;
+            }
 
-        // } else {
+        } else {
             let corner = calc_corner_between_points(door1_grid_coords, door2_grid_coords, true, false);
             grid_shape_path.push(door1_grid_coords, corner);
-        // }
+        }
     }
 
     // simplify the grid path by removing duplicate points and points on the same line

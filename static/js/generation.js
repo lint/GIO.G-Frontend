@@ -247,4 +247,11 @@ function delete_building(cell_info) {
     // reset the main building cell
     let main_building_coords = grid_coords_for_building_or_door(building);
     grid[main_building_coords.y][main_building_coords.x] = new_empty_grid_cell();
+
+    // reset connection button status
+    if (is_selecting_new_connection) {
+        is_selecting_new_connection = false;
+        new_connection_start_cell_info = null;
+        update_new_connection_button_active();
+    }
 }

@@ -363,6 +363,18 @@ function floats_eq(f1, f2, tol=0.0001) {
 }
 
 
+// helper method to determine equality of floats
+function floats_leq(f1, f2, tol=0.0001) {
+    return f1 < f2 || floats_eq(f1, f2, tol);
+}
+
+
+// helper method to determine equality of floats
+function floats_geq(f1, f2, tol=0.0001) {
+    return f1 > f2 || floats_eq(f1, f2, tol);
+}
+
+
 // helper method to determine if coordinates are equal
 function coords_eq(p1, p2, tol=0.0001) {
     return floats_eq(p1.x, p2.x, tol) && floats_eq(p1.y, p2.y, tol);
