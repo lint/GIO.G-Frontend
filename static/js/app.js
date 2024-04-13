@@ -45,10 +45,13 @@ let new_connection_start_cell_info = null;
 
 // stage display variables
 let main_cell_dims = null;
+let main_door_dims = null;
 let editor_cell_dims = null;
-let door_len_ratio = 0.1;
+let editor_door_dims = null;
+let door_len_ratio = 0.075;
 let cell_spacing_ratio = 0;
 let editor_inset_ratio = 0.05;
+let stroke_size_ratio = 0.01;
 let should_invert_door_y = false;
 let road_size_ratio = 0.1;
 let road_dashes_per_cell = 10;
@@ -221,5 +224,11 @@ window.addEventListener("resize", function(event) {
 
     // update sidebar accordion cell heights
     update_accordion_heights();
+
+    // recalculate editor drawing dimensions
+    calculate_editor_draw_dims(editor_selected_cell_info);
+
+    // redraw the building in the editor
+    redraw_selected_building(editor_selected_cell_info);
 
 }, true);

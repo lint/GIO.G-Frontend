@@ -49,7 +49,6 @@ function create_stages() {
         width: Math.floor(editor_container_width) - 1,
         height: Math.floor(editor_container_width) - 1
     });
-    orig_editor_width = Math.floor(editor_container_width) - 1;
 
     // setup callbacks for the main stage
     stage.on("mousedown.pan", panning_main_stage_mousedown);
@@ -86,17 +85,12 @@ function size_stages_to_containers() {
     main_stage_container.style.display = "";
     editor_stage_container.style.display = "";
 
-    // get the scale of the editor stage based on the container width compared with the first editor width
-    let editor_scale = editor_container_width / orig_editor_width;
-
+    
     // set the widths and heights of the stages (slightly under container size to not cause weird overflow issues)
     stage.width(Math.floor(main_container_width) - 1);
     stage.height(Math.floor(main_container_height) - 1);
     editor_stage.width(Math.floor(editor_container_width) - 1);
     editor_stage.height(Math.floor(editor_container_width) - 1);
-
-    // scale the editor stage
-    editor_stage.scale({ x: editor_scale, y: editor_scale });
 }
 
 

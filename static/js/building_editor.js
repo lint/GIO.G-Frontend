@@ -54,6 +54,9 @@ function select_building_to_edit(building_grid_coords, can_unselect) {
         return;
     }
 
+    // recalculate editor drawing dimensions
+    calculate_editor_draw_dims(cell_info);
+
     // automatically open the building editor if enabled
     if (auto_open_sections_enabled) {
         set_accordion_opened("building-editor-accordion-button", true);

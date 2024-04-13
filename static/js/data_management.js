@@ -14,7 +14,7 @@ function process_graph(buildings, grid_len) {
     grid = create_empty_grid(grid_len);
 
     // recalculate any cell dimensions
-    calculate_cell_dims(grid_len);
+    calculate_main_draw_dims(grid_len);
 
     // actually process every building
     for (let b = 0; b < buildings.length; b++) {

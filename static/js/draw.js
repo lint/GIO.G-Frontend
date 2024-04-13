@@ -9,7 +9,7 @@
 
 
 // calculate cell dimensions for the main stage and editor stage based on a given config 
-function calculate_cell_dims(grid_len) {
+function calculate_main_draw_dims(grid_len) {
 
     // get number of spaces between grid cells
     let num_spaces = grid_len - 1;
@@ -23,13 +23,47 @@ function calculate_cell_dims(grid_len) {
     main_cell_dims = {
         size: main_cell_width,
         spacing: cell_spacing,
-        stroke: 2
+        stroke: main_cell_width * stroke_size_ratio
     };
 
+    main_door_dims = {
+        size: main_cell_dims.size * door_len_ratio,
+        stroke: main_cell_dims.stroke / 2
+    };
+}
+
+
+// calculate building editor cell and door dims based on a given building
+function calculate_editor_draw_dims(cell_info) {
+    
+    if (cell_info === null || cell_info.building_data === null) {
+        return;
+    }
+
+    let building_bounding_grid_rect = cell_info.building_mods.normalized_bounding_rect;
+    
+    let bounds_width = calc_dist(building_bounding_grid_rect[0], building_bounding_grid_rect[1]);
+    let bounds_height = calc_dist(building_bounding_grid_rect[1], building_bounding_grid_rect[2]);
+
+    let editor_width = editor_stage.width();
+    
+    let editor_inset = editor_width * editor_inset_ratio;
+    let editor_inset_size = editor_width - 2 * editor_inset;
+    
+    // let bounds_scale = Math.min(editor_inset_size / bounds_width, editor_inset_size / bounds_height) / editor_stage.scaleX();
+    let bounds_scale = 1 / Math.max(bounds_width, bounds_height) * editor_inset_size;
+    let door_size = door_len_ratio * bounds_scale;
+    let stroke = stroke_size_ratio * bounds_scale;
+
     editor_cell_dims = {
-        size: editor_stage.width(),
+        size: editor_inset_size,
         spacing: 0,
-        stroke: 4
+        stroke: stroke
+    };
+
+    editor_door_dims = {
+        size: door_size,
+        stroke: stroke / 2
     };
 }
 
@@ -42,13 +76,7 @@ function get_cell_dims(for_main_stage) {
 
 // get the door dimensions object for either the main stage or the editor stage
 function get_door_dims(for_main_stage) {
-
-    // define dimensions for doors given dimensions for cell
-    let cell_dims = get_cell_dims(for_main_stage);
-    return {
-        size: cell_dims.size * door_len_ratio,
-        stroke: for_main_stage ? 1 : 2
-    };
+    return for_main_stage ? main_door_dims : editor_door_dims;
 }
 
 
@@ -222,7 +250,7 @@ function draw_buildings(parent) {
 // redraw the selected building on the main stage and the editor stage
 function redraw_selected_building(cell_info) {
 
-    if (cell_info.building_data === null) {
+    if (cell_info === null || cell_info.building_data === null) {
         return;
     }
 
@@ -280,8 +308,6 @@ function draw_building(cell_info, parent, for_main_stage) {
 
 // draw the building shape for the building at the given coordinates
 function draw_building_shape(cell_info, parent, for_main_stage) {
-
-    let cell_dims = get_cell_dims(for_main_stage);
 
     // get grid cell info associated with the building
     let building_grid_coords = grid_coords_for_building_or_door(cell_info.building_data);
@@ -392,7 +418,7 @@ function draw_building_outline(cell_info, parent, for_main_stage) {
     let building_outline = new Konva.Line({
         points: flatten_points(stage_shape_path),
         stroke: outline_color,
-        strokeWidth: get_cell_dims(for_main_stage).stroke * 2,
+        strokeWidth: get_cell_dims(for_main_stage).stroke,
         closed: true,
         listening: false, // needed for the editor layer to allow doors to be dragged
         perfectDrawEnabled: false
@@ -419,6 +445,9 @@ function draw_entrances(cell_info, parent, for_main_stage) {
     let doors = cell_info.building_data.entrances;
     let grid_shape_path = building_mods.outline_grid_path;
 
+    let effective_grid_walls = cell_info.building_mods.effective_grid_walls;
+    let effective_stage_walls = null;
+
     // create new entrances group
     let entrances_group = new Konva.Group();
     parent.add(entrances_group);
@@ -435,6 +464,21 @@ function draw_entrances(cell_info, parent, for_main_stage) {
         cell_info.shapes.entrances = {};
     } else {
         cell_info.shapes.editor_entrances = {};
+
+        // get stage coordinates dragging bounds
+        effective_stage_walls = effective_grid_walls.map(function (line) {
+    
+            let stage_coords1 = door_grid_coords_to_stage_coords(line[0], building_grid_coords, false);
+            let stage_coords2 = door_grid_coords_to_stage_coords(line[1], building_grid_coords, false);
+
+            // offset by stroke size
+            let offset = door_dims.stroke / 3; // TODO: could make perfect with / 2, but I still want door outline to be partially hidden to not create visual bugs
+
+            let offset_stage_coords1 = calc_line_extend_point(stage_coords2, stage_coords1, offset);
+            let offset_stage_coords2 = calc_line_extend_point(stage_coords1, stage_coords2, offset);
+
+            return [offset_stage_coords1, offset_stage_coords2];
+        });
     }
 
     // define an array to determine door draw order
@@ -471,7 +515,7 @@ function draw_entrances(cell_info, parent, for_main_stage) {
         let door_grid_coords = grid_coords_for_building_or_door(door);
 
         // convert grid coordinates to stage coordinates
-        let door_stage_coords = door_grid_coords_to_stage_coords(door_grid_coords, building_grid_coords, for_main_stage);;
+        let door_stage_coords = door_grid_coords_to_stage_coords(door_grid_coords, building_grid_coords, for_main_stage);
         
         let door_color = door["accessible"] == 1 ? "#005A9C" : "gray";
         let door_stroke_color = door_mod.open ? "black" : "red";
@@ -510,39 +554,6 @@ function draw_entrances(cell_info, parent, for_main_stage) {
             // make the current dragged door always appear on top of other doors on drag start
             door_shape.on("dragstart", function (e) {
                 door_shape.zIndex(door_draw_order.length - 1); 
-            });
-
-            // get the stage coordinates of the effective grid walls
-            let effective_grid_walls = cell_info.building_mods.effective_grid_walls;
-            let effective_stage_walls = effective_grid_walls.map(function (line) {
-
-                let stage_coords1 = door_grid_coords_to_stage_coords(line[0], building_grid_coords, false);
-                let stage_coords2 = door_grid_coords_to_stage_coords(line[1], building_grid_coords, false);
-
-                // let offset = (cell_dims.stroke/2) * -1; // TODO: add door_dims.stroke depending on where you want the cutoff to be
-                // offset = editor_stage.scaleX() * door_len_ratio/2;
-
-                // TODO: fix the offset so it properly modifies outline !!!!!! 
-
-                let building_bounding_grid_rect = cell_info.building_mods.normalized_bounding_rect;
-                let normal_offset = cell_info.building_mods.normal_offset;
-            
-                let bounds_width = calc_dist(building_bounding_grid_rect[0], building_bounding_grid_rect[1]);
-                let bounds_height = calc_dist(building_bounding_grid_rect[1], building_bounding_grid_rect[2]);
-
-                let editor_inset = cell_dims.size * editor_inset_ratio;
-                let editor_inset_size = cell_dims.size - 2 * editor_inset;
-            
-                let scale = Math.min(editor_inset_size / bounds_width, editor_inset_size / bounds_height) * editor_stage.scaleX();
-                
-                // TODO: this epsecially isn't right...
-                let offset = scale * door_len_ratio/6;
-
-
-                let offset_stage_coords1 = calc_line_extend_point(stage_coords2, stage_coords1, offset);
-                let offset_stage_coords2 = calc_line_extend_point(stage_coords1, stage_coords2, offset);
-
-                return [offset_stage_coords1, offset_stage_coords2];
             });
 
             // lock the door's position to the building shape
@@ -600,7 +611,6 @@ function draw_entrance_highlight(cell_info, door_id, is_highlighting) {
 function draw_corridors(cell_info, parent, for_main_stage) {
 
     let building_grid_coords = grid_coords_for_building_or_door(cell_info.building_data);
-    let cell_dims = get_cell_dims(for_main_stage);
     let door_dims = get_door_dims(for_main_stage);
     let building_mods = cell_info.building_mods;
     let door_mods = building_mods.entrance_mods;
@@ -1305,7 +1315,6 @@ function draw_external_path_part(cell1_info, door1_grid_coords, door1_id, cell2_
 function draw_internal_path_part(cell_info, door1_id, door2_id, parent, path_type) {
 
     let building_grid_coords = grid_coords_for_building_or_door(cell_info.building_data);
-    let cell_dims = get_cell_dims(true);
     let door_dims = get_door_dims(true);
 
     console.log("internal path: building1: ", building_grid_coords, "door1: ", door1_id, "door2: ", door2_id);
