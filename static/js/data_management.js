@@ -353,7 +353,7 @@ function init_grid_cell_info(building) {
 
 
 // merge two buildings together into one
-function merge_buildings(cell_info1, cell_info2) {
+function merge_buildings(cell_info1, cell_info2, orig_merge_coords, new_merge_coords) {
 
     if (cell_info1 === cell_info2 || cell_info1 === null || cell_info2 === null) {
         return;
@@ -365,8 +365,28 @@ function merge_buildings(cell_info1, cell_info2) {
     let building_mods1 = cell_info1.building_mods;
     let building_mods2 = cell_info2.building_mods;
 
+    let entrance_mods1 = building_mods1.entrance_mods;
+    let entrance_mods2 = building_mods2.entrance_mods;
+
     let connection_mods1 = building_mods1.connection_mods;
     let connection_mods2 = building_mods2.connection_mods;
+
+    console.log("checking adjacency:", orig_merge_coords, new_merge_coords);
+
+    let direction = coords_are_adjacent(orig_merge_coords, new_merge_coords);
+
+    // console.log("direction: ", direction);
+
+    // get list of entrances for both buildings
+    let building1_doors = [];
+    let building2_doors = [];
+
+    for (let door_id in entrance_mods1) {
+        building1_doors.push(entrance_mods1[door_id].data_ref);
+    }
+    for (let door_id in entrance_mods2) {
+        building2_doors.push(entrance_mods2[door_id].data_ref);
+    }
 
     // remove new connection from graph list
     let connection_graph_index = current_graph.indexOf(building2);
@@ -389,46 +409,175 @@ function merge_buildings(cell_info1, cell_info2) {
         building1.merged_x.push(connected_connected_building_coords.x);
         building1.merged_y.push(connected_connected_building_coords.y);
     }
-
-    console.log(cell_info1);
-    console.log(cell_info2);
-
-    // combine doors from both buildings
-    let door_counter = 0;
-    let new_doors = [];
-    let new_door_mods = {};
-
-    for (let orig_door_id in building_mods1.entrance_mods) {
-
-        let door = building_mods1.entrance_mods[orig_door_id].data_ref;
-        let new_door_id = ++door_counter
-        
-        door.id = new_door_id;
-        new_doors.push(door);
-        new_door_mods[new_door_id] = building_mods1.entrance_mods[orig_door_id];
-    }
-
-    for (let orig_door_id in building_mods2.entrance_mods) {
-
-        let door = building_mods2.entrance_mods[orig_door_id].data_ref;
-        let new_door_id = ++door_counter
-        
-        door.id = new_door_id;
-        new_doors.push(door);
-        new_door_mods[new_door_id] = building_mods2.entrance_mods[orig_door_id];
-    }
-
-    building1.entrances = new_doors;
-    building_mods1.entrance_mods = new_door_mods;
-    building_mods1.next_new_door_id = ++door_counter;
-
+    
     // combine connection mods for both buildings
     for (let building_id in connection_mods2) {
         connection_mods1[building_id] = connection_mods2[building_id];
     }
 
+    // thanks Connor for figuring this out :)
+
+    // find first closest entrance between the two buildings
+    let first_link_orig = -1;
+    let first_link_new = -1;
+    let best_dist = Number.MAX_SAFE_INTEGER;
+
+    for (let i = 0; i < building1_doors.length; i++) {
+        for (let j = 0; j < building2_doors.length; j++) {
+
+            let orig_door = building1_doors[i];
+            let new_door = building2_doors[j];
+            let dist = calc_dist(orig_door, new_door);
+
+            let estimated_building_grid_coords = estimate_building_grid_coords(grid_coords_for_building_or_door(orig_door));
+
+            if (!coords_are_adjacent(estimated_building_grid_coords, new_merge_coords)) {
+                continue;
+            }
+
+            if (dist < best_dist) {
+                first_link_orig = i;
+                first_link_new = j;
+                best_dist = dist;
+            }
+        }
+    }
+
+    // find second closest entrance between two buildings
+    let second_link_orig = -1;
+    let second_link_new = -1;
+    best_dist = Number.MAX_SAFE_INTEGER;
+
+    for (let i = 0; i < building1_doors.length; i++) {
+        for (let j = 0; j < building2_doors.length; j++) {
+
+            let orig_door = building1_doors[i];
+            let new_door = building2_doors[j];
+            let dist = calc_dist(orig_door, new_door);
+
+            let estimated_building_grid_coords = estimate_building_grid_coords(grid_coords_for_building_or_door(orig_door));
+
+            if (!coords_are_adjacent(estimated_building_grid_coords, new_merge_coords) || i == first_link_orig || j == second_link_orig) {
+                continue;
+            }
+
+            if (dist < best_dist) {
+                second_link_orig = i;
+                second_link_new = j;
+                best_dist = dist;
+            }
+        }
+    }
+
+    // if necessary, switch links to ensure links don't cross over each other
+    if (direction === "up" || direction === "down") {
+        if (building1_doors[first_link_orig].x > building1_doors[second_link_orig].x && building2_doors[first_link_new].x < building2_doors[second_link_new].x) {
+            let temp = first_link_orig;
+            first_link_orig = second_link_orig;
+            second_link_orig = temp;
+        }
+    } else if (direction === "left" || direction === "right") {
+        if (building1_doors[first_link_orig].y > building1_doors[second_link_orig].y && building2_doors[first_link_new].y < building2_doors[second_link_new].y) {
+            let temp = first_link_orig;
+            first_link_orig = second_link_orig;
+            second_link_orig = temp;
+        }
+    }
+
+    let zip_results = null;
+
+    console.log("first entrances: ", building1_doors);
+    console.log(first_link_orig, second_link_orig);
+    console.log("second entrnaces: ", building2_doors);
+    console.log(first_link_new, second_link_new);
+
+
+    // actually merge the entrances
+    if (direction === "up") {
+        if (building1_doors[first_link_orig].x > building1_doors[second_link_orig].x) {
+            zip_results = zip_entrances(building1_doors, building2_doors, entrance_mods1, entrance_mods2, first_link_orig, second_link_orig, first_link_new);
+        } else {
+            zip_results = zip_entrances(building1_doors, building2_doors, entrance_mods1, entrance_mods2, second_link_orig, first_link_orig, second_link_new);
+        }
+    } else if (direction === "down") {
+        if (building2_doors[first_link_new].x > building2_doors[second_link_new].x) {
+            zip_results = zip_entrances(building2_doors, building1_doors, entrance_mods2, entrance_mods1, first_link_new, second_link_new, first_link_orig);
+        } else {
+            zip_results = zip_entrances(building2_doors, building1_doors, entrance_mods2, entrance_mods1, second_link_new, first_link_new, second_link_orig);
+        }
+    } else if (direction === "left") {
+        if (building1_doors[first_link_orig].y > building1_doors[second_link_orig].y) {
+            zip_results = zip_entrances(building1_doors, building2_doors, entrance_mods1, entrance_mods2, first_link_orig, second_link_orig, first_link_new);
+        } else {
+            zip_results = zip_entrances(building1_doors, building2_doors, entrance_mods1, entrance_mods2, second_link_orig, first_link_orig, second_link_new);
+        }
+    } else if (direction === "right") {
+        if (building2_doors[first_link_new].y > building2_doors[second_link_new].y) {
+            zip_results = zip_entrances(building2_doors, building1_doors, entrance_mods2, entrance_mods1, first_link_new, second_link_new, first_link_orig);
+        } else {
+            zip_results = zip_entrances(building2_doors, building1_doors, entrance_mods2, entrance_mods1, second_link_new, first_link_new, second_link_orig);
+        }
+    } else {
+        console.log("here????");
+    }
+
+    let merged_entrances = zip_results[0];
+    let merged_entrance_mods_list = zip_results[1];
+    let merged_entrance_mods = {};
+    
+    // reset door ids
+    for (let i = 0; i < merged_entrances.length; i++) {
+        let new_id = i+1;
+
+        merged_entrances[i].id = new_id;
+        merged_entrance_mods[new_id] = merged_entrance_mods_list[i];
+    }
+
+    console.log(merged_entrances, merged_entrance_mods_list);
+    console.log(merged_entrance_mods);
+    
+    merged_entrances = merged_entrances.filter((door) => merged_entrance_mods[door.id].open);
+    
+    building1.entrances = merged_entrances;
+    building_mods1.entrance_mods = merged_entrance_mods;
+
+
     // reprocess the merged building for additional calculations
     process_building(null, cell_info1);
+}
+
+
+function zip_entrances(first_entrances, second_entrances, first_entrance_mods, second_entrance_mods, first_link1, first_link2, second_link1) {
+    let merged_entrances = [];
+    let merged_entrance_mods_list = [];
+
+    console.log("first entrances: ", first_entrances);
+    console.log(first_link1, first_link2);
+    console.log("second entrnaces: ", second_entrances);
+    console.log(second_link1);
+
+    merged_entrances.push(first_entrances[first_link1]);
+    merged_entrances.push(second_entrances[second_link1]);
+    merged_entrance_mods_list.push(first_entrance_mods[first_entrances[first_link1].id]);
+    merged_entrance_mods_list.push(second_entrance_mods[second_entrances[second_link1].id]);
+
+    let cur = (second_link1 + 1) % second_entrances.length;
+    while (cur != second_link1) {
+        let door = second_entrances[cur];
+        merged_entrances.push(door);
+        merged_entrance_mods_list.push(second_entrance_mods[door.id]);
+        cur = (cur + 1) % second_entrances.length;
+    }
+
+    cur = (first_link2 + 1) % first_entrances.length;
+    while (cur != first_link1) {
+        let door = first_entrances[cur];
+        merged_entrances.push(door);
+        merged_entrance_mods_list.push(first_entrance_mods[door.id]);
+        cur = (cur + 1) % first_entrances.length;
+    }
+
+    return [merged_entrances, merged_entrance_mods_list];
 }
 
 
@@ -558,6 +707,15 @@ function select_new_building_connection(connection_grid_coords) {
     let connection_cell_info = grid_object_at_coords(connection_grid_coords);
     let main_building_grid_coords = grid_coords_for_building_or_door(new_connection_start_cell_info.building_data);
     let all_main_coords = [main_building_grid_coords, ...new_connection_start_cell_info.building_mods.connected_building_coords.map(coords => grid_coords_for_building_or_door(coords))];
+    let orig_merge_coords = null;
+
+    for (let i = 0; i < all_main_coords.length; i++) {
+        let coords = all_main_coords[i];
+        if (coords_are_adjacent(connection_grid_coords, coords)) {
+            orig_merge_coords = coords;
+        }
+    }
+
 
     // check cases in which to not connect
     if (connection_cell_info === null) {
@@ -566,7 +724,7 @@ function select_new_building_connection(connection_grid_coords) {
     } else if (connection_cell_info === new_connection_start_cell_info) {
         console.log("selected building to connect to is the current building");
         return;
-    } else if (!all_main_coords.some(coords => coords_are_adjacent(connection_grid_coords, coords))) {
+    } else if (orig_merge_coords === null) {
         console.log("can only merge with adjacent buildings");
         return;
     }
@@ -582,7 +740,7 @@ function select_new_building_connection(connection_grid_coords) {
     connection_cell_info.shapes.building_group.destroy();
 
     // merge buildings together
-    merge_buildings(new_connection_start_cell_info, connection_cell_info);
+    merge_buildings(new_connection_start_cell_info, connection_cell_info, orig_merge_coords, connection_grid_coords);
 
     // reset building editor
     reset_building_editor();

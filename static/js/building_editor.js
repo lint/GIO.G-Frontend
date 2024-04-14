@@ -64,6 +64,7 @@ function select_building_to_edit(building_grid_coords, can_unselect) {
 
     // set the currently selected editor selected grid cell
     editor_selected_cell_info = cell_info;
+    editor_selected_grid_coords = building_grid_coords;
 
     // get container elements to build elements into
     let info_text_container = document.getElementById("selected-cell-info-text-container");
