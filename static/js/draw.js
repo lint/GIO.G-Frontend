@@ -614,9 +614,10 @@ function draw_corridors(cell_info, parent, for_main_stage) {
     let door_dims = get_door_dims(for_main_stage);
     let building_mods = cell_info.building_mods;
     let door_mods = building_mods.entrance_mods;
+    let connection_mods = building_mods.connection_mods;
 
     let corridor_color = get_corridor_color(cell_info);
-    let corridor_width = door_dims.size / 3;
+    let corridor_width = door_dims.size / 2;
 
     // create new corridors group
     let corridors_group = new Konva.Group();
@@ -632,62 +633,196 @@ function draw_corridors(cell_info, parent, for_main_stage) {
         cell_info.shapes.corridors_group = corridors_group;
     }
 
-    // get the calculated center of the building shape
-    let shape_grid_center = cell_info.building_mods.outline_grid_center;
+    // iterate over every stored corridor path 
+    for (let i = 0; i < building_mods.corridor_grid_paths.length; i++) {
 
-    // calculate grid points in all directions from center
-    let center_grid_left   = calc_point_translation(shape_grid_center, {x:0, y:0}, {x:1, y:0}, 1);
-    let center_grid_right  = calc_point_translation(shape_grid_center, {x:0, y:0}, {x:-1, y:0}, 1);
-    let center_grid_up     = calc_point_translation(shape_grid_center, {x:0, y:0}, {x:0, y:1}, 1);
-    let center_grid_down   = calc_point_translation(shape_grid_center, {x:0, y:0}, {x:0, y:-1}, 1);
+        let corridor_grid_path = building_mods.corridor_grid_paths[i];
+        let corridor_stage_path = corridor_grid_path.map(coords => door_grid_coords_to_stage_coords(coords, building_grid_coords, for_main_stage));
 
-    // calculate stage coords
-    // let shape_stage_center = door_grid_coords_to_stage_coords(shape_grid_center, building_grid_coords, for_main_stage);
-    let center_stage_left  = door_grid_coords_to_stage_coords(center_grid_left, building_grid_coords, for_main_stage);
-    let center_stage_right = door_grid_coords_to_stage_coords(center_grid_right, building_grid_coords, for_main_stage);
-    let center_stage_up    = door_grid_coords_to_stage_coords(center_grid_up, building_grid_coords, for_main_stage);
-    let center_stage_down  = door_grid_coords_to_stage_coords(center_grid_down, building_grid_coords, for_main_stage);
-
-    let center_stage_left_intersection = null;
-    let center_stage_right_intersection = null;
-    let center_stage_up_intersection = null;
-    let center_stage_down_intersection = null;
-
-    let effective_grid_walls = cell_info.building_mods.effective_grid_walls;
-    let stage_walls = effective_grid_walls.map(function (line) {
-        return [
-            door_grid_coords_to_stage_coords(line[0], building_grid_coords, for_main_stage),
-            door_grid_coords_to_stage_coords(line[1], building_grid_coords, for_main_stage)
-        ];
-    });
-
-    // draw all middle pathways as one big line
-    let center_line = new Konva.Line({
-        points: flatten_points([center_stage_up, center_stage_down, center_stage_right, center_stage_left]),
-        stroke: corridor_color,
-        strokeWidth: corridor_width,
-        perfectDrawEnabled: false
-    });
-    corridors_group.add(center_line);
-
-    // draw a corridor for every door
-    for (let door_id in door_mods) {
-        let door_mod = door_mods[door_id];
-
-        let path_to_center = door_grid_path_to_center(cell_info, door_id);
-        let stage_path = path_to_center.map(function (grid_point) {
-            return door_grid_coords_to_stage_coords(grid_point, building_grid_coords, for_main_stage);
-        });
-
-        let corridor = new Konva.Line({
-            points: flatten_points(stage_path),
+        // draw the wall itself
+        let corridor_line = new Konva.Line({
+            points: flatten_points(corridor_stage_path),
             stroke: corridor_color,
             strokeWidth: corridor_width,
-            perfectDrawEnabled: false
+            perfectDrawEnabled: false,
         });
-
-        corridors_group.add(corridor);
+        corridors_group.add(corridor_line);
     }
+
+    // draw small squares at center points to hide any non connecting lines
+    for (let building_id in connection_mods) {
+
+        let center = connection_mods[building_id].center;
+        let center_stage = door_grid_coords_to_stage_coords(center, building_grid_coords, for_main_stage)
+
+        let corridor_line = new Konva.Rect({
+            x: center_stage.x - corridor_width / 2,
+            y: center_stage.y - corridor_width / 2,
+            width: corridor_width,
+            height: corridor_width,
+            fill: corridor_color,
+            perfectDrawEnabled: false,
+        });
+        corridors_group.add(corridor_line);
+    }
+
+    // iterate over every connected building cell for the given building
+    // for (let building_id in connection_mods) {
+        
+    //     let connection_mod = connection_mods[building_id];
+    //     let adjacent_walls = connection_mod.adjacent_walls;
+    //     let building_grid_coords = grid_coords_for_building_id(building_id);
+
+    //     // TEMP - display adjacent walls
+    //     for (let i = 0; i < adjacent_walls.length; i++) {
+    
+    //         let adjacent_wall = adjacent_walls[i];
+    //         let adjacent_wall_stage = adjacent_wall.map(coords => door_grid_coords_to_stage_coords(coords, building_grid_coords, for_main_stage));
+
+    //         // draw circles at wall endpoints
+    //         for (let j = 0; j < shape_wall.length; j++) {
+    //             let coords = shape_wall[j];
+    //             let circle = new Konva.Circle({
+    //                 fill: "red",
+    //                 x: coords.x,
+    //                 y: coords.y,
+    //                 radius: door_dims.size / 3,
+        
+    //             });
+    //             corridors_group.add(circle);
+    //         }
+
+    //         // draw the wall itself
+    //         let adjacent_wall_shape = new Konva.Line({
+    //             points: flatten_points(adjacent_wall_stage),
+    //             stroke: "blue",
+    //             strokeWidth: corridor_width,
+    //             perfectDrawEnabled: false
+    //         });
+    //         corridors_group.add(adjacent_wall_shape);
+    //     }
+
+        
+    //     let center = connection_mod.center;
+    //     let center_stage_coords = door_grid_coords_to_stage_coords(center, building_grid_coords, for_main_stage);
+
+    //     // define a "line" that is just the center point as to include it for single cell buildings
+    //     let center_lines = [[center, center]];
+        
+    //     // TEMP - create a circle at the center point
+    //     let center_circle = new Konva.Circle({
+    //         fill: "red",
+    //         x: center_stage_coords.x,
+    //         y: center_stage_coords.y,
+    //         radius: door_dims.size / 2,
+    //     });
+    //     corridors_group.add(center_circle);
+
+    //     // iterate over every adjacent building wall
+    //     for (let i = 0; i < adjacent_walls.length; i++) {
+            
+    //         // get the target point on the current wall
+    //         let wall = adjacent_walls[i];
+    //         let wall_midpoint = calc_avg_point(wall);
+
+    //         // find the corner 
+    //         let corner_to_wall = calc_corner_between_points2(center, wall_midpoint, true);
+    //         let center_corridor_path = [center, corner_to_wall, wall_midpoint];
+            
+    //         center_lines.push(lines_from_path(center_corridor_path, false));
+
+    //         let center_corridor_stage_path = center_corridor_path.map(coords => door_grid_coords_to_stage_coords(coords, building_grid_coords, for_main_stage));
+
+    //         let center_corridor = new Konva.Line({
+    //             points: flatten_points(center_corridor_stage_path),
+    //             stroke: "red",
+    //             strokeWidth: corridor_width,
+    //             perfectDrawEnabled: false
+    //         });
+    //         corridors_group.add(center_corridor);
+    //     }
+    // }
+
+    // // draw a corridor for every door
+    // for (let door_id in door_mods) {
+    //     let door_mod = door_mods[door_id];
+
+    //     let door_grid_coords = grid_coords_for_building_or_door(door_mod.data_ref);
+    //     let estimated_building_grid_coords = estimate_building_grid_coords(door_grid_coords);
+    //     // let path_to_center = door_grid_path_to_center(cell_info, door_id);
+    //     let closest_corridor = calc_closest_point_to_lines(center_lines, door_grid_coords);
+    //     let corner_to_corridor = calc_corner_between_points2(door_grid_coords, closest_corridor, true);
+    //     let path_to_center = [door_grid_coords, corner_to_corridor, closest_corridor];
+
+    //     let stage_path = path_to_center.map(coords => door_grid_coords_to_stage_coords(coords, estimated_building_grid_coords, for_main_stage));
+
+    //     let corridor = new Konva.Line({
+    //         points: flatten_points(stage_path),
+    //         stroke: "green",
+    //         strokeWidth: corridor_width,
+    //         perfectDrawEnabled: false
+    //     });
+
+    //     corridors_group.add(corridor);
+    // }
+
+
+    // get the calculated center of the building shape
+    // let shape_grid_center = cell_info.building_mods.outline_grid_center;
+
+    // // calculate grid points in all directions from center
+    // let center_grid_left   = calc_point_translation(shape_grid_center, {x:0, y:0}, {x:1, y:0}, 1);
+    // let center_grid_right  = calc_point_translation(shape_grid_center, {x:0, y:0}, {x:-1, y:0}, 1);
+    // let center_grid_up     = calc_point_translation(shape_grid_center, {x:0, y:0}, {x:0, y:1}, 1);
+    // let center_grid_down   = calc_point_translation(shape_grid_center, {x:0, y:0}, {x:0, y:-1}, 1);
+
+    // // calculate stage coords
+    // // let shape_stage_center = door_grid_coords_to_stage_coords(shape_grid_center, building_grid_coords, for_main_stage);
+    // let center_stage_left  = door_grid_coords_to_stage_coords(center_grid_left, building_grid_coords, for_main_stage);
+    // let center_stage_right = door_grid_coords_to_stage_coords(center_grid_right, building_grid_coords, for_main_stage);
+    // let center_stage_up    = door_grid_coords_to_stage_coords(center_grid_up, building_grid_coords, for_main_stage);
+    // let center_stage_down  = door_grid_coords_to_stage_coords(center_grid_down, building_grid_coords, for_main_stage);
+
+    // let center_stage_left_intersection = null;
+    // let center_stage_right_intersection = null;
+    // let center_stage_up_intersection = null;
+    // let center_stage_down_intersection = null;
+
+    // let effective_grid_walls = cell_info.building_mods.effective_grid_walls;
+    // let stage_walls = effective_grid_walls.map(function (line) {
+    //     return [
+    //         door_grid_coords_to_stage_coords(line[0], building_grid_coords, for_main_stage),
+    //         door_grid_coords_to_stage_coords(line[1], building_grid_coords, for_main_stage)
+    //     ];
+    // });
+
+    // // draw all middle pathways as one big line
+    // let center_line = new Konva.Line({
+    //     points: flatten_points([center_stage_up, center_stage_down, center_stage_right, center_stage_left]),
+    //     stroke: corridor_color,
+    //     strokeWidth: corridor_width,
+    //     perfectDrawEnabled: false
+    // });
+    // corridors_group.add(center_line);
+
+    // // draw a corridor for every door
+    // for (let door_id in door_mods) {
+    //     let door_mod = door_mods[door_id];
+
+    //     let path_to_center = door_grid_path_to_center(cell_info, door_id);
+    //     let stage_path = path_to_center.map(function (grid_point) {
+    //         return door_grid_coords_to_stage_coords(grid_point, building_grid_coords, for_main_stage);
+    //     });
+
+    //     let corridor = new Konva.Line({
+    //         points: flatten_points(stage_path),
+    //         stroke: corridor_color,
+    //         strokeWidth: corridor_width,
+    //         perfectDrawEnabled: false
+    //     });
+
+    //     corridors_group.add(corridor);
+    // }
 
     if (!building_corridors_enabled) {
         corridors_group.hide();

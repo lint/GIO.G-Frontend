@@ -528,6 +528,9 @@ function selected_door_moved(cell_info, door_id, editor_door_shape) {
 
     // log this door as being the last dragged door for this building (so it is drawn on top of other doors)
     door_mod.last_drag_time = Date.now();
+
+    // recalculate door corridors
+    calculate_building_corridors(cell_info);
     
     // redraw the building to reflect the changes in position
     redraw_selected_building(cell_info);
@@ -575,6 +578,9 @@ function handle_delete_door_button(cell_info, door_id) {
     let li = document.getElementById(`door-${door_id}-list-item`);
     li.parentNode.removeChild(li);
 
+    // recalculate door corridors
+    calculate_building_corridors(cell_info);
+
     // redraw the building to reflect the changes in doors
     redraw_selected_building(cell_info);
 
@@ -594,6 +600,9 @@ function handle_add_door_button(cell_info) {
     let li = create_door_list_item(cell_info, door_id);
     let ul = document.getElementById("edit-doors-list");
     ul.appendChild(li);
+
+    // recalculate door corridors
+    calculate_building_corridors(cell_info);
 
     // redraw the building to display the new door
     redraw_selected_building(cell_info);

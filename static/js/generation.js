@@ -122,11 +122,9 @@ function generate_new_doors(building_grid_coords, num_doors, door_id_start) {
 // creates a new building object with the provided information
 function generate_building(building_grid_coords) {
     
-    let grid_len = grid.length;
-
     // initialize new building object
     let building = {
-        id: building_grid_coords.x * grid_len + building_grid_coords.y,
+        id: grid_coords_to_building_id(building_grid_coords),
         x: building_grid_coords.x + 1, // convert from 0-indexed to 1-indexed
         y: building_grid_coords.y + 1,
         congestion: generate_congestion(current_config, null), 

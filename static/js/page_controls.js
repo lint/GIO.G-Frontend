@@ -581,7 +581,7 @@ function handle_congestion_colors_button() {
                 continue;
             }
             
-            update_building_colors({x:x, y:y});
+            update_building_colors(cell_info);
         }
     }
 

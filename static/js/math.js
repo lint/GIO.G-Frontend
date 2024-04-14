@@ -357,6 +357,27 @@ function flatten_points(points) {
 }
 
 
+// gets a list of lines from a shape path
+function lines_from_path(path, closed) {
+
+    let lines = [];
+
+    for (let i = 0; i < path.length; i++) {
+
+        let p1 = path[i];
+        let p2 = path[(i+1) % path.length];
+        lines.push([p1, p2]);
+    }
+
+    // remove the last line if path is not closed
+    if (!closed) {
+        lines.pop();
+    }
+
+    return lines;
+}
+
+
 // helper method to determine equality of floats 
 function floats_eq(f1, f2, tol=0.0001) {
     return Math.abs(f1 - f2) < tol
@@ -510,7 +531,41 @@ function coords_are_adjacent(p1, p2) {
     let p1_up = {x:p1.x, y:p1.y+1};
     let p1_down = {x:p1.x, y:p1.y-1};
 
-    return coords_eq(p1_left, p2) || coords_eq(p1_right, p2) || coords_eq(p1_up, p2) || coords_eq(p1_down, p2);
+    if (coords_eq(p1_left, p2)) {
+        return "left";
+    }
+    if (coords_eq(p1_right, p2)) {
+        return "right";
+    } 
+    if (coords_eq(p1_up, p2)) {
+        return "up";
+    }
+    if (coords_eq(p1_down, p2)) {
+        return "down";
+    }
+
+    return false;
+}
+
+
+// get the average point from a list of points
+function calc_avg_point(points) {
+
+    let avg = {
+        x:0,
+        y:0
+    };
+
+    for (let i = 0; i < points.length; i++) {
+        let point = points[i];
+        avg.x += point.x;
+        avg.y += point.y;
+    }
+
+    avg.x /= points.length;
+    avg.y /= points.length;
+
+    return avg;
 }
 
 

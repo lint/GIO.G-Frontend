@@ -146,8 +146,14 @@ function process_building(building, cell_info_override=null) {
     // find the bounding rectangle around the building outline shape
     find_building_bounding_rectangle(cell_info);
 
-    // find building center point
+    // find building center point (considering the entire building)
     find_building_center(cell_info);
+
+    // find building centers and adjacent walls of all connected buildings
+    find_building_centers_and_adjacent_walls(cell_info);
+
+    // calculate the corridors for the given building
+    calculate_building_corridors(cell_info);
 
     // make building available at connected cell coordinates
     setup_connected_grid_cell_info(cell_info);
@@ -295,6 +301,8 @@ function init_grid_cell_info(building) {
     cell_info.building_mods.orig_entrances = building.entrances.map(a => {return {...a}});
     cell_info.building_mods.next_new_door_id = doors.length + 1;
     cell_info.building_mods.con_level = determine_con_level(building.congestion);
+    cell_info.building_mods.corridor_grid_paths = [];
+    cell_info.building_mods.corridor_center_lines = [];
 
     // iterate over every door in the building
     for (let d = 0; d < doors.length; d++) {
@@ -311,6 +319,13 @@ function init_grid_cell_info(building) {
         };
     }
 
+    cell_info.building_mods.connection_mods = {};
+    cell_info.building_mods.connection_mods[cell_info.building_data.id] = {
+        center: null,
+        adjacent_walls: [],
+        door_grid_coords: []
+    };
+
     // get coordinates for every merged building
     let connected_building_coords = [];
 
@@ -321,6 +336,13 @@ function init_grid_cell_info(building) {
                 y: cell_info.building_data.merged_y[i]
             };
             connected_building_coords.push(coords);
+
+            let connected_building_id = grid_coords_to_building_id(grid_coords_for_building_or_door(coords));
+            cell_info.building_mods.connection_mods[connected_building_id] = {
+                center: null,
+                adjacent_walls: [],
+                door_grid_coords: []
+            };
         }
     }
 
@@ -342,6 +364,9 @@ function merge_buildings(cell_info1, cell_info2) {
 
     let building_mods1 = cell_info1.building_mods;
     let building_mods2 = cell_info2.building_mods;
+
+    let connection_mods1 = building_mods1.connection_mods;
+    let connection_mods2 = building_mods2.connection_mods;
 
     // remove new connection from graph list
     let connection_graph_index = current_graph.indexOf(building2);
@@ -396,6 +421,11 @@ function merge_buildings(cell_info1, cell_info2) {
     building1.entrances = new_doors;
     building_mods1.entrance_mods = new_door_mods;
     building_mods1.next_new_door_id = ++door_counter;
+
+    // combine connection mods for both buildings
+    for (let building_id in connection_mods2) {
+        connection_mods1[building_id] = connection_mods2[building_id];
+    }
 
     // reprocess the merged building for additional calculations
     process_building(null, cell_info1);

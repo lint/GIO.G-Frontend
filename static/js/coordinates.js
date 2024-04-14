@@ -226,6 +226,12 @@ function grid_coords_for_building_id(building_id) {
 }
 
 
+// helper method to get the building id for a given set of coordinates
+function grid_coords_to_building_id(grid_coords) {
+    return grid_coords.x * grid.length + grid_coords.y;
+}
+
+
 // helper function to get a grid cell ID based on coordinates
 function grid_cell_id_for_coords(grid_coords) {
     return grid_coords.x * grid.length + grid_coords.y;
@@ -478,30 +484,198 @@ function find_building_center(cell_info) {
 }
 
 
+// find the center point of all connected buildings
+function find_building_centers_and_adjacent_walls(cell_info) {
+
+    let door_mods = cell_info.building_mods.entrance_mods;
+    let connection_mods = cell_info.building_mods.connection_mods;
+
+    // get list of doors sorted by id
+    let doors = [];
+    for (let door_id in door_mods) {
+        doors.push(door_mods[door_id].data_ref);
+    }
+    doors.sort((a, b) => a.id - b.id);
+    
+    // get doors associated with each building
+    for (let i = 0; i < doors.length; i++) {
+        let door = doors[i];
+
+        let door_grid_coords = grid_coords_for_building_or_door(door);
+        let estimated_building_grid_coords = estimate_building_grid_coords(door_grid_coords);
+        let estimated_building_id = grid_coords_to_building_id(estimated_building_grid_coords);
+
+        connection_mods[estimated_building_id].door_grid_coords.push(door_grid_coords);
+    }
+
+    // get the center for each connected building
+    for (let building_id in connection_mods) {
+        let connection_mod = connection_mods[building_id];
+
+        // average points to get the center
+        connection_mod.center = calc_avg_point(connection_mod.door_grid_coords);
+
+        // let center = polylabel([connection_mod.door_grid_coords.map(coord => [coord.x, coord.y])]);        
+        // connection_mod.center = {x: center[0], y: center[1]};
+    }
+
+    // get grid coords for all connected buildings
+    let connected_grid_coords = [cell_info.building_data, ...cell_info.building_mods.connected_building_coords].map(coords => grid_coords_for_building_or_door(coords));
+    
+    // this is so inefficient...
+
+    // iterate over every connected grid coord
+    for (let i = 0; i < connected_grid_coords.length && connected_grid_coords.length > 1; i++) {
+        
+        let coords = connected_grid_coords[i];
+        let building_id = grid_coords_to_building_id(coords);
+        let connection_mod = connection_mods[building_id];
+
+        // get door grid coordinates representing the bounds of the grid cell
+        let left_bounds     = [{x:coords.x-0.5, y:coords.y-0.5}, {x:coords.x-0.5, y:coords.y+0.5}];
+        let down_bounds     = [{x:coords.x-0.5, y:coords.y+0.5}, {x:coords.x+0.5, y:coords.y+0.5}];
+        let right_bounds    = [{x:coords.x+0.5, y:coords.y+0.5}, {x:coords.x+0.5, y:coords.y-0.5}];
+        let up_bounds       = [{x:coords.x+0.5, y:coords.y-0.5}, {x:coords.x-0.5, y:coords.y-0.5}];
+
+        let left_intersections = [];
+        let down_intersections = [];
+        let right_intersections = [];
+        let up_intersections = [];
+
+        // iterate over every wall in the outline path
+        let outline_grid_path = cell_info.building_mods.outline_grid_path;
+        for (let j = 0; j < outline_grid_path.length; j++) {
+
+            let wall = [outline_grid_path[j], outline_grid_path[(j+1)%outline_grid_path.length]];
+
+            // find intersections of grid cell bounds and building outline
+            let left_intersection = calc_lines_intersection(left_bounds, wall);
+            let down_intersection = calc_lines_intersection(down_bounds, wall);
+            let right_intersection = calc_lines_intersection(right_bounds, wall);
+            let up_intersection = calc_lines_intersection(up_bounds, wall);
+
+            if (left_intersection !== null) {
+                left_intersections.push(left_intersection);
+            }
+            if (down_intersection !== null) {
+                down_intersections.push(down_intersection);
+            }
+            if (right_intersection !== null) {
+                right_intersections.push(right_intersection);
+            }
+            if (up_intersection !== null) {
+                up_intersections.push(up_intersection);
+            }
+        }
+
+        // only add intersections if they were found
+        if (left_intersections.length > 0) {
+            connection_mod.adjacent_walls.push(left_intersections);
+        }
+        if (down_intersections.length > 0) {
+            connection_mod.adjacent_walls.push(down_intersections);
+        }
+        if (right_intersections.length > 0) {
+            connection_mod.adjacent_walls.push(right_intersections);
+        }
+        if (up_intersections.length > 0) {
+            connection_mod.adjacent_walls.push(up_intersections);
+        }
+    }
+}
+
+
+// calculate building corridors
+function calculate_building_corridors(cell_info) {
+
+    let building_mods = cell_info.building_mods;
+    let connection_mods = building_mods.connection_mods;
+    let door_mods = building_mods.entrance_mods;
+
+    let corridor_paths = [];
+
+    // define all lines connecting centers
+    let center_lines = [];
+
+    // iterate over every connected building cell for the given building
+    for (let building_id in connection_mods) {
+    
+        let connection_mod = connection_mods[building_id];
+        let adjacent_walls = connection_mod.adjacent_walls;
+        let center = connection_mod.center;
+
+        // define a "line" that is just the center point as to include it for single cell buildings
+        if (adjacent_walls.length === 0) {
+            center_lines.push([center, center]);
+            continue;
+        }
+        
+        // iterate over every adjacent building wall
+        for (let i = 0; i < adjacent_walls.length; i++) {
+            
+            // get the target point on the current wall
+            let wall = adjacent_walls[i];
+            let wall_midpoint = calc_avg_point(wall);
+
+            // find the corner between the center and the target wall point
+            let corner_to_wall = calc_corner_between_points2(center, wall_midpoint, true);
+            let center_corridor_path = [center, corner_to_wall, wall_midpoint];
+            
+            corridor_paths.push(center_corridor_path);
+            center_lines.push(...lines_from_path(center_corridor_path, false));
+        }
+    }
+
+    // make corridor to every door
+    for (let door_id in door_mods) {
+        let door_mod = door_mods[door_id];
+        let door_grid_coords = grid_coords_for_building_or_door(door_mod.data_ref);
+
+
+        let closest_center_corridor_point = calc_closest_point_to_lines(center_lines, door_grid_coords);
+        let path_to_center = door_grid_path_to_center(cell_info, door_id);
+        // let corner_to_center_line = calc_corner_between_points2(door_grid_coords, closest_center_corridor_point, true);
+        // let path_to_center = [door_grid_coords, corner_to_center_line, closest_center_corridor_point];
+        corridor_paths.push(path_to_center);
+    }
+
+    building_mods.corridor_grid_paths = corridor_paths;
+    building_mods.corridor_center_lines = center_lines;
+}
+
+
 // get the door grid path to center coordinate
-function door_grid_path_to_center(cell_info, door_id) {
+function door_grid_path_to_center(cell_info, door_id, center_override=null) {
 
     // TODO: this does lots of repeated calculations if called multiple times in a row... fix it
 
     let door_mods = cell_info.building_mods.entrance_mods;
     let door_mod = door_mods[door_id];
-
     let door_grid_coords = grid_coords_for_building_or_door(door_mod.data_ref);
 
-    // get the calculated center of the building shape
-    let shape_grid_center = cell_info.building_mods.outline_grid_center;
+    let shape_grid_center = center_override;
+
+    if (shape_grid_center === null) {
+
+        let estimated_building_grid_coords = estimate_building_grid_coords(door_grid_coords);
+        let estimated_building_id = grid_cell_id_for_coords(estimated_building_grid_coords);
+    
+        // get the calculated center of the building shape
+        // let shape_grid_center = cell_info.building_mods.outline_grid_center;
+        shape_grid_center = cell_info.building_mods.connection_mods[estimated_building_id].center;
+    }
 
     // calculate grid points in all directions from center
-    let center_grid_left   = calc_point_translation(shape_grid_center, {x:0, y:0}, {x:1, y:0}, 1);
-    let center_grid_right  = calc_point_translation(shape_grid_center, {x:0, y:0}, {x:-1, y:0}, 1);
-    let center_grid_up     = calc_point_translation(shape_grid_center, {x:0, y:0}, {x:0, y:1}, 1);
-    let center_grid_down   = calc_point_translation(shape_grid_center, {x:0, y:0}, {x:0, y:-1}, 1);
+    let center_grid_left   = calc_point_translation(shape_grid_center, {x:0, y:0}, {x:grid.length, y:0}, grid.length);
+    let center_grid_right  = calc_point_translation(shape_grid_center, {x:0, y:0}, {x:-grid.length, y:0}, grid.length);
+    let center_grid_up     = calc_point_translation(shape_grid_center, {x:0, y:0}, {x:0, y:grid.length}, grid.length);
+    let center_grid_down   = calc_point_translation(shape_grid_center, {x:0, y:0}, {x:0, y:-grid.length}, grid.length);
 
     let center_line_end = null;
 
     // check quadrant of door and door orientation (quadrant names and checks are probably wrong since i'm not considering inverted y shenanigans)
     // top right quadrant
-    if (door_grid_coords.x > shape_grid_center.x && door_grid_coords.y > shape_grid_center.y) {
+    if (door_grid_coords.x >= shape_grid_center.x && door_grid_coords.y >= shape_grid_center.y) {
         if (door_mod.wall_direction === "vertical") {
             center_line_end = center_grid_up;
         } else {
@@ -509,7 +683,7 @@ function door_grid_path_to_center(cell_info, door_id) {
         }
     
     // bottom right quadrant
-    } else if (door_grid_coords.x > shape_grid_center.x && door_grid_coords.y < shape_grid_center.y) {
+    } else if (door_grid_coords.x >= shape_grid_center.x && door_grid_coords.y <= shape_grid_center.y) {
         if (door_mod.wall_direction === "vertical") {
             center_line_end = center_grid_down;
         } else {
@@ -517,7 +691,7 @@ function door_grid_path_to_center(cell_info, door_id) {
         }
 
     // top left quadrant
-    } else if (door_grid_coords.x < shape_grid_center.x && door_grid_coords.y > shape_grid_center.y) {
+    } else if (door_grid_coords.x <= shape_grid_center.x && door_grid_coords.y >= shape_grid_center.y) {
         if (door_mod.wall_direction === "vertical") {
             center_line_end = center_grid_up;
         } else {
@@ -525,7 +699,7 @@ function door_grid_path_to_center(cell_info, door_id) {
         }
 
     // bottom left quadrant
-    } else if (door_grid_coords.x < shape_grid_center.x && door_grid_coords.y < shape_grid_center.y) {
+    } else if (door_grid_coords.x <= shape_grid_center.x && door_grid_coords.y <= shape_grid_center.y) {
         if (door_mod.wall_direction === "vertical") {
             center_line_end = center_grid_down;
         } else {
