@@ -388,21 +388,23 @@ function create_building_outline_path(cell_info) {
 
     // save the path to the cell_info
     cell_info.building_mods.outline_grid_path = simplified_grid_path;
+    cell_info.building_mods.outline_grid_walls = lines_from_path(simplified_grid_path, true);
 }
 
 
 // calculates the building's effective wall grid lines (prevents doors from being positioned in corners)
 function find_building_effective_walls(cell_info) {
 
-    let grid_path = cell_info.building_mods.outline_grid_path;
+    let grid_walls = cell_info.building_mods.outline_grid_walls;
 
     // calculate the usable wall lines for door placement
     let effective_grid_walls = [];
 
-    for (let i = 0; i < grid_path.length; i++) {
+    for (let i = 0; i < grid_walls.length; i++) {
 
-        let p1 = grid_path[i];
-        let p2 = grid_path[(i + 1) % grid_path.length];
+        let wall = grid_walls[i];
+        let p1 = wall[0];
+        let p2 = wall[1];
 
         let line_len = calc_dist(p1, p2);
 

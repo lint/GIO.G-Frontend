@@ -327,7 +327,7 @@ function calc_line_orthogonal_direction(p1, p2) {
 
     // check if the points are the same
     if (floats_eq(p1.x, p2.x) && floats_eq(p1.y, p2.y)) {
-        return "same";
+        return null;
     }
 
     // check if points are vertical
@@ -340,7 +340,23 @@ function calc_line_orthogonal_direction(p1, p2) {
         return "horizontal";
     }
 
-    return "none";
+    return null;
+}
+
+
+// calculate the distance between two lines
+function calc_line_to_line_dist(l1, l2) {
+
+    if (calc_lines_intersection(l1, l2) !== null) {
+        return 0;
+    }
+
+    let dist1 = calc_closest_point(l1[0], l1[1], l2[0]);
+    let dist2 = calc_closest_point(l1[0], l1[1], l2[1]);
+    let dist3 = calc_closest_point(l2[0], l2[1], l1[0]);
+    let dist4 = calc_closest_point(l2[0], l2[1], l1[1]);
+
+    return Math.min([dist1, dist2, dist3, dist4]);
 }
 
 
