@@ -154,6 +154,9 @@ function process_building(building, cell_info_override=null, skip_outline_calc=f
     // find building centers and adjacent walls of all connected buildings
     find_building_centers_and_adjacent_walls(cell_info);
 
+    // find orientation of doors
+    find_all_doors_orientations(cell_info);
+
     // calculate the corridors for the given building
     calculate_building_corridors(cell_info);
 
@@ -319,7 +322,8 @@ function init_grid_cell_info(building) {
             last_drag_time: 0,
             wall_direction: "none",
             attached_wall: null,
-            editor_highlighted: false
+            editor_highlighted: false,
+            orientation: null
         };
     }
 
@@ -327,7 +331,7 @@ function init_grid_cell_info(building) {
     cell_info.building_mods.connection_mods[cell_info.building_data.id] = {
         center: null,
         adjacent_walls: [],
-        door_grid_coords: []
+        outline_path: []
     };
 
     // get coordinates for every merged building
@@ -345,7 +349,7 @@ function init_grid_cell_info(building) {
             cell_info.building_mods.connection_mods[connected_building_id] = {
                 center: null,
                 adjacent_walls: [],
-                door_grid_coords: []
+                outline_path: []
             };
         }
     }

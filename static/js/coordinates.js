@@ -413,9 +413,9 @@ function find_building_effective_walls(cell_info) {
             continue;
         }
 
-        // translate points of the wall 1/2 the door length ratio inwards to prevent doors in corners
-        let new_p1 = calc_point_translation(p1, p1, p2, door_len_ratio / 2); // TODO: make this perfect with considering stroke width ... it's close but not quite
-        let new_p2 = calc_point_translation(p2, p2, p1, door_len_ratio / 2);
+        // translate points of the wall 1/2 the door length and stroke sizes ratios inwards to prevent doors in corners
+        let new_p1 = calc_point_translation(p1, p1, p2, (door_len_ratio + building_stroke_size_ratio + door_stroke_size_ratio) / 2); 
+        let new_p2 = calc_point_translation(p2, p2, p1, (door_len_ratio + building_stroke_size_ratio + door_stroke_size_ratio) / 2);
 
         let line = [new_p1, new_p2];
         effective_grid_walls.push(line);
@@ -491,23 +491,16 @@ function find_building_centers_and_adjacent_walls(cell_info) {
 
     let door_mods = cell_info.building_mods.entrance_mods;
     let connection_mods = cell_info.building_mods.connection_mods;
+    let outline_grid_path = cell_info.building_mods.outline_grid_path;
 
-    // get list of doors sorted by id
-    let doors = [];
-    for (let door_id in door_mods) {
-        doors.push(door_mods[door_id].data_ref);
-    }
-    doors.sort((a, b) => a.id - b.id);
-    
     // get doors associated with each building
-    for (let i = 0; i < doors.length; i++) {
-        let door = doors[i];
+    for (let i = 0; i < outline_grid_path.length; i++) {
+        let coords = outline_grid_path[i];
 
-        let door_grid_coords = grid_coords_for_building_or_door(door);
-        let estimated_building_grid_coords = estimate_building_grid_coords(door_grid_coords);
+        let estimated_building_grid_coords = estimate_building_grid_coords(coords);
         let estimated_building_id = grid_coords_to_building_id(estimated_building_grid_coords);
 
-        connection_mods[estimated_building_id].door_grid_coords.push(door_grid_coords);
+        connection_mods[estimated_building_id].outline_path.push(coords);
     }
 
     // get the center for each connected building
@@ -515,9 +508,9 @@ function find_building_centers_and_adjacent_walls(cell_info) {
         let connection_mod = connection_mods[building_id];
 
         // average points to get the center
-        connection_mod.center = calc_avg_point(connection_mod.door_grid_coords);
+        connection_mod.center = calc_avg_point(connection_mod.outline_path);
 
-        // let center = polylabel([connection_mod.door_grid_coords.map(coord => [coord.x, coord.y])]);        
+        // let center = polylabel([connection_mod.outline_path.map(coord => [coord.x, coord.y])]);        
         // connection_mod.center = {x: center[0], y: center[1]};
     }
 
@@ -627,12 +620,12 @@ function calculate_building_corridors(cell_info) {
             center_lines.push(...lines_from_path(center_corridor_path, false));
         }
     }
+    building_mods.corridor_center_lines = center_lines;
 
     // make corridor to every door
     for (let door_id in door_mods) {
         let door_mod = door_mods[door_id];
         let door_grid_coords = grid_coords_for_building_or_door(door_mod.data_ref);
-
 
         let closest_center_corridor_point = calc_closest_point_to_lines(center_lines, door_grid_coords);
         let path_to_center = door_grid_path_to_center(cell_info, door_id);
@@ -642,7 +635,6 @@ function calculate_building_corridors(cell_info) {
     }
 
     building_mods.corridor_grid_paths = corridor_paths;
-    building_mods.corridor_center_lines = center_lines;
 }
 
 
@@ -651,6 +643,7 @@ function door_grid_path_to_center(cell_info, door_id, center_override=null) {
 
     // TODO: this does lots of repeated calculations if called multiple times in a row... fix it
 
+    let building_mods = cell_info.building_mods;
     let door_mods = cell_info.building_mods.entrance_mods;
     let door_mod = door_mods[door_id];
     let door_grid_coords = grid_coords_for_building_or_door(door_mod.data_ref);
@@ -659,12 +652,15 @@ function door_grid_path_to_center(cell_info, door_id, center_override=null) {
 
     if (shape_grid_center === null) {
 
-        let estimated_building_grid_coords = estimate_building_grid_coords(door_grid_coords);
-        let estimated_building_id = grid_cell_id_for_coords(estimated_building_grid_coords);
+        // let estimated_building_grid_coords = estimate_building_grid_coords(door_grid_coords);
+        // let estimated_building_id = grid_cell_id_for_coords(estimated_building_grid_coords);
     
-        // get the calculated center of the building shape
-        // let shape_grid_center = cell_info.building_mods.outline_grid_center;
-        shape_grid_center = cell_info.building_mods.connection_mods[estimated_building_id].center;
+        // // get the calculated center of the building shape
+        // // let shape_grid_center = cell_info.building_mods.outline_grid_center;
+        // shape_grid_center = cell_info.building_mods.connection_mods[estimated_building_id].center;
+
+        let closest_center_corridor_point = calc_closest_point_to_lines(building_mods.corridor_center_lines, door_grid_coords);
+        shape_grid_center = closest_center_corridor_point;
     }
 
     // calculate grid points in all directions from center
@@ -720,11 +716,13 @@ function door_grid_path_to_center(cell_info, door_id, center_override=null) {
 // get the door grid path to center coordinate
 function door_grid_path_to_border(cell_info, door_id, outline_offset, door_offset) {
 
-    let building_grid_coords = grid_coords_for_building_or_door(cell_info.building_data);
     let door_mods = cell_info.building_mods.entrance_mods;
     let door_mod = door_mods[door_id];
-
+    
     let door_grid_coords = grid_coords_for_building_or_door(door_mod.data_ref);
+    // let building_grid_coords = grid_coords_for_building_or_door(cell_info.building_data);
+    let building_grid_coords = estimate_building_grid_coords(door_grid_coords);
+    let building_id = grid_coords_to_building_id(building_grid_coords);
 
     // offset door grid coords
     if (door_mod.wall_direction === "vertical") {
@@ -742,85 +740,24 @@ function door_grid_path_to_border(cell_info, door_id, outline_offset, door_offse
     ];
 
     let best_point = null;
+    console.log("orientation: ", door_mod.orientation);
 
-    // construct walls from the outline path
-    let walls = [];
-    let outline_grid_path = cell_info.building_mods.outline_grid_path
-    for (let i = 0; i < outline_grid_path.length; i++) {
-        let p1 = outline_grid_path[i];
-        let p2 = outline_grid_path[(i + 1) % outline_grid_path.length];
-
-        walls.push([p1, p2]);
-    }
-
-    // door is vertical
-    if (door_mod.wall_direction === "vertical") {
-
-        // calculate points to right/left borders
-        let building_right_line = [building_grid_corners[1], building_grid_corners[2]];
-        let building_left_line = [building_grid_corners[3], building_grid_corners[0]];
-
-        let to_right_point = calc_closest_point(building_right_line[0], building_right_line[1], door_grid_coords);
-        let to_left_point = calc_closest_point(building_left_line[0], building_left_line[1], door_grid_coords);
-
-        let right_intersections = 0;
-        let left_intersections = 0;
-
-        // calculate the number of intersections of line to right/left borders with each wall
-        walls.forEach(function (wall) {
-
-            let right_intersection_point = calc_lines_intersection([door_grid_coords, to_right_point], wall);
-            let left_intersection_point = calc_lines_intersection([door_grid_coords, to_left_point], wall);
-    
-            if (right_intersection_point !== null) {
-                right_intersections += 1;
-            }
-    
-            if (left_intersection_point !== null) {
-                left_intersections += 1;
-            }
-        });
-
-        if (left_intersections < right_intersections) {
-            best_point = calc_line_extend_point(door_grid_coords, to_left_point, -1 * outline_offset);
-        } else {
-            best_point = calc_line_extend_point(door_grid_coords, to_right_point, -1 * outline_offset);
-        }
-    
-    // door is horizontal
-    } else {
-
-        // calculate points to top/bottom borders
+    if (door_mod.orientation === "up") {
         let building_top_line = [building_grid_corners[0], building_grid_corners[1]];
+        best_point = calc_closest_point(building_top_line[0], building_top_line[1], door_grid_coords);
+    } else if (door_mod.orientation === "down") {
         let building_bottom_line = [building_grid_corners[2], building_grid_corners[3]];
-
-        let to_top_point = calc_closest_point(building_top_line[0], building_top_line[1], door_grid_coords);
-        let to_bottom_point = calc_closest_point(building_bottom_line[0], building_bottom_line[1], door_grid_coords);
-
-        let top_intersections = 0;
-        let bottom_intersections = 0;
-
-        // calculate the number of intersections of line to top/bottom borders with each wall
-        walls.forEach(function (wall) {
-
-            let top_intersection_point = calc_lines_intersection([door_grid_coords, to_top_point], wall);
-            let bottom_intersection_point = calc_lines_intersection([door_grid_coords, to_bottom_point], wall);
-    
-            if (top_intersection_point !== null) {
-                top_intersections += 1;
-            }
-    
-            if (bottom_intersection_point !== null) {
-                bottom_intersections += 1;
-            }
-        });
-
-        if (top_intersections < bottom_intersections) {
-            best_point = calc_line_extend_point(door_grid_coords, to_top_point, -1 * outline_offset);
-        } else {
-            best_point = calc_line_extend_point(door_grid_coords, to_bottom_point, -1 * outline_offset);
-        }
+        best_point = calc_closest_point(building_bottom_line[0], building_bottom_line[1], door_grid_coords);
+    } else if (door_mod.orientation === "left") {
+        let building_left_line = [building_grid_corners[3], building_grid_corners[0]];
+        best_point = calc_closest_point(building_left_line[0], building_left_line[1], door_grid_coords);
+    } else if (door_mod.orientation === "right") {
+        let building_right_line = [building_grid_corners[1], building_grid_corners[2]];
+        best_point = calc_closest_point(building_right_line[0], building_right_line[1], door_grid_coords);
     }
+
+    // offset the best point
+    best_point = calc_line_extend_point(door_grid_coords, best_point, -1 * outline_offset);
 
     return [door_grid_coords, best_point];
 }
@@ -864,4 +801,105 @@ function door_grid_path_to_border_closest(building_grid_coords, door_grid_coords
     return [door_grid_coords, wall_dist_points[0].point];
 }
 
+// find orientation of doors
+function find_all_doors_orientations(cell_info) {
 
+    // iterate over every door and find it's orientation
+    for (let door_id in cell_info.building_mods.entrance_mods) {
+        find_door_orientation(cell_info, door_id);
+    }
+}
+
+// calculate and set the orientation of a given door
+function find_door_orientation(cell_info, door_id, door_grid_coords_override=null) {
+
+    let door_mods = cell_info.building_mods.entrance_mods;
+    let door_mod = door_mods[door_id];
+
+    let door_grid_coords = door_grid_coords_override !== null ? door_grid_coords_override : grid_coords_for_building_or_door(door_mod.data_ref);
+    let building_grid_coords = estimate_building_grid_coords(door_grid_coords);
+    let building_id = grid_coords_to_building_id(building_grid_coords);
+
+
+    // adjusted to be door coordinates
+    let building_grid_corners = [
+        {x:building_grid_coords.x-0.5, y:building_grid_coords.y-0.5}, 
+        {x:building_grid_coords.x+0.5, y:building_grid_coords.y-0.5}, 
+        {x:building_grid_coords.x+0.5, y:building_grid_coords.y+0.5},
+        {x:building_grid_coords.x-0.5, y:building_grid_coords.y+0.5}
+    ];
+
+    let orientation = null;
+    let walls = lines_from_path(cell_info.building_mods.connection_mods[building_id].outline_path, true);
+
+    // door is vertical
+    if (door_mod.wall_direction === "vertical") {
+
+        // calculate points to right/left borders
+        let building_right_line = [building_grid_corners[1], building_grid_corners[2]];
+        let building_left_line = [building_grid_corners[3], building_grid_corners[0]];
+
+        let to_right_point = calc_closest_point(building_right_line[0], building_right_line[1], door_grid_coords);
+        let to_left_point = calc_closest_point(building_left_line[0], building_left_line[1], door_grid_coords);
+
+        let right_intersections = 0;
+        let left_intersections = 0;
+
+        // calculate the number of intersections of line to right/left borders with each wall
+        walls.forEach(function (wall) {
+
+            let right_intersection_point = calc_lines_intersection([door_grid_coords, to_right_point], wall);
+            let left_intersection_point = calc_lines_intersection([door_grid_coords, to_left_point], wall);
+
+            if (right_intersection_point !== null) {
+                right_intersections += 1;
+            }
+
+            if (left_intersection_point !== null) {
+                left_intersections += 1;
+            }
+        });
+
+        if (left_intersections < right_intersections) {
+            orientation = "left";
+        } else if (right_intersections < left_intersections) {
+            orientation = "right";
+        }
+
+    // door is horizontal
+    } else {
+
+        // calculate points to top/bottom borders
+        let building_top_line = [building_grid_corners[0], building_grid_corners[1]];
+        let building_bottom_line = [building_grid_corners[2], building_grid_corners[3]];
+
+        let to_top_point = calc_closest_point(building_top_line[0], building_top_line[1], door_grid_coords);
+        let to_bottom_point = calc_closest_point(building_bottom_line[0], building_bottom_line[1], door_grid_coords);
+
+        let top_intersections = 0;
+        let bottom_intersections = 0;
+
+        // calculate the number of intersections of line to top/bottom borders with each wall
+        walls.forEach(function (wall) {
+
+            let top_intersection_point = calc_lines_intersection([door_grid_coords, to_top_point], wall);
+            let bottom_intersection_point = calc_lines_intersection([door_grid_coords, to_bottom_point], wall);
+
+            if (top_intersection_point !== null) {
+                top_intersections += 1;
+            }
+
+            if (bottom_intersection_point !== null) {
+                bottom_intersections += 1;
+            }
+        });
+
+        if (top_intersections < bottom_intersections) {
+            orientation = "up";
+        } else if (bottom_intersections < top_intersections) {
+            orientation = "down";
+        }
+    }
+
+    door_mod.orientation = orientation;
+}

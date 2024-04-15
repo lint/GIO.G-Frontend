@@ -23,12 +23,12 @@ function calculate_main_draw_dims(grid_len) {
     main_cell_dims = {
         size: main_cell_width,
         spacing: cell_spacing,
-        stroke: main_cell_width * stroke_size_ratio
+        stroke: main_cell_width * building_stroke_size_ratio
     };
 
     main_door_dims = {
         size: main_cell_dims.size * door_len_ratio,
-        stroke: main_cell_dims.stroke / 2
+        stroke:  main_cell_width * door_stroke_size_ratio
     };
 }
 
@@ -53,17 +53,16 @@ function calculate_editor_draw_dims(cell_info) {
     // let bounds_scale = Math.min(editor_inset_size / bounds_width, editor_inset_size / bounds_height) / editor_stage.scaleX();
     let bounds_scale = 1 / Math.max(bounds_width, bounds_height) * editor_inset_size;
     let door_size = door_len_ratio * bounds_scale;
-    let stroke = stroke_size_ratio * bounds_scale;
 
     editor_cell_dims = {
         size: editor_inset_size,
         spacing: 0,
-        stroke: stroke
+        stroke: bounds_scale * building_stroke_size_ratio
     };
 
     editor_door_dims = {
         size: door_size,
-        stroke: stroke / 2
+        stroke: bounds_scale * door_stroke_size_ratio
     };
 }
 
@@ -77,6 +76,63 @@ function get_cell_dims(for_main_stage) {
 // get the door dimensions object for either the main stage or the editor stage
 function get_door_dims(for_main_stage) {
     return for_main_stage ? main_door_dims : editor_door_dims;
+}
+
+
+// get door dimensions based on orientation
+function get_directional_door_dims(cell_info, door_id, for_main_stage) {
+
+    let door_dims = get_door_dims(for_main_stage);
+    let building_grid_coords = grid_coords_for_building_or_door(cell_info.building_data);
+    let door_mod = cell_info.building_mods.entrance_mods[door_id];
+    
+    // get door x and y coordinates (convert 1-indexed to 0-indexed)
+    let door_grid_coords = grid_coords_for_building_or_door(door_mod.data_ref);
+
+    // convert grid coordinates to stage coordinates
+    let door_stage_coords = door_grid_coords_to_stage_coords(door_grid_coords, building_grid_coords, for_main_stage);
+
+    let door_width = 0;
+    let door_height = 0;
+    let door_x = 0; 
+    let door_y = 0;
+
+    if (for_main_stage) {
+        // set door dimensions based on orientation
+        if (door_mod.orientation === "left") {
+            door_width = door_dims.size / 2;
+            door_height = door_dims.size;
+            door_x = door_stage_coords.x;
+            door_y = door_stage_coords.y - door_height/2;
+        } else if (door_mod.orientation === "right") {
+            door_width = door_dims.size / 2;
+            door_height = door_dims.size;
+            door_x = door_stage_coords.x - door_width;
+            door_y = door_stage_coords.y - door_height/2;
+        } else if (door_mod.orientation === "up") {
+            door_width = door_dims.size;
+            door_height = door_dims.size / 2;
+            door_x = door_stage_coords.x - door_width/2;
+            door_y = door_stage_coords.y;
+        } else if (door_mod.orientation === "down") {
+            door_width = door_dims.size;
+            door_height = door_dims.size / 2;
+            door_x = door_stage_coords.x - door_width/2;
+            door_y = door_stage_coords.y - door_height;
+        }
+    } else {
+        door_width = door_dims.size;
+        door_height = door_dims.size;
+        door_x = door_stage_coords.x - door_width/2;
+        door_y = door_stage_coords.y - door_height/2;
+    }
+
+    return {
+        width: door_width,
+        height: door_height,
+        x: door_x,
+        y: door_y
+    };
 }
 
 
@@ -348,7 +404,7 @@ function draw_building_shape(cell_info, parent, for_main_stage) {
 
     // TODO: remove entirely
     // add a clipping function to the building group to hide doors from appearing outside of building
-    if (building_clipping_enabled) {
+    if (building_clipping_enabled && !for_main_stage) {
         parent.clipFunc(function(ctx) {
             ctx.beginPath();
             ctx.moveTo(stage_shape_path[0], stage_shape_path[1]);
@@ -472,12 +528,12 @@ function draw_entrances(cell_info, parent, for_main_stage) {
             let stage_coords2 = door_grid_coords_to_stage_coords(line[1], building_grid_coords, false);
 
             // offset by stroke size
-            let offset = door_dims.stroke / 3; // TODO: could make perfect with / 2, but I still want door outline to be partially hidden to not create visual bugs
+            // let offset = door_dims.stroke * 1.5; // TODO: could make perfect with / 2, but I still want door outline to be partially hidden to not create visual bugs
 
-            let offset_stage_coords1 = calc_line_extend_point(stage_coords2, stage_coords1, offset);
-            let offset_stage_coords2 = calc_line_extend_point(stage_coords1, stage_coords2, offset);
+            // let offset_stage_coords1 = calc_line_extend_point(stage_coords2, stage_coords1, offset);
+            // let offset_stage_coords2 = calc_line_extend_point(stage_coords1, stage_coords2, offset);
 
-            return [offset_stage_coords1, offset_stage_coords2];
+            return [stage_coords1, stage_coords2];
         });
     }
 
@@ -520,15 +576,18 @@ function draw_entrances(cell_info, parent, for_main_stage) {
         let door_color = door["accessible"] == 1 ? "#005A9C" : "gray";
         let door_stroke_color = door_mod.open ? "black" : "red";
 
+        let dir_door_dims = get_directional_door_dims(cell_info, door_id, for_main_stage);
+
+
         let door_shape = new Konva.Rect({
-            width: door_dims.size,
-            height: door_dims.size,
+            width: dir_door_dims.width,
+            height: dir_door_dims.height,
             fill: door_color,
             // fill: door_colors[d],
             stroke: door_stroke_color,
             strokeWidth: door_dims.stroke,
-            x: door_stage_coords.x - door_dims.size/2, // adjust for rect positioning being top left corner
-            y: door_stage_coords.y - door_dims.size/2,
+            x: dir_door_dims.x,
+            y: dir_door_dims.y,
             perfectDrawEnabled: false,
             shadowForStrokeEnabled: false
         });
@@ -553,28 +612,32 @@ function draw_entrances(cell_info, parent, for_main_stage) {
 
             // make the current dragged door always appear on top of other doors on drag start
             door_shape.on("dragstart", function (e) {
+                console.log("drag start");
                 door_shape.zIndex(door_draw_order.length - 1); 
             });
 
             // lock the door's position to the building shape
+            // door_shape.on("dragmove", function (e) {
+                // console.log("dragmove");
             door_shape.dragBoundFunc(function (pos) {
 
                 // get the current shape position
                 let current_pos = {
-                    x: pos.x + door_dims.size / 2,
-                    y: pos.y + door_dims.size / 2
+                    x: pos.x + door_dims.size/2,
+                    y: pos.y + door_dims.size/2
                 };
+
 
                 // find the point closest to the shape from the current point
                 let best_point_and_line = calc_closest_line_and_point_from_point_to_lines(effective_stage_walls, current_pos);
                 let line_direction = calc_line_orthogonal_direction(best_point_and_line.line[0], best_point_and_line.line[1]);
-                door_mod["wall_direction"] = line_direction;
-                door_mod["attached_wall"] = best_point_and_line.line;
+                door_mod.wall_direction = line_direction;
+                door_mod.attached_wall = best_point_and_line.line;
 
                 // adjust the point to door top left coordinate rather than center
                 let best_point_adjusted = {
-                    x: best_point_and_line.point.x - door_dims.size / 2,
-                    y: best_point_and_line.point.y - door_dims.size / 2
+                    x: best_point_and_line.point.x - door_dims.size/2,
+                    y: best_point_and_line.point.y - door_dims.size/2
                 };
 
                 // set the new position
@@ -666,7 +729,7 @@ function draw_corridors(cell_info, parent, for_main_stage) {
         corridors_group.add(corridor_line);
     }
 
-    // iterate over every connected building cell for the given building
+    // // iterate over every connected building cell for the given building
     // for (let building_id in connection_mods) {
         
     //     let connection_mod = connection_mods[building_id];
@@ -680,8 +743,8 @@ function draw_corridors(cell_info, parent, for_main_stage) {
     //         let adjacent_wall_stage = adjacent_wall.map(coords => door_grid_coords_to_stage_coords(coords, building_grid_coords, for_main_stage));
 
     //         // draw circles at wall endpoints
-    //         for (let j = 0; j < shape_wall.length; j++) {
-    //             let coords = shape_wall[j];
+    //         for (let j = 0; j < adjacent_wall_stage.length; j++) {
+    //             let coords = adjacent_wall_stage[j];
     //             let circle = new Konva.Circle({
     //                 fill: "red",
     //                 x: coords.x,
@@ -1257,17 +1320,21 @@ function draw_external_path_part(cell1_info, door1_grid_coords, door1_id, cell2_
     let building1_grid_coords = grid_coords_for_building_or_door(cell1_info.building_data);
     let building2_grid_coords = grid_coords_for_building_or_door(cell2_info.building_data);
 
-    console.log("external path: building1: ", building1_grid_coords, "door1: ", door1_grid_coords, "building2_grid_coords: ", building2_grid_coords, "door2: ", door2_grid_coords);
+    console.log("external path: ", path_type, "building1: ", building1_grid_coords, "door1: ", door1_grid_coords, "building2_grid_coords: ", building2_grid_coords, "door2: ", door2_grid_coords);
 
     // use door id to get grid coords if possible
     if (cell1_info !== null && door1_id !== null) {
         let door1_mods = cell1_info.building_mods.entrance_mods[door1_id];
         door1_grid_coords = grid_coords_for_building_or_door(door1_mods.data_ref);
+        building1_grid_coords = estimate_building_grid_coords(door1_grid_coords);
     }
     if (cell2_info !== null && door2_id !== null) {
         let door2_mods = cell2_info.building_mods.entrance_mods[door2_id];
         door2_grid_coords = grid_coords_for_building_or_door(door2_mods.data_ref);
+        building2_grid_coords = estimate_building_grid_coords(door2_grid_coords);
     }
+
+    console.log("external path adjusted coords: building1: ", building1_grid_coords, "door1: ", door1_grid_coords, "building2_grid_coords: ", building2_grid_coords, "door2: ", door2_grid_coords);
 
     let cell_dims = get_cell_dims(true);
     let door_dims = get_door_dims(true);
@@ -1369,6 +1436,9 @@ function draw_external_path_part(cell1_info, door1_grid_coords, door1_id, cell2_
         }
     }
 
+    console.log("best buiding2 corner: ", best_building2_corner);
+    console.log("building 2 corners: ", building2_grid_corners);
+
     // calculate points straight from door to cell border
     let door1_to_border_results = null;
     let door2_to_border_results = null;
@@ -1468,23 +1538,26 @@ function draw_internal_path_part(cell_info, door1_id, door2_id, parent, path_typ
     let door1_middle_grid_coords = door1_to_center[1];
     let door2_grid_coords = door2_to_center[0];
     let door2_middle_grid_coords = door2_to_center[1];
-    let center_grid_coords = door1_to_center[2]; // doesn't really matter which path it comes from, it's the same
+    let center1_grid_coords = door1_to_center[2];
+    let center2_grid_coords = door2_to_center[2];
 
     let full_grid_path = null;
 
     // check if the lines from the doors to the middle line intersect
-    let door_intersection = calc_lines_intersection([door1_grid_coords, door1_middle_grid_coords], [door2_grid_coords, door2_middle_grid_coords]);
+    // let door_intersection = calc_lines_intersection([door1_grid_coords, door1_middle_grid_coords], [door2_grid_coords, door2_middle_grid_coords]);
 
-    if (door_intersection !== null) {
-        full_grid_path = [door1_grid_coords, door_intersection, door2_grid_coords];
+    // if (door_intersection !== null) {
+    //     full_grid_path = [door1_grid_coords, door_intersection, door2_grid_coords];
 
-    // check if either doors' middle coords are in a straight line to the center
-    } else if (points_are_in_straight_line(door1_middle_grid_coords, door2_middle_grid_coords, center_grid_coords) ||
-               points_are_in_straight_line(door2_middle_grid_coords, door1_middle_grid_coords, center_grid_coords)) {
-        full_grid_path = [door1_grid_coords, door1_middle_grid_coords, door2_middle_grid_coords, door2_grid_coords];
-    } else {
-        full_grid_path = [door1_grid_coords, door1_middle_grid_coords, center_grid_coords, door2_middle_grid_coords, door2_grid_coords];
-    }
+    // // check if either doors' middle coords are in a straight line to the center
+    // } else if (points_are_in_straight_line(door1_middle_grid_coords, door2_middle_grid_coords, center_grid_coords) ||
+    //            points_are_in_straight_line(door2_middle_grid_coords, door1_middle_grid_coords, center_grid_coords)) {
+    //     full_grid_path = [door1_grid_coords, door1_middle_grid_coords, door2_middle_grid_coords, door2_grid_coords];
+    // } else {
+    //     full_grid_path = [door1_grid_coords, door1_middle_grid_coords, center_grid_coords, door2_middle_grid_coords, door2_grid_coords];
+    // }
+
+    full_grid_path = [door1_grid_coords, door1_middle_grid_coords, center1_grid_coords, center2_grid_coords, door2_middle_grid_coords, door2_grid_coords];
 
     // convert internal path to stage coordinates
     let full_stage_path = full_grid_path.map((grid_point) => door_grid_coords_to_stage_coords(grid_point, building_grid_coords, true));

@@ -52,7 +52,8 @@ let editor_door_dims = null;
 let door_len_ratio = 0.075;
 let cell_spacing_ratio = 0;
 let editor_inset_ratio = 0.05;
-let stroke_size_ratio = 0.01;
+let building_stroke_size_ratio = 0.0075;
+let door_stroke_size_ratio = 0.005;
 let should_invert_door_y = false;
 let road_size_ratio = 0.1;
 let road_dashes_per_cell = 10;
@@ -140,9 +141,6 @@ let pan_start_stage_pos = null;
 let is_panning = false;
 let is_pan_attempted = false;
 const pan_min_dist = 5;
-
-// store the original editor width to support responsive scaling
-let orig_editor_width = 0;
 
 // define congestion constants
 const con_std_dev = 20;

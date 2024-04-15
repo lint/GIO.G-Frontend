@@ -530,6 +530,9 @@ function selected_door_moved(cell_info, door_id, editor_door_shape) {
     // log this door as being the last dragged door for this building (so it is drawn on top of other doors)
     door_mod.last_drag_time = Date.now();
 
+    // find new door orientation
+    find_door_orientation(cell_info, door_id);
+
     // recalculate door corridors
     calculate_building_corridors(cell_info);
     
