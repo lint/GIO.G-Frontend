@@ -351,12 +351,17 @@ function calc_line_to_line_dist(l1, l2) {
         return 0;
     }
 
-    let dist1 = calc_closest_point(l1[0], l1[1], l2[0]);
-    let dist2 = calc_closest_point(l1[0], l1[1], l2[1]);
-    let dist3 = calc_closest_point(l2[0], l2[1], l1[0]);
-    let dist4 = calc_closest_point(l2[0], l2[1], l1[1]);
+    let p1 = calc_closest_point(l1[0], l1[1], l2[0]);
+    let p2 = calc_closest_point(l1[0], l1[1], l2[1]);
+    let p3 = calc_closest_point(l2[0], l2[1], l1[0]);
+    let p4 = calc_closest_point(l2[0], l2[1], l1[1]);
 
-    return Math.min([dist1, dist2, dist3, dist4]);
+    let dist1 = calc_dist(l2[0], p1);
+    let dist2 = calc_dist(l2[1], p2);
+    let dist3 = calc_dist(l1[0], p3);
+    let dist4 = calc_dist(l1[1], p4);
+
+    return Math.min(dist1, dist2, dist3, dist4);
 }
 
 
@@ -542,10 +547,10 @@ function invert_rect_coords(r1, r2){
 // determine if a pair of coordinates are adjacent
 function coords_are_adjacent(p1, p2) {
 
-    let p1_left = {x:p1.x-1, y:p1.y};
-    let p1_right = {x:p1.x+1, y:p1.y};
-    let p1_up = {x:p1.x, y:p1.y+1};
-    let p1_down = {x:p1.x, y:p1.y-1};
+    let p1_left     = {x:p1.x-1, y:p1.y};
+    let p1_right    = {x:p1.x+1, y:p1.y};
+    let p1_up       = {x:p1.x,   y:p1.y-1};
+    let p1_down     = {x:p1.x,   y:p1.y+1};
 
     if (coords_eq(p1_left, p2)) {
         return "left";
@@ -652,4 +657,15 @@ function rand_gaussian(mean=0, stdev=1) {
     const z = Math.sqrt(-2.0 * Math.log(u)) * Math.cos(2.0 * Math.PI * v);
     // Transform to the desired mean and standard deviation:
     return z * stdev + mean;
+}
+
+
+/* ---------------------------------- misc ---------------------------------- */
+
+
+// rotates the elements in an array by some amount
+function rotate_array(arr, count) {
+    const len = arr.length
+    arr.push(...arr.splice(0, (-count % len + len) % len))
+    return arr
 }

@@ -126,7 +126,7 @@ function filter_current_graph(include_closed_doors_and_buildings, include_few_do
 
 
 // process a given building a set its grid information
-function process_building(building, cell_info_override=null) {
+function process_building(building, cell_info_override=null, skip_outline_calc=false) {
 
     // initialize the info object for the given building
     let cell_info = cell_info_override !== null ? cell_info_override : init_grid_cell_info(building);
@@ -135,7 +135,9 @@ function process_building(building, cell_info_override=null) {
     update_deep_doors(building || cell_info.building_data);
 
     // create the building outline path 
-    create_building_outline_path(cell_info);
+    if (!skip_outline_calc) {
+        create_building_outline_path(cell_info);
+    }
 
     // calculate effective walls to prevent doors in corners
     find_building_effective_walls(cell_info);
@@ -373,12 +375,6 @@ function merge_buildings(cell_info1, cell_info2, orig_merge_coords, new_merge_co
     let connection_mods1 = building_mods1.connection_mods;
     let connection_mods2 = building_mods2.connection_mods;
 
-    console.log("checking adjacency:", orig_merge_coords, new_merge_coords);
-
-    let direction = coords_are_adjacent(orig_merge_coords, new_merge_coords);
-
-    // console.log("direction: ", direction);
-
     // get list of entrances for both buildings
     let building1_doors = [];
     let building2_doors = [];
@@ -417,132 +413,6 @@ function merge_buildings(cell_info1, cell_info2, orig_merge_coords, new_merge_co
         connection_mods1[building_id] = connection_mods2[building_id];
     }
 
-    // thanks Connor for figuring this out :)
-
-    // find first closest entrance between the two buildings
-    // let first_link_orig = -1;
-    // let first_link_new = -1;
-    // let best_dist = Number.MAX_SAFE_INTEGER;
-
-    // for (let i = 0; i < building1_doors.length; i++) {
-    //     for (let j = 0; j < building2_doors.length; j++) {
-
-    //         let orig_door = building1_doors[i];
-    //         let new_door = building2_doors[j];
-    //         let dist = calc_dist(orig_door, new_door);
-
-    //         let estimated_building_grid_coords = estimate_building_grid_coords(grid_coords_for_building_or_door(orig_door));
-
-    //         if (!coords_are_adjacent(estimated_building_grid_coords, new_merge_coords)) {
-    //             continue;
-    //         }
-
-    //         if (dist < best_dist) {
-    //             first_link_orig = i;
-    //             first_link_new = j;
-    //             best_dist = dist;
-    //         }
-    //     }
-    // }
-
-    // // find second closest entrance between two buildings
-    // let second_link_orig = -1;
-    // let second_link_new = -1;
-    // best_dist = Number.MAX_SAFE_INTEGER;
-
-    // for (let i = 0; i < building1_doors.length; i++) {
-    //     for (let j = 0; j < building2_doors.length; j++) {
-
-    //         let orig_door = building1_doors[i];
-    //         let new_door = building2_doors[j];
-    //         let dist = calc_dist(orig_door, new_door);
-
-    //         let estimated_building_grid_coords = estimate_building_grid_coords(grid_coords_for_building_or_door(orig_door));
-
-    //         if (!coords_are_adjacent(estimated_building_grid_coords, new_merge_coords) || i == first_link_orig || j == second_link_orig) {
-    //             continue;
-    //         }
-
-    //         if (dist < best_dist) {
-    //             second_link_orig = i;
-    //             second_link_new = j;
-    //             best_dist = dist;
-    //         }
-    //     }
-    // }
-
-    // // if necessary, switch links to ensure links don't cross over each other
-    // if (direction === "up" || direction === "down") {
-    //     if (building1_doors[first_link_orig].x > building1_doors[second_link_orig].x && building2_doors[first_link_new].x < building2_doors[second_link_new].x) {
-    //         let temp = first_link_orig;
-    //         first_link_orig = second_link_orig;
-    //         second_link_orig = temp;
-    //     }
-    // } else if (direction === "left" || direction === "right") {
-    //     if (building1_doors[first_link_orig].y > building1_doors[second_link_orig].y && building2_doors[first_link_new].y < building2_doors[second_link_new].y) {
-    //         let temp = first_link_orig;
-    //         first_link_orig = second_link_orig;
-    //         second_link_orig = temp;
-    //     }
-    // }
-
-    // let zip_results = null;
-
-    // console.log("first entrances: ", building1_doors);
-    // console.log(first_link_orig, second_link_orig);
-    // console.log("second entrnaces: ", building2_doors);
-    // console.log(first_link_new, second_link_new);
-
-
-    // // actually merge the entrances
-    // if (direction === "up") {
-    //     if (building1_doors[first_link_orig].x > building1_doors[second_link_orig].x) {
-    //         zip_results = zip_entrances(building1_doors, building2_doors, entrance_mods1, entrance_mods2, first_link_orig, second_link_orig, first_link_new);
-    //     } else {
-    //         zip_results = zip_entrances(building1_doors, building2_doors, entrance_mods1, entrance_mods2, second_link_orig, first_link_orig, second_link_new);
-    //     }
-    // } else if (direction === "down") {
-    //     if (building2_doors[first_link_new].x > building2_doors[second_link_new].x) {
-    //         zip_results = zip_entrances(building2_doors, building1_doors, entrance_mods2, entrance_mods1, first_link_new, second_link_new, first_link_orig);
-    //     } else {
-    //         zip_results = zip_entrances(building2_doors, building1_doors, entrance_mods2, entrance_mods1, second_link_new, first_link_new, second_link_orig);
-    //     }
-    // } else if (direction === "left") {
-    //     if (building1_doors[first_link_orig].y > building1_doors[second_link_orig].y) {
-    //         zip_results = zip_entrances(building1_doors, building2_doors, entrance_mods1, entrance_mods2, first_link_orig, second_link_orig, first_link_new);
-    //     } else {
-    //         zip_results = zip_entrances(building1_doors, building2_doors, entrance_mods1, entrance_mods2, second_link_orig, first_link_orig, second_link_new);
-    //     }
-    // } else if (direction === "right") {
-    //     if (building2_doors[first_link_new].y > building2_doors[second_link_new].y) {
-    //         zip_results = zip_entrances(building2_doors, building1_doors, entrance_mods2, entrance_mods1, first_link_new, second_link_new, first_link_orig);
-    //     } else {
-    //         zip_results = zip_entrances(building2_doors, building1_doors, entrance_mods2, entrance_mods1, second_link_new, first_link_new, second_link_orig);
-    //     }
-    // } else {
-    //     console.log("here????");
-    // }
-
-    // let merged_entrances = zip_results[0];
-    // let merged_entrance_mods_list = zip_results[1];
-    // let merged_entrance_mods = {};
-    
-    // // reset door ids
-    // for (let i = 0; i < merged_entrances.length; i++) {
-    //     let new_id = i+1;
-
-    //     merged_entrances[i].id = new_id;
-    //     merged_entrance_mods[new_id] = merged_entrance_mods_list[i];
-    // }
-
-    // console.log(merged_entrances, merged_entrance_mods_list);
-    // console.log(merged_entrance_mods);
-    
-    // merged_entrances = merged_entrances.filter((door) => merged_entrance_mods[door.id].open);
-    
-    // building1.entrances = merged_entrances;
-    // building_mods1.entrance_mods = merged_entrance_mods;
-
     // combine doors from both buildings
     let door_counter = 0;
     let new_doors = [];
@@ -572,44 +442,11 @@ function merge_buildings(cell_info1, cell_info2, orig_merge_coords, new_merge_co
     building_mods1.entrance_mods = new_door_mods;
     building_mods1.next_new_door_id = ++door_counter;
     
+    // combine the outline paths of both buildings
+    merge_building_outlines(cell_info1, cell_info2, orig_merge_coords, new_merge_coords);
 
-
-    // reprocess the merged building for additional calculations
-    process_building(null, cell_info1);
-}
-
-
-function zip_entrances(first_entrances, second_entrances, first_entrance_mods, second_entrance_mods, first_link1, first_link2, second_link1) {
-    let merged_entrances = [];
-    let merged_entrance_mods_list = [];
-
-    console.log("first entrances: ", first_entrances);
-    console.log(first_link1, first_link2);
-    console.log("second entrnaces: ", second_entrances);
-    console.log(second_link1);
-
-    merged_entrances.push(first_entrances[first_link1]);
-    merged_entrances.push(second_entrances[second_link1]);
-    merged_entrance_mods_list.push(first_entrance_mods[first_entrances[first_link1].id]);
-    merged_entrance_mods_list.push(second_entrance_mods[second_entrances[second_link1].id]);
-
-    let cur = (second_link1 + 1) % second_entrances.length;
-    while (cur != second_link1) {
-        let door = second_entrances[cur];
-        merged_entrances.push(door);
-        merged_entrance_mods_list.push(second_entrance_mods[door.id]);
-        cur = (cur + 1) % second_entrances.length;
-    }
-
-    cur = (first_link2 + 1) % first_entrances.length;
-    while (cur != first_link1) {
-        let door = first_entrances[cur];
-        merged_entrances.push(door);
-        merged_entrance_mods_list.push(first_entrance_mods[door.id]);
-        cur = (cur + 1) % first_entrances.length;
-    }
-
-    return [merged_entrances, merged_entrance_mods_list];
+    // reprocess the merged building for additional calculations (skipping outline calculation)
+    process_building(null, cell_info1, true);
 }
 
 
@@ -618,6 +455,12 @@ function merge_building_outlines(cell_info1, cell_info2, orig_merge_coords, new_
 
     let direction = coords_are_adjacent(orig_merge_coords, new_merge_coords);
 
+    let building1_outline_path = cell_info1.building_mods.outline_grid_path;
+    let building2_outline_path = cell_info2.building_mods.outline_grid_path;
+    let building1_walls = cell_info1.building_mods.outline_grid_walls;
+    let building2_walls = cell_info2.building_mods.outline_grid_walls;
+
+    // get the grid line between the original and new building
     let split_line = null;
 
     if (direction === "up") {
@@ -644,18 +487,18 @@ function merge_building_outlines(cell_info1, cell_info2, orig_merge_coords, new_
 
     let split_orientation = calc_line_orthogonal_direction(split_line[0], split_line[1]);
 
-    // find the closest wall to the split line for each building
-    let building1_walls = cell_info1.building_mods.outline_grid_walls;
-    let building2_walls = cell_info2.building_mods.outline_grid_walls;
-
+    // find the closest wall to the split line for the original building
     let best_dist = Number.MAX_SAFE_INTEGER;
     let best_wall1 = null;
 
     for (let i = 0; i < building1_walls.length; i++) {
         let wall = building1_walls[i];
         let wall_orientation = calc_line_orthogonal_direction(wall[0], wall[1]);
+        
+        let estimated_building1 = estimate_building_grid_coords(wall[0]);
+        let estimated_building2 = estimate_building_grid_coords(wall[1]);
 
-        if (split_orientation !== wall_orientation) {
+        if (split_orientation !== wall_orientation || !coords_eq(estimated_building1, orig_merge_coords) || !coords_eq(estimated_building2, orig_merge_coords)) {
             continue;
         }
 
@@ -667,6 +510,7 @@ function merge_building_outlines(cell_info1, cell_info2, orig_merge_coords, new_
         }
     }
 
+    // find the closest wall to the split line for the new building
     best_dist = Number.MAX_SAFE_INTEGER;
     let best_wall2 = null;
 
@@ -674,7 +518,10 @@ function merge_building_outlines(cell_info1, cell_info2, orig_merge_coords, new_
         let wall = building2_walls[i];
         let wall_orientation = calc_line_orthogonal_direction(wall[0], wall[1]);
 
-        if (split_orientation !== wall_orientation) {
+        let estimated_building1 = estimate_building_grid_coords(wall[0]);
+        let estimated_building2 = estimate_building_grid_coords(wall[1]);
+
+        if (split_orientation !== wall_orientation || !coords_eq(estimated_building1, new_merge_coords) || !coords_eq(estimated_building2, new_merge_coords)) {
             continue;
         }
 
@@ -686,17 +533,136 @@ function merge_building_outlines(cell_info1, cell_info2, orig_merge_coords, new_
         }
     }
 
-    let best_wall1_projected = [calc_closest_point(split_line[0], split_line[1], best_wall1[0]), calc_closest_point(split_line[0], split_line[1], best_wall1[1])];
-    let best_wall2_projected = [calc_closest_point(split_line[0], split_line[1], best_wall2[0]), calc_closest_point(split_line[0], split_line[1], best_wall2[1])];
+    console.log("best wall 1: ", best_wall1);
+    console.log("best wall 2: ", best_wall2);
+    console.log("orig merge coords: ", orig_merge_coords);
+    console.log("new merge coords: ", new_merge_coords);
+    console.log("direction: ", direction);
+    console.log("split line: ", split_line, split_orientation);
 
-    let best_wall1_halfed = [calc_midpoint(best_wall1[0], best_wall1_projected[0]), calc_midpoint(best_wall1[1], best_wall1_projected[1])];
-    let best_wall2_halfed = [calc_midpoint(best_wall2[0], best_wall2_projected[0]), calc_midpoint(best_wall2[1], best_wall2_projected[1])];
-    
-    let corner1 = calc_corner_between_points2(best_wall1_halfed[0], best_wall2_halfed[1], true);
-    let corner2 = calc_corner_between_points2(best_wall1_halfed[1], best_wall2_halfed[0], true);
+    // find points halfway between the wall and the split line
+    let best_wall1_proj = [calc_closest_point(split_line[0], split_line[1], best_wall1[0]), calc_closest_point(split_line[0], split_line[1], best_wall1[1])];
+    let best_wall2_proj = [calc_closest_point(split_line[0], split_line[1], best_wall2[0]), calc_closest_point(split_line[0], split_line[1], best_wall2[1])];
+    let best_wall1_proj_mid = [calc_weighted_midpoint(best_wall1[0], best_wall1_proj[0], 0.25), calc_weighted_midpoint(best_wall1[1], best_wall1_proj[1], 0.25)];
+    let best_wall2_proj_mid = [calc_weighted_midpoint(best_wall2[0], best_wall2_proj[0], 0.25), calc_weighted_midpoint(best_wall2[1], best_wall2_proj[1], 0.25)];
 
-    
+    // store walls that will gap the split
+    let split_gap_wall1 = [];
+    let split_gap_wall2 = [];
 
+    // determine direction to create split walls
+    if (split_orientation === "vertical") {
+        let diff1 = Math.abs(best_wall1_proj_mid[0].y - best_wall2_proj_mid[1].y);
+        let diff2 = Math.abs(best_wall1_proj_mid[1].y - best_wall2_proj_mid[0].y);
+
+        let split_gap_wall1_offset1 = 0;
+        let split_gap_wall1_offset2 = 0;
+        let split_gap_wall2_offset1 = 0;
+        let split_gap_wall2_offset2 = 0;
+
+        if (best_wall1_proj_mid[0].y < best_wall2_proj_mid[1].y) {
+            split_gap_wall1_offset1 = diff1/2;
+            split_gap_wall1_offset2 = -diff1/2;
+
+        } else {
+            split_gap_wall1_offset1 = -diff1/2;
+            split_gap_wall1_offset2 = diff1/2;
+        }
+
+        if (best_wall1_proj_mid[1].y < best_wall2_proj_mid[0].y) {
+            split_gap_wall2_offset1 = diff2/2;
+            split_gap_wall2_offset2 = -diff2/2;
+        } else {
+            split_gap_wall2_offset1 = -diff2/2;
+            split_gap_wall2_offset2 = diff2/2;
+        }
+
+        split_gap_wall1 = [{
+                x: best_wall1_proj_mid[0].x,
+                y: best_wall1_proj_mid[0].y + split_gap_wall1_offset1
+            }, {
+                x: best_wall2_proj_mid[1].x,
+                y: best_wall2_proj_mid[1].y + split_gap_wall1_offset2
+            }
+        ];
+        split_gap_wall2 = [{
+                x: best_wall1_proj_mid[1].x,
+                y: best_wall1_proj_mid[1].y + split_gap_wall2_offset1
+            }, {
+                x: best_wall2_proj_mid[0].x,
+                y: best_wall2_proj_mid[0].y + split_gap_wall2_offset2
+            }
+        ];
+
+    } else {
+        let diff1 = Math.abs(best_wall1_proj_mid[0].x - best_wall2_proj_mid[1].x);
+        let diff2 = Math.abs(best_wall1_proj_mid[1].x - best_wall2_proj_mid[0].x);
+        
+        let split_gap_wall1_offset1 = 0;
+        let split_gap_wall1_offset2 = 0;
+        let split_gap_wall2_offset1 = 0;
+        let split_gap_wall2_offset2 = 0;
+
+        if (best_wall1_proj_mid[0].x < best_wall2_proj_mid[1].x) {
+            split_gap_wall1_offset1 = diff1/2;
+            split_gap_wall1_offset2 = -diff1/2;
+
+        } else {
+            split_gap_wall1_offset1 = -diff1/2;
+            split_gap_wall1_offset2 = diff1/2;
+        }
+
+        if (best_wall1_proj_mid[1].x < best_wall2_proj_mid[0].x) {
+            split_gap_wall2_offset1 = diff2/2;
+            split_gap_wall2_offset2 = -diff2/2;
+        } else {
+            split_gap_wall2_offset1 = -diff2/2;
+            split_gap_wall2_offset2 = diff2/2;
+        }
+
+        split_gap_wall1 = [{
+                x: best_wall1_proj_mid[0].x + split_gap_wall1_offset1,
+                y: best_wall1_proj_mid[0].y 
+            }, {
+                x: best_wall2_proj_mid[1].x + split_gap_wall1_offset2,
+                y: best_wall2_proj_mid[1].y 
+            }
+        ];
+        split_gap_wall2 = [{
+                x: best_wall1_proj_mid[1].x + split_gap_wall2_offset1,
+                y: best_wall1_proj_mid[1].y 
+            }, {
+                x: best_wall2_proj_mid[0].x + split_gap_wall2_offset2,
+                y: best_wall2_proj_mid[0].y 
+            }
+        ];
+    }
+    split_gap_wall2.reverse();
+
+    // construct the combined path
+    let new_outline_path = [...building1_outline_path];
+
+    let best_wall1_index = building1_walls.indexOf(best_wall1);
+    let best_wall2_index = building2_walls.indexOf(best_wall2);
+
+    // ensure building 2 outline path is in proper order for drawing
+    rotate_array(building2_outline_path, -best_wall2_index-1);
+
+    // combine all path parts together
+    new_outline_path.splice(best_wall1_index + 1, 0, 
+        best_wall1_proj_mid[0], 
+        ...split_gap_wall1,
+        best_wall2_proj_mid[1], 
+        ...building2_outline_path, 
+        best_wall2_proj_mid[0],
+        ...split_gap_wall2,
+        best_wall1_proj_mid[1]
+    );
+    new_outline_path = simplify_closed_path(new_outline_path);
+
+    // set building1's outline
+    cell_info1.building_mods.outline_grid_path = new_outline_path;
+    cell_info1.building_mods.outline_grid_walls = lines_from_path(new_outline_path, true);
 }
 
 
