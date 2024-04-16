@@ -424,12 +424,15 @@ function coords_eq(p1, p2, tol=0.0001) {
 
 
 // remove points from path list that are in a straight line with neighboring points
-function simplify_closed_path(points, tol=0.0001) {
+function simplify_path(points, closed, tol=0.0001) {
+
+    let open_path_offset1 = closed ? 0 : 1;
+    let open_path_offset2 = closed ? 0 : 2;
 
     let indexes_to_remove = [];
 
     // first remove duplicates
-    for (let i = 0; i < points.length; i++) {
+    for (let i = 0; i < points.length - open_path_offset1; i++) {
         let p1 = points[i];
         let p2 = points[(i + 1) % points.length];
 
@@ -447,7 +450,7 @@ function simplify_closed_path(points, tol=0.0001) {
     indexes_to_remove = [];
 
     // now remove points in the middle of a straight line
-    for (let i = 0; i < new_points.length; i++) {
+    for (let i = 0; i < new_points.length - open_path_offset2; i++) {
 
         let left = new_points[i];
         let target = new_points[(i + 1) % new_points.length];
@@ -486,6 +489,36 @@ function points_are_in_straight_line(p1, p2, p3, tol=0.0001) {
     }
 
     return false;
+}
+
+
+// helper function to determine if a point lines within a line
+function point_is_on_line(line, point, tol=0.0001) {
+    
+    let l1 = line[0];
+    let l2 = line[1];
+
+    let dxc = point.x - l1.x;
+    let dyc = point.y - l1.y;
+
+    let dxl = l2.x - l1.x;
+    let dyl = l2.y - l1.y;
+
+    let cross = dxc * dyl - dyc * dxl;
+
+    if (abs(cross) > tol) {
+        return false;
+    }
+
+    if (abs(dxl) >= abs(dyl)) {
+        return dxl > 0 ? 
+            l1.x <= point.x && point.x <= l2.x :
+            l2.x <= point.x && point.x <= l1.x;
+    } else {
+        return dyl > 0 ? 
+            l1.y <= point.y && point.y <= l2.y :
+            l2.y <= point.y && point.y <= l1.y;
+    }
 }
 
 

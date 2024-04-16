@@ -323,7 +323,8 @@ function init_grid_cell_info(building) {
             wall_direction: "none",
             attached_wall: null,
             editor_highlighted: false,
-            orientation: null
+            orientation: null,
+            path_count: 0
         };
     }
 
@@ -662,7 +663,7 @@ function merge_building_outlines(cell_info1, cell_info2, orig_merge_coords, new_
         ...split_gap_wall2,
         best_wall1_proj_mid[1]
     );
-    new_outline_path = simplify_closed_path(new_outline_path);
+    new_outline_path = simplify_path(new_outline_path, true);
 
     // set building1's outline
     cell_info1.building_mods.outline_grid_path = new_outline_path;
@@ -712,13 +713,63 @@ function process_paths(paths) {
     update_path_legend_active_paths();
     update_path_stats_tables();
 
+    // automatically open the path stats and legend sections
     if (auto_open_sections_enabled) {
         set_accordion_opened("building-editor-accordion-button", false);
         set_accordion_opened("path-legend-accordion-button", true);
         set_accordion_opened("path-stats-accordion-button", true);
     }
 
+    // count the number of paths that enter or exit each door
+    count_paths_through_doors();
+
+    // draw the paths on the main stage
     draw_paths();
+}
+
+
+// count the number of paths that enter or exit each door
+function count_paths_through_doors() {
+
+    // reset the count for each door
+    for (let y = 0; y < grid.length; y++) {
+        for (let x = 0; x < grid.length; x++) {
+            let cell_info = grid_object_at_coords({x:x, y:y});
+
+            // iterate over every door
+            for (let door_id in cell_info.building_mods.entrance_mods) {
+                cell_info.building_mods.entrance_mods[door_id].path_count = 0;
+            }
+        }
+    }
+    
+    // iterate over every current path
+    for (let a = 0; a < path_algs.length; a++) {
+
+        let alg = path_algs[a];
+        let path_obj = current_paths[alg];
+        let path_mod = path_mods[alg];
+
+        // do not try to display paths that are not present
+        if (!path_mod.has_data) {
+            console.log("no data for path: ", alg);
+            continue;
+        }
+
+        // iterate over every building in the path
+        for (let i = 1; i < path_obj.path.length - 2; i++) {
+
+            let building = path_obj.path[i];
+            let door_id = building.entrances[0].id;
+
+            let cell_info = grid_object_for_id(building.id);
+
+            if (cell_info !== null) {
+                // increase the path counter for the given door
+                cell_info.building_mods.entrance_mods[door_id].path_count++;
+            }
+        }
+    }
 }
 
 

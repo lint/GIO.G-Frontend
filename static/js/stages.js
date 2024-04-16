@@ -207,7 +207,7 @@ function panning_main_stage_mousemove(e) {
         
         let dist = Math.hypot(pan_diff.x, pan_diff.y);
 
-        if (dist > pan_min_dist) {
+        if (dist > main_pan_min_dist) {
             main_is_panning = true;
 
             // reset start pointer position to cleanly begin panning
@@ -359,7 +359,7 @@ function panning_editor_stage_mousemove(e) {
         
         let dist = Math.hypot(pan_diff.x, pan_diff.y);
 
-        if (dist > pan_min_dist) {
+        if (dist > editor_pan_min_dist) {
             editor_is_panning = true;
 
             // reset start pointer position to cleanly begin panning

@@ -377,7 +377,7 @@ html, body {
 }
 
 #dotted-line {
-    background: repeating-linear-gradient(90deg, #D10700 0 4px, #0000 0 10px) center;
+    background: repeating-linear-gradient(90deg, #A907F3 0 4px, #0000 0 10px) center;
     background-size: 100% 4px;
     background-repeat: no-repeat;
 }

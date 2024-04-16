@@ -116,7 +116,7 @@ const path_type_options = {
         dash: [0.00001, 0.05],
         exterior_offset: 3,
         // color: "fuchsia", // Konva.Util.getRandomColor()
-        color: "#D10700",
+        color: "#A907F3",
     },
     dotdashed: {
         dash: [0.00001, 0.05, 0.1, 0.05],
@@ -141,12 +141,14 @@ let main_pan_start_stage_pos = null;
 let main_is_panning = false;
 let main_is_pan_attempted = false;
 let main_stage_scale_by = 1.05;
+const main_pan_min_dist = 5;
+
 let editor_pan_start_pointer_pos = null;
 let editor_pan_start_stage_pos = null;
 let editor_is_panning = false;
 let editor_is_pan_attempted = false;
 let editor_stage_scale_by = 1.05;
-const pan_min_dist = 5;
+const editor_pan_min_dist = 10;
 
 // define congestion constants
 const con_std_dev = 20;
