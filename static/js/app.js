@@ -58,6 +58,7 @@ let should_invert_door_y = false;
 let road_size_ratio = 0.1;
 let road_dashes_per_cell = 10;
 let removed_roads_enabled = true;
+let removed_roads_thru_buildings_enabled = false;
 let building_clipping_enabled = true;
 let building_corridors_enabled = true;
 let building_con_colors_enabled = true;

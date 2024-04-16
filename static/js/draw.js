@@ -889,28 +889,25 @@ function draw_roads(parent) {
         vert_skips.push([]);
     }
 
-    if (removed_roads_enabled) {
-        
-        // iterate over every grid cell
-        for (let y = 0; y < grid.length; y++) {
-            for (let x = 0; x < grid.length; x++) {
+    // iterate over every grid cell
+    for (let y = 0; y < grid.length; y++) {
+        for (let x = 0; x < grid.length; x++) {
 
-                let cell_info = grid_object_at_coords({x:x, y:y});
-                let right_cell_info = grid_object_at_coords({x:x+1, y:y});
-                let down_cell_info = grid_object_at_coords({x:x, y:y+1});
+            let cell_info = grid_object_at_coords({x:x, y:y});
+            let right_cell_info = grid_object_at_coords({x:x+1, y:y});
+            let down_cell_info = grid_object_at_coords({x:x, y:y+1});
 
-                // find two left/right empty cells or connected building cells -> vertical road skip
-                if (cell_info !== null && right_cell_info !== null) {
-                    if ((cell_info.building_data === null && right_cell_info.building_data === null) || cell_info === right_cell_info) {
-                        vert_skips[x + 1].push(y);
-                    }
+            // find two left/right empty cells or connected building cells -> vertical road skip
+            if (cell_info !== null && right_cell_info !== null) {
+                if (((cell_info.building_data === null && right_cell_info.building_data === null) && removed_roads_enabled) || (cell_info === right_cell_info && !removed_roads_thru_buildings_enabled)) {
+                    vert_skips[x + 1].push(y);
                 }
-                
-                // find two up/down empty cells or connected building cells -> horizontal road skip
-                if (cell_info !== null && down_cell_info !== null) {
-                    if ((cell_info.building_data === null && down_cell_info.building_data === null) || cell_info === down_cell_info) {
-                        horz_skips[y + 1].push(x);
-                    }
+            }
+            
+            // find two up/down empty cells or connected building cells -> horizontal road skip
+            if (cell_info !== null && down_cell_info !== null) {
+                if (((cell_info.building_data === null && down_cell_info.building_data === null) && removed_roads_enabled) || (cell_info === down_cell_info && !removed_roads_thru_buildings_enabled)) {
+                    horz_skips[y + 1].push(x);
                 }
             }
         }
