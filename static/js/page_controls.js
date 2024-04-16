@@ -234,7 +234,7 @@ function submit_graph_gen_form() {
         num_buildings: num_buildings_value,
         coverage: coverage_value,
         clustering: clustering_value,
-        constant_con: constant_con_value,
+        constant_conestion: constant_con_value,
         high_con: high_con_value,
         med_con: med_con_value,
         low_con: low_con_value 
@@ -802,4 +802,107 @@ function set_accordion_opened(accordion_button_id, is_open) {
     }
 
     update_accordion_heights();
+}
+
+
+/* --------------------------------- navbar --------------------------------- */
+
+
+// handler method for when the about button is clicked
+function toggle_about_visibility() {
+    
+    about_page_visible = !about_page_visible;
+    
+    let about_overlay = document.getElementById("about-overlay");
+
+    if (about_page_visible) {
+        about_overlay.style.display = "block";
+    } else {
+        about_overlay.style.display = "none";
+    }
+}
+
+
+// get the associated content element for a given navbar item
+function content_id_for_about_navbar_item(element) {
+    
+    let id = element.id;
+    let id_parts = id.split("-");
+    id_parts.splice(id_parts.length - 1, 1, "content");
+    id_parts.splice(1, 1);
+    return id_parts.join("-");
+}
+
+
+// disable all about navbar and content items
+function about_deactivate_all() {
+
+    let navbar_items = document.querySelectorAll(".about-navbar-item");
+    navbar_items.forEach(function (navbar_item) {
+
+        // remove the active class from the navbar item
+        navbar_item.classList.remove("about-navbar-item-active");
+
+        // get the associated content for each navbar item
+        let content_id = content_id_for_about_navbar_item(navbar_item);
+        console.log(content_id);
+
+        // hide the associated content
+        let content_div = document.getElementById(content_id);
+        content_div.style.display = "none";
+    });
+}
+
+// disable all about navbar and content items
+function about_deactivate_noninitially_active() {
+
+    let navbar_items = document.querySelectorAll(".about-navbar-item");
+    navbar_items.forEach(function (navbar_item) {
+
+        // remove the active class from the navbar item
+        if (navbar_item.classList.contains("about-navbar-item-active")) {
+            return;
+        }
+
+        // get the associated content for each navbar item
+        let content_id = content_id_for_about_navbar_item(navbar_item);
+        console.log(content_id);
+
+        // hide the associated content
+        let content_div = document.getElementById(content_id);
+        content_div.style.display = "none";
+    });
+}
+
+// handle the contributors button pressed
+function handle_about_navbar_button(element) {
+
+    if (!about_page_multi_select_enabled) {
+        // deactivate all items in the about page
+        about_deactivate_all();
+    }
+
+    let display = "";
+    
+    if (element.classList.contains("about-navbar-item-active")) {
+        // deactivate the current navbar item
+        element.classList.remove("about-navbar-item-active");
+        display = "none";
+    } else {
+        // activate the current navbar item
+        element.classList.add("about-navbar-item-active");
+        display = "block";
+    }
+
+
+    // show the associated content item
+    let content_id = content_id_for_about_navbar_item(element);
+    let content_div = document.getElementById(content_id);
+    content_div.style.display = display;
+}
+
+
+// handle the multiselect toggle button 
+function handle_about_multiselect_toggle_button() {
+    about_page_multi_select_enabled = !about_page_multi_select_enabled;
 }

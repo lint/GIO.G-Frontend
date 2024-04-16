@@ -4,6 +4,7 @@
   <title>GIO.G</title>
 
   <link rel="stylesheet" href="/static/vendor/nouislider@15.7.1/nouislider.min.css">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons">
   <link rel="stylesheet" href="/static/css/styles.css">
 
   <script type="text/javascript" src="/static/vendor/konva@9.3.6/konva.min.js"></script>
@@ -13,6 +14,283 @@
 
 </head>
 <body>
+
+<div id="about-overlay">
+  <div id="about-page">
+
+    <div id="about-navbar-container">
+      <div id="about-navbar">
+        <div id="about-navbar-contributors-button" class="about-navbar-item about-navbar-item-active" onclick="handle_about_navbar_button(this)">Contributors</div>
+        <div class="about-navbar-separator"></div>
+        <div id="about-navbar-json-button" class="about-navbar-item" onclick="handle_about_navbar_button(this)">JSON Objects</div>
+        <div class="about-navbar-separator"></div>
+        <div id="about-navbar-x" onclick="toggle_about_visibility()">
+          <i class="material-icons">close</i>
+        </div>
+      </div>
+    </div>
+
+    <div id="about-contents-scroll">
+      <div id="about-contents-container">
+
+        <div id="about-contributors-content" class="about-content">
+          <div id="about-contributors-container">
+            <div class="about-contributor">
+              <div class="about-contributor-name">Vasilis E. Sarris</div>
+              <div class="about-contributor-department">Dept. of Computer Science</div>
+              <div class="about-contributor-org">University of Pittsburgh</div>
+              <div class="about-contributor-location">Pittsburgh, USA</div>
+              <div class="about-contributor-email">v.sarris@pitt.edu</div>
+            </div>
+            <div class="about-contributor">
+              <div class="about-contributor-name">Connor P. Sweeney</div>
+              <div class="about-contributor-department">Dept. of Computer Science</div>
+              <div class="about-contributor-org">University of Pittsburgh</div>
+              <div class="about-contributor-location">Pittsburgh, USA</div>
+              <div class="about-contributor-email">cps43@pitt.edu</div>
+            </div>
+            <div class="about-contributor">
+              <div class="about-contributor-name">Sean M. Linton</div>
+              <div class="about-contributor-department">Dept. of Computer Science</div>
+              <div class="about-contributor-org">University of Pittsburgh</div>
+              <div class="about-contributor-location">Pittsburgh, USA</div>
+              <div class="about-contributor-email">sean.linton@pitt.edu</div>
+            </div>
+            <div class="about-contributor">
+              <div class="about-contributor-name">Brian T. Nixon</div>
+              <div class="about-contributor-department">Dept. of Computer Science</div>
+              <div class="about-contributor-org">University of Pittsburgh</div>
+              <div class="about-contributor-location">Pittsburgh, USA</div>
+              <div class="about-contributor-email">nixon.b@cs.pitt.edu</div>
+            </div>
+            <div class="about-contributor">
+              <div class="about-contributor-name">Panos K. Chrysanthis</div>
+              <div class="about-contributor-department">Dept. of Computer Science</div>
+              <div class="about-contributor-org">University of Pittsburgh</div>
+              <div class="about-contributor-location">Pittsburgh, USA</div>
+              <div class="about-contributor-email">panos@cs.pitt.edu</div>
+            </div>
+            <div class="about-contributor">
+              <div class="about-contributor-name">Constantinos Costa</div>
+              <div class="about-contributor-org">Rinnoco Ltd.</div>
+              <div class="about-contributor-location">Limassol, Cyprus</div>
+              <div class="about-contributor-email">costa.c@rinnoco.com</div>
+            </div>
+          </div>
+        </div>
+
+        <div id="about-json-content" class="about-content">
+          <div id="about-json-container">
+
+            <div class="about-json-obj-container">
+              <div class="about-json-obj-title">Building</div>
+              <div class="about-json-obj-items-container">
+                <div class="about-json-obj-item">
+                  <span class="about-json-obj-key">id:</span>
+                  <span class="about-json-obj-value">Int</span>
+                </div>
+                <div class="about-json-obj-item">
+                  <span class="about-json-obj-key">x:</span>
+                  <span class="about-json-obj-value">Int</span>
+                </div>
+                <div class="about-json-obj-item">
+                  <span class="about-json-obj-key">y:</span>
+                  <span class="about-json-obj-value">Int</span>
+                </div>
+                <div class="about-json-obj-item">
+                  <span class="about-json-obj-key">entrances:</span>
+                  <span class="about-json-obj-value">Array[Entrance]</span>
+                </div>
+                <div class="about-json-obj-item">
+                  <span class="about-json-obj-key">congestion_type:</span>
+                  <span class="about-json-obj-value">Array[Congestion]</span>
+                </div>
+                <div class="about-json-obj-item">
+                  <span class="about-json-obj-key">congestion:</span>
+                  <span class="about-json-obj-value">Array[Congestion]</span>
+                </div>
+                <div class="about-json-obj-item">
+                  <span class="about-json-obj-key">merged_x:</span>
+                  <span class="about-json-obj-value">Array[Int]</span>
+                </div>
+                <div class="about-json-obj-item">
+                  <span class="about-json-obj-key">merged_y:</span>
+                  <span class="about-json-obj-value">Array[Int]</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="about-json-obj-container">
+              <div class="about-json-obj-title">Congestion</div>
+              <div class="about-json-obj-items-container">
+                <div class="about-json-obj-item">
+                  <span class="about-json-obj-key">id:</span>
+                  <span class="about-json-obj-value">Int</span>
+                </div>
+                <div class="about-json-obj-item">
+                  <span class="about-json-obj-key">timestep:</span>
+                  <span class="about-json-obj-value">Int</span>
+                </div>
+                <div class="about-json-obj-item">
+                  <span class="about-json-obj-key">lower:</span>
+                  <span class="about-json-obj-value">Int</span>
+                </div>
+                <div class="about-json-obj-item">
+                  <span class="about-json-obj-key">upper:</span>
+                  <span class="about-json-obj-value">Int</span>
+                </div>
+                <div class="about-json-obj-item">
+                  <span class="about-json-obj-key">min:</span>
+                  <span class="about-json-obj-value">Double</span>
+                </div>
+                <div class="about-json-obj-item">
+                  <span class="about-json-obj-key">max:</span>
+                  <span class="about-json-obj-value">Double</span>
+                </div>
+                <div class="about-json-obj-item">
+                  <span class="about-json-obj-key">avg:</span>
+                  <span class="about-json-obj-value">Double</span>
+                </div>
+                <div class="about-json-obj-item">
+                  <span class="about-json-obj-key">stdDev:</span>
+                  <span class="about-json-obj-value">Double</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="about-json-obj-container">
+              <div class="about-json-obj-title">Entrance</div>
+              <div class="about-json-obj-items-container">
+                <div class="about-json-obj-item">
+                  <span class="about-json-obj-key">id:</span>
+                  <span class="about-json-obj-value">Int</span>
+                </div>
+                <div class="about-json-obj-item">
+                  <span class="about-json-obj-key">x:</span>
+                  <span class="about-json-obj-value">Int</span>
+                </div>
+                <div class="about-json-obj-item">
+                  <span class="about-json-obj-key">y:</span>
+                  <span class="about-json-obj-value">Int</span>
+                </div>
+                <div class="about-json-obj-item">
+                  <span class="about-json-obj-key">accessible:</span>
+                  <span class="about-json-obj-value">Int</span>
+                </div>
+              </div>
+            </div>
+            
+            <div class="about-json-obj-container">
+              <div class="about-json-obj-title">GraphConfig</div>
+              <div class="about-json-obj-items-container">
+                <div class="about-json-obj-item">
+                  <span class="about-json-obj-key">num_buildings:</span>
+                  <span class="about-json-obj-value">Int</span>
+                </div>
+                <div class="about-json-obj-item">
+                  <span class="about-json-obj-key">coverage:</span>
+                  <span class="about-json-obj-value">Double</span>
+                </div>
+                <div class="about-json-obj-item">
+                  <span class="about-json-obj-key">clustering:</span>
+                  <span class="about-json-obj-value">Double</span>
+                </div>
+                <div class="about-json-obj-item">
+                  <span class="about-json-obj-key">constant_congestion:</span>
+                  <span class="about-json-obj-value">Boolean</span>
+                </div>
+                <div class="about-json-obj-item">
+                  <span class="about-json-obj-key">high_con:</span>
+                  <span class="about-json-obj-value">Boolean</span>
+                </div>
+                <div class="about-json-obj-item">
+                  <span class="about-json-obj-key">med_con:</span>
+                  <span class="about-json-obj-value">Boolean</span>
+                </div>
+                <div class="about-json-obj-item">
+                  <span class="about-json-obj-key">low_con:</span>
+                  <span class="about-json-obj-value">Boolean</span>
+                </div>
+              </div>
+            </div>
+            
+            <div class="about-json-obj-container">
+              <div class="about-json-obj-title">PathConfig</div>
+              <div class="about-json-obj-items-container">
+                <div class="about-json-obj-item">
+                  <span class="about-json-obj-key">algorithm:</span>
+                  <span class="about-json-obj-value">String</span>
+                </div>
+                <div class="about-json-obj-item">
+                  <span class="about-json-obj-key">accessible:</span>
+                  <span class="about-json-obj-value">Boolean</span>
+                </div>
+                <div class="about-json-obj-item">
+                  <span class="about-json-obj-key">start_x:</span>
+                  <span class="about-json-obj-value">Double</span>
+                </div>
+                <div class="about-json-obj-item">
+                  <span class="about-json-obj-key">start_y:</span>
+                  <span class="about-json-obj-value">Double</span>
+                </div>
+                <div class="about-json-obj-item">
+                  <span class="about-json-obj-key">end_x:</span>
+                  <span class="about-json-obj-value">Double</span>
+                </div>
+                <div class="about-json-obj-item">
+                  <span class="about-json-obj-key">end_y:</span>
+                  <span class="about-json-obj-value">Double</span>
+                </div>
+              </div>
+            </div>
+            
+            <div class="about-json-obj-container">
+              <div class="about-json-obj-title">PathStats</div>
+              <div class="about-json-obj-items-container">
+                <div class="about-json-obj-item">
+                  <span class="about-json-obj-key">time_total:</span>
+                  <span class="about-json-obj-value">Double</span>
+                </div>
+                <div class="about-json-obj-item">
+                  <span class="about-json-obj-key">time_indoor:</span>
+                  <span class="about-json-obj-value">Double</span>
+                </div>
+                <div class="about-json-obj-item">
+                  <span class="about-json-obj-key">time_outdoor:</span>
+                  <span class="about-json-obj-value">Double</span>
+                </div>
+                <div class="about-json-obj-item">
+                  <span class="about-json-obj-key">congestion_average:</span>
+                  <span class="about-json-obj-value">Double</span>
+                </div>
+                <div class="about-json-obj-item">
+                  <span class="about-json-obj-key">congestion_max:</span>
+                  <span class="about-json-obj-value">Double</span>
+                </div>
+                <div class="about-json-obj-item">
+                  <span class="about-json-obj-key">congestion_min:</span>
+                  <span class="about-json-obj-value">Double</span>
+                </div>
+              </div>
+
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div id="about-footer">
+      <div id="about-admt">
+        <span id="about-admt-text">ADMT Lab:</span>
+        <span id="about-admt-link"><a href="https://db.cs.pitt.edu/">https://db.cs.pitt.edu/</a></span>
+      </div>
+      <div id="about-copyright">
+        <span id="about-copyright-text">Copyright © </span>
+        <span id="about-copyright-year">2024</span>
+      </div>    
+    </div>
+  </div>
+</div>
 
 <div id="navbar">
 
@@ -31,6 +309,11 @@
     <div id="navbar-title-name">GIO.G</div>
     <div id="navbar-title-separator">:</div>
     <div id="navbar-title-expanded">Generator for Indoor-Outdoor Graphs</div>
+  </div>
+  <div id="navbar-about-container">
+    <div id="navbar-about-button" class="navbar-text" onclick="toggle_about_visibility()">
+      <i id="navbar-about-icon" class="material-icons">info</i>
+    </div>
   </div>
 </div>
 
@@ -260,6 +543,9 @@
           </div>
           <div class="options-category-container">
             <button type="button" onclick="handle_zooming_toggle_button()">Toggle Zooming</button>
+          </div>
+          <div class="options-category-container">
+            <button type="button" onclick="handle_about_multiselect_toggle_button()">Toggle About Multi-Select</button>
           </div>
         </div>
       </div>

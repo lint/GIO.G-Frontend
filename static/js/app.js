@@ -172,9 +172,10 @@ let road_hide_cur_pos = null;
 let is_dragging_road_hide = false;
 let road_hiding_bounds_rect = null;
 
-// store the current year
-let year_text = new Date().getFullYear()
-
+// about page variables
+let year_text = new Date().getFullYear();
+let about_page_visible = false;
+let about_page_multi_select_enabled = false;
 
 /* -------------------------------------------------------------------------- */
 /*                            main event listeners                            */
@@ -202,6 +203,9 @@ document.addEventListener("DOMContentLoaded", function() {
     // set up the accordion button event listeners and transitions
     setup_accordion_buttons();
 
+    // hide non initially active about items
+    about_deactivate_noninitially_active();
+
     // generate a graph with the default config
     // generate_graph(default_config);
 
@@ -212,6 +216,7 @@ document.addEventListener("DOMContentLoaded", function() {
 
     // update the current year for the copyright date
     document.getElementById("navbar-copyright-year").innerHTML = year_text;
+    document.getElementById("about-copyright-year").innerHTML = year_text;
 });
 
 
@@ -231,3 +236,14 @@ window.addEventListener("resize", function(event) {
     redraw_selected_building(editor_selected_cell_info);
 
 }, true);
+
+
+// add escape key press detection for closing about page
+document.addEventListener("keyup", function(e) { 
+    if (e.key === "Escape") {
+       
+        if (about_page_visible) {
+            toggle_about_visibility();
+        }
+    }
+});

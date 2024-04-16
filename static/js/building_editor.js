@@ -189,6 +189,7 @@ function select_building_to_edit(building_grid_coords, can_unselect) {
         // create a button to delete the current building
         let delete_building_button = document.createElement("button");
         delete_building_button.innerHTML = "Delete Building";
+        // delete_building_button.classList.add("delete-text");
         delete_building_button.addEventListener("click", function (e) {
             handle_delete_building_button(cell_info);
         });
@@ -293,6 +294,10 @@ function create_door_list_item(cell_info, door_id) {
     delete_button.addEventListener("click", function (e) {
         handle_delete_door_button(cell_info, door_id);
     });
+    // delete_trash_icon = document.createElement("i");
+    // delete_trash_icon.classList.add("material-icons");
+    // delete_trash_icon.innerHTML = "delete";
+    // delete_button.appendChild(delete_trash_icon);
 
     // add created items as children to the list item
     li.appendChild(door_label);
