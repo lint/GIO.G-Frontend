@@ -500,7 +500,9 @@ function find_building_centers_and_adjacent_walls(cell_info) {
         let estimated_building_grid_coords = estimate_building_grid_coords(coords);
         let estimated_building_id = grid_coords_to_building_id(estimated_building_grid_coords);
 
-        connection_mods[estimated_building_id].outline_path.push(coords);
+        if (estimated_building_id in connection_mods) {
+            connection_mods[estimated_building_id].outline_path.push(coords);
+        }
     }
 
     // get the center for each connected building
