@@ -102,14 +102,14 @@ function create_stages() {
     // setup callbacks for the main stage
     main_stage.on("mousedown.pan", panning_main_stage_mousedown);
     main_stage.on("mousemove.pan", panning_main_stage_mousemove);
-    main_stage.on("mouseout.pan", panning_main_stage_mouseout);
+    main_stage.on("mouseleave.pan", panning_main_stage_mouseleave);
     main_stage.on("mouseup.pan", panning_main_stage_mouseup);
     main_stage.on("wheel.zoom", zooming_main_stage_wheel);
 
     // setup callbacks for editor stage
     editor_stage.on("mousedown.pan", panning_editor_stage_mousedown);
     editor_stage.on("mousemove.pan", panning_editor_stage_mousemove);
-    editor_stage.on("mouseout.pan", panning_editor_stage_mouseout);
+    editor_stage.on("mouseleave.pan", panning_editor_stage_mouseleave);
     editor_stage.on("mouseup.pan", panning_editor_stage_mouseup);
     editor_stage.on("wheel.zoom", zooming_editor_stage_wheel);
 }
@@ -243,16 +243,16 @@ function panning_main_stage_mousemove(e) {
 
 
 // callback for detection of when the cursor moves out of the stage
-function panning_main_stage_mouseout(e) {
+function panning_main_stage_mouseleave(e) {
 
-    // console.log("stage mouseout!");
     // disable panning if it is enabled
-    // if (main_is_panning) {
-    //     main_is_panning = false;
-    //     return;
-    // }
+    if (main_is_panning || main_is_pan_attempted || !can_pan_enabled) {
+        main_pan_start_pointer_pos = null;
+        main_pan_start_stage_pos = null;
+        main_is_panning = false;
+        main_is_pan_attempted = false;
+    }
 
-    // TODO: causes weird behavior when going over shapes / layers (mouseout is triggered for some reason, find a way to prevent this)
     main_stage.container().style.cursor = "default";
 };
 
@@ -263,6 +263,8 @@ function panning_main_stage_mouseup(e) {
 
     // disable panning if it is enabled
     if (main_is_panning || main_is_pan_attempted || !can_pan_enabled) {
+        main_pan_start_pointer_pos = null;
+        main_pan_start_stage_pos = null;
         main_is_panning = false;
         main_is_pan_attempted = false;
     }
@@ -393,16 +395,18 @@ function panning_editor_stage_mousemove(e) {
 
 
 // callback for detection of when the cursor moves out of the stage
-function panning_editor_stage_mouseout(e) {
+function panning_editor_stage_mouseleave(e) {
 
-    // console.log("stage mouseout!");
+    console.log("editor mouseleave");
+
     // disable panning if it is enabled
-    // if (editor_is_panning) {
-    //     editor_is_panning = false;
-    //     return;
-    // }
+    if (editor_is_panning || editor_is_pan_attempted || !can_pan_enabled) {
+        editor_pan_start_pointer_pos = null;
+        editor_pan_start_stage_pos = null;
+        editor_is_panning = false;
+        editor_is_pan_attempted = false;
+    }
 
-    // TODO: causes weird behavior when going over shapes / layers (mouseout is triggered for some reason, find a way to prevent this)
     editor_stage.container().style.cursor = "default";
 };
 
@@ -415,6 +419,8 @@ function panning_editor_stage_mouseup(e) {
     if (editor_is_panning || editor_is_pan_attempted || !can_pan_enabled) {
         editor_is_panning = false;
         editor_is_pan_attempted = false;
+        editor_pan_start_pointer_pos = null;
+        editor_pan_start_stage_pos = null;
     }
 
     editor_stage.container().style.cursor = "default";
