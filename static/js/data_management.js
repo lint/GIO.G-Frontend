@@ -768,11 +768,11 @@ function init_path_mods() {
 function select_point() {
     
     // get the stage coords of the current pointer position
-    let scale = stage.scaleX();
-    let pointer = stage.getPointerPosition();
+    let scale = main_stage.scaleX();
+    let pointer = main_stage.getPointerPosition();
     let stage_coords = {
-        x: (pointer.x - stage.x()) / scale,
-        y: (pointer.y - stage.y()) / scale,
+        x: (pointer.x - main_stage.x()) / scale,
+        y: (pointer.y - main_stage.y()) / scale,
     };
     console.log("click detected at stage coords: ", stage_coords);
 
@@ -787,7 +787,7 @@ function select_point() {
     } else if (is_selecting_new_connection) {
         select_new_building_connection(grid_coords.building);
     } else {
-        select_building_to_edit(grid_coords.building, true);
+        select_building_to_edit(grid_coords.building, true, true);
     }
 }
 
@@ -822,7 +822,6 @@ function select_new_building_connection(connection_grid_coords) {
         }
     }
 
-
     // check cases in which to not connect
     if (connection_cell_info === null) {
         console.log("selected building to connect to is outside grid bounds");
@@ -849,10 +848,10 @@ function select_new_building_connection(connection_grid_coords) {
     merge_buildings(new_connection_start_cell_info, connection_cell_info, orig_merge_coords, connection_grid_coords);
 
     // reset building editor
-    reset_building_editor();
+    reset_building_editor(true);
 
     // reselect building
-    select_building_to_edit(main_building_grid_coords, false);
+    select_building_to_edit(main_building_grid_coords, false, true);
 
     // redraw new merged building
     redraw_selected_building(new_connection_start_cell_info);

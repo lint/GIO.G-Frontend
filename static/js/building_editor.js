@@ -5,7 +5,7 @@
 
 
 // clear the building editor stage and selected building info
-function reset_building_editor() {
+function reset_building_editor(reset_editor_pos) {
 
     // get selected building elements
     let info_text_container = document.getElementById("selected-cell-info-text-container");
@@ -26,11 +26,18 @@ function reset_building_editor() {
 
     // clear the editor stage
     editor_stage.destroyChildren();
+
+    // reset editor stage zooming and panning
+    if (reset_editor_pos) {
+        editor_stage.scaleX(1);
+        editor_stage.scaleY(1);
+        editor_stage.position({x:0, y:0});
+    }
 }
 
 
 // select a building at the given coordinates and open it in the editor
-function select_building_to_edit(building_grid_coords, can_unselect) {
+function select_building_to_edit(building_grid_coords, can_unselect, reset_editor_pos) {
 
     console.log("selecting cell to edit: ", building_grid_coords);
 
@@ -45,7 +52,7 @@ function select_building_to_edit(building_grid_coords, can_unselect) {
     console.log("cell info:", cell_info);
 
     // reset the building editor elements
-    reset_building_editor();
+    reset_building_editor(reset_editor_pos);
 
     // unselect if clicked same building (by doing nothing)
     if (editor_selected_cell_info !== null && cell_info === editor_selected_cell_info && can_unselect) {
@@ -415,7 +422,7 @@ function handle_delete_building_button(cell_info) {
     delete_building(cell_info);
 
     // reselect the empty cell
-    select_building_to_edit(building_grid_coords, false);
+    select_building_to_edit(building_grid_coords, false, false);
 
     // redraw roads considering new building
     draw_roads(road_layer);
@@ -436,7 +443,7 @@ function handle_add_building_button(building_grid_coords) {
     draw_building(cell_info, building_layer, true);
 
     // reselect the filled cell
-    select_building_to_edit(building_grid_coords, false);
+    select_building_to_edit(building_grid_coords, false, false);
     
     // redraw roads considering new building
     draw_roads(road_layer);

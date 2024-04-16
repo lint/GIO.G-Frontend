@@ -58,7 +58,6 @@ let should_invert_door_y = false;
 let road_size_ratio = 0.1;
 let road_dashes_per_cell = 10;
 let removed_roads_enabled = true;
-let main_stage_scale_by = 1.05;
 let building_clipping_enabled = true;
 let building_corridors_enabled = true;
 let building_con_colors_enabled = true;
@@ -135,11 +134,17 @@ let path_line_cap = "round"; // round, square, or butt
 let path_line_join = "round"; // round, mite, or bevel
 let show_path_type_color = true;
 
-// variables to support panning on the main stage
-let pan_start_pointer_pos = null;
-let pan_start_stage_pos = null;
-let is_panning = false;
-let is_pan_attempted = false;
+// variables to support panning on stages
+let main_pan_start_pointer_pos = null;
+let main_pan_start_stage_pos = null;
+let main_is_panning = false;
+let main_is_pan_attempted = false;
+let main_stage_scale_by = 1.05;
+let editor_pan_start_pointer_pos = null;
+let editor_pan_start_stage_pos = null;
+let editor_is_panning = false;
+let editor_is_pan_attempted = false;
+let editor_stage_scale_by = 1.05;
 const pan_min_dist = 5;
 
 // define congestion constants
@@ -157,7 +162,7 @@ const con_vals = {
 };
 
 // define stages
-let stage = null;
+let main_stage = null;
 let editor_stage = null;
 
 // define layer variables for the main stage (created when main stage is drawn)
@@ -198,7 +203,7 @@ document.addEventListener("DOMContentLoaded", function() {
     update_path_display_sections();
     
     // clear necessary content in the building editor
-    reset_building_editor();
+    reset_building_editor(true);
     
     // set up the accordion button event listeners and transitions
     setup_accordion_buttons();

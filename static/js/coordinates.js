@@ -70,10 +70,10 @@ function door_grid_coords_to_editor_stage_coords(normalized_door_grid_coords, bu
     let bounds_height = calc_dist(building_bounding_grid_rect[1], building_bounding_grid_rect[2]);
 
     let editor_inset = cell_dims.size * editor_inset_ratio;
-    let scale = Math.min(cell_dims.size / bounds_width, cell_dims.size / bounds_height) / editor_stage.scaleX();
+    let scale = Math.min(cell_dims.size / bounds_width, cell_dims.size / bounds_height);
 
     let x_offset = editor_inset + ((cell_dims.size - bounds_width*scale) / 2) - (building_bounding_grid_rect[0].x * scale);
-    let y_offset = editor_inset + ((cell_dims.size - bounds_height*scale) / 2) - (building_bounding_grid_rect[0].y * scale);
+    let y_offset = editor_inset + ((cell_dims.size - bounds_height*scale) / 2) - (building_bounding_grid_rect[0].y * scale); 
 
     return {
         x: normalized_door_grid_coords.x * scale + x_offset,
@@ -194,11 +194,11 @@ function door_editor_stage_coords_to_grid_coords(door_stage_coords, building_gri
     let bounds_height = calc_dist(building_bounding_grid_rect[1], building_bounding_grid_rect[2]);
     let editor_inset = cell_dims.size * editor_inset_ratio;
 
-    let scale = Math.min(cell_dims.size / bounds_width, cell_dims.size / bounds_height) / editor_stage.scaleX();
+    let scale = Math.min(cell_dims.size / bounds_width, cell_dims.size / bounds_height);
 
     let x_offset = editor_inset + ((cell_dims.size - bounds_width*scale) / 2) - (building_bounding_grid_rect[0].x * scale);
     let y_offset = editor_inset + ((cell_dims.size - bounds_height*scale) / 2) - (building_bounding_grid_rect[0].y * scale);
-
+    
     return {
         x: (door_stage_coords.x - x_offset) / scale + normal_offset.x,
         y: (door_stage_coords.y - y_offset) / scale + normal_offset.y

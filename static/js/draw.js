@@ -14,11 +14,11 @@ function calculate_main_draw_dims(grid_len) {
     // get number of spaces between grid cells
     let num_spaces = grid_len - 1;
 
-    let no_spacing_main_width = stage.width() / grid_len;
+    let no_spacing_main_width = main_stage.width() / grid_len;
     let cell_spacing = cell_spacing_ratio * no_spacing_main_width;
 
     // calculate the dimensions of each building cell including spacing
-    let main_cell_width = (stage.width() - num_spaces * cell_spacing) / grid_len;
+    let main_cell_width = (main_stage.width() - num_spaces * cell_spacing) / grid_len;
 
     main_cell_dims = {
         size: main_cell_width,
@@ -195,8 +195,8 @@ function get_corridor_color(cell_info) {
 function draw_main_stage() {
 
     // reset stage scale and position
-    // stage.scale({x:1, y:1});
-    // stage.position({x:0, y:0});
+    // main_stage.scale({x:1, y:1});
+    // main_stage.position({x:0, y:0});
 
     // reset selected points
     path_start_selected_grid_coords = null;
@@ -207,10 +207,10 @@ function draw_main_stage() {
     reset_cell_selections();
 
     // clear the building editor
-    reset_building_editor();
+    reset_building_editor(true);
 
     // clear any previous layers
-    stage.destroyChildren();
+    main_stage.destroyChildren();
 
     // create the necessary layers to draw
     create_main_layers();
@@ -226,52 +226,6 @@ function draw_main_stage() {
 
     // draw roads display
     draw_roads(road_layer);
-}
-
-
-// create and add layers to the main stage
-function create_main_layers() {
-
-    // create and add new layers
-    building_layer = new Konva.Layer({
-        listening: false
-    });
-    road_layer = new Konva.Layer({
-        // listening: false // TODO: add listening false back when you remove road hiding support
-    });
-    path_layer = new Konva.Layer({
-        listening: false
-    });
-    selection_layer = new Konva.Layer({
-        listening: false
-    });
-    
-    stage.add(road_layer);
-    stage.add(building_layer);
-    stage.add(path_layer);
-    stage.add(selection_layer);
-}
-
-
-// setup stage event handlers
-function setup_main_stage_callbacks() {
-    
-    // process clicks for the selection layer
-    // (different from panning mouseup which is already bound, if want to bind to that event you need to use namespaces like mouseup.pan and mouseup.select)
-    stage.off(".selection");
-    stage.on("click.selection", function (e) {
-        if (!is_panning) {
-            select_point();
-        }
-    });
-
-    // setup stage road hiding events
-    stage.off(".road_hiding");
-    stage.on("mousedown.road_hiding", road_hiding_stage_mousedown);
-    stage.on("mousemove.road_hiding", road_hiding_stage_mousemove);
-    stage.on("mouseup.road_hiding", road_hiding_stage_mouseup);
-    road_hiding_bounds_rect = new Konva.Rect({x: 0, y: 0, width: 0, height: 0, stroke: 'red', dash: [2,2], listening: false});
-    road_layer.add(road_hiding_bounds_rect);
 }
 
 
@@ -617,19 +571,16 @@ function draw_entrances(cell_info, parent, for_main_stage) {
             });
 
             // lock the door's position to the building shape
-            // door_shape.on("dragmove", function (e) {
-                // console.log("dragmove");
-            door_shape.dragBoundFunc(function (pos) {
+            door_shape.on("dragmove", function (e) {
 
                 // get the current shape position
-                let current_pos = {
-                    x: pos.x + door_dims.size/2,
-                    y: pos.y + door_dims.size/2
+                let curr_stage_coords = {
+                    x: door_shape.x() + door_dims.size/2,
+                    y: door_shape.y() + door_dims.size/2
                 };
 
-
                 // find the point closest to the shape from the current point
-                let best_point_and_line = calc_closest_line_and_point_from_point_to_lines(effective_stage_walls, current_pos);
+                let best_point_and_line = calc_closest_line_and_point_from_point_to_lines(effective_stage_walls, curr_stage_coords);
                 let line_direction = calc_line_orthogonal_direction(best_point_and_line.line[0], best_point_and_line.line[1]);
                 door_mod.wall_direction = line_direction;
                 door_mod.attached_wall = best_point_and_line.line;
@@ -640,8 +591,7 @@ function draw_entrances(cell_info, parent, for_main_stage) {
                     y: best_point_and_line.point.y - door_dims.size/2
                 };
 
-                // set the new position
-                return best_point_adjusted;
+                door_shape.position(best_point_adjusted);
             });
 
             // drag ended, update stages
@@ -1117,7 +1067,7 @@ function draw_manual_paths() {
     // reset the path layer
     path_layer.destroy();
     path_layer = new Konva.Layer();
-    stage.add(path_layer);
+    main_stage.add(path_layer);
 
     try {
         draw_endpoint_path_part({x:-0.5, y:5.55}, grid_object_at_coords({x:0, y:5}), 1, path_layer, "dashed");
@@ -1180,7 +1130,7 @@ function draw_paths() {
     // reset the path layer
     path_layer.destroy();
     path_layer = new Konva.Layer();
-    stage.add(path_layer);
+    main_stage.add(path_layer);
 
     console.log("path mods: ", path_mods);
 
