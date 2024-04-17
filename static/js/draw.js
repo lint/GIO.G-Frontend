@@ -569,8 +569,14 @@ function draw_entrances(cell_info, parent, for_main_stage) {
 
             // make the current dragged door always appear on top of other doors on drag start
             door_shape.on("dragstart", function (e) {
-                console.log("drag start");
                 door_shape.zIndex(door_draw_order.length - 1); 
+                editor_is_dragging_door = true;
+
+                // prevent editor from starting pan
+                editor_pan_start_pointer_pos = null;
+                editor_pan_start_stage_pos = null;
+                editor_is_panning = false;
+                editor_is_pan_attempted = false;
             });
 
             // lock the door's position to the building shape
@@ -600,6 +606,7 @@ function draw_entrances(cell_info, parent, for_main_stage) {
             // drag ended, update stages
             door_shape.on("dragend", function (e) {
                 selected_door_moved(cell_info, door_id, e.target);
+                editor_is_dragging_door = false;
             });
         }
 

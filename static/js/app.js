@@ -149,6 +149,7 @@ let editor_is_panning = false;
 let editor_is_pan_attempted = false;
 let editor_stage_scale_by = 1.05;
 const editor_pan_min_dist = 10;
+let editor_is_dragging_door = false;
 
 // define congestion constants
 const con_std_dev = 20;

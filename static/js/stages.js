@@ -319,9 +319,9 @@ function zooming_main_stage_wheel(e) {
 
 // callback for detection of any mouse down events on the stage
 function panning_editor_stage_mousedown(e) {
-    // console.log("stage mouse down!");
+    console.log("editor mouse down!");
 
-    if (road_hiding_drag_enabled || !can_pan_enabled) {
+    if (editor_is_dragging_door || !can_pan_enabled) {
         return;
     }
 
@@ -341,7 +341,7 @@ function panning_editor_stage_mousedown(e) {
 function panning_editor_stage_mousemove(e) {
 
     // do nothing if not currently panning
-    if (!editor_is_pan_attempted || (!editor_is_pan_attempted && !editor_is_panning) || editor_pan_start_pointer_pos === null || editor_pan_start_stage_pos === null || !can_pan_enabled) {
+    if (!editor_is_pan_attempted || (!editor_is_pan_attempted && !editor_is_panning) || editor_pan_start_pointer_pos === null || editor_pan_start_stage_pos === null || !can_pan_enabled || editor_is_dragging_door) {
         return;
     }
 

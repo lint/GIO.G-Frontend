@@ -403,6 +403,7 @@ html, body {
     align-items: center;
     background-color: #eee;
     border: solid 2px #444;
+    box-sizing: border-box;
     /* margin-top: 5px; */
 }
 
