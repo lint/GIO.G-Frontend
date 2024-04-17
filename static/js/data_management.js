@@ -308,7 +308,7 @@ function init_grid_cell_info(building) {
     cell_info.building_mods.orig_entrances = building.entrances.map(a => {return {...a}});
     cell_info.building_mods.next_new_door_id = doors.length + 1;
     cell_info.building_mods.con_level = determine_con_level(building.congestion);
-    cell_info.building_mods.corridor_grid_paths = [];
+    cell_info.building_mods.corridor_all_grid_paths = [];
     cell_info.building_mods.corridor_center_lines = [];
 
     // iterate over every door in the building
@@ -331,8 +331,9 @@ function init_grid_cell_info(building) {
     cell_info.building_mods.connection_mods = {};
     cell_info.building_mods.connection_mods[cell_info.building_data.id] = {
         center: null,
-        adjacent_walls: [],
-        outline_path: []
+        outline_path: [],
+        // adjacent_walls: [],
+        adjacent_cells: {}
     };
 
     // get coordinates for every merged building
@@ -349,8 +350,9 @@ function init_grid_cell_info(building) {
             let connected_building_id = grid_coords_to_building_id(grid_coords_for_building_or_door(coords));
             cell_info.building_mods.connection_mods[connected_building_id] = {
                 center: null,
-                adjacent_walls: [],
-                outline_path: []
+                outline_path: [],
+                // adjacent_walls: [],
+                adjacent_cells: {}
             };
         }
     }

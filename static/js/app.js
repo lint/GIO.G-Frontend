@@ -246,12 +246,14 @@ window.addEventListener("resize", function(event) {
 }, true);
 
 
-// add escape key press detection for closing about page
+// add escape key press detection for closing about page or disabling current selections
 document.addEventListener("keyup", function(e) { 
     if (e.key === "Escape") {
        
         if (about_page_visible) {
             toggle_about_visibility();
+        } else {
+            reset_cell_selections();
         }
     }
 });

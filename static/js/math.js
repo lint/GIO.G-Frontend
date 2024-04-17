@@ -225,6 +225,11 @@ function calc_closest_point_to_lines(lines, point) {
 
         let line = lines[i];
 
+        // check if point is on the given line
+        if (point_is_on_line(line, point)) {
+            return point;
+        }
+
         // find the closest point on the line and its distance
         let closest_point = calc_closest_point(line[0], line[1], point);
         let dist = calc_dist(point, closest_point);
@@ -250,6 +255,11 @@ function calc_closest_line_from_point_to_lines(lines, point) {
     for (let i = 0; i < lines.length; i++) {
 
         let line = lines[i];
+
+        // check if point is on the given line
+        if (point_is_on_line(line, point)) {
+            return line;
+        }
 
         // find the closest point on the line and its distance
         let closest_point = calc_closest_point(line[0], line[1], point);
@@ -277,6 +287,14 @@ function calc_closest_line_and_point_from_point_to_lines(lines, point) {
     for (let i = 0; i < lines.length; i++) {
 
         let line = lines[i];
+
+        // check if point is on the given line
+        if (point_is_on_line(line, point)) {
+            return {
+                point: point,
+                line: line
+            };
+        }
 
         // find the closest point on the line and its distance
         let closest_point = calc_closest_point(line[0], line[1], point);
@@ -506,11 +524,11 @@ function point_is_on_line(line, point, tol=0.0001) {
 
     let cross = dxc * dyl - dyc * dxl;
 
-    if (abs(cross) > tol) {
+    if (Math.abs(cross) > tol) {
         return false;
     }
 
-    if (abs(dxl) >= abs(dyl)) {
+    if (Math.abs(dxl) >= Math.abs(dyl)) {
         return dxl > 0 ? 
             l1.x <= point.x && point.x <= l2.x :
             l2.x <= point.x && point.x <= l1.x;

@@ -397,8 +397,6 @@ function panning_editor_stage_mousemove(e) {
 // callback for detection of when the cursor moves out of the stage
 function panning_editor_stage_mouseleave(e) {
 
-    console.log("editor mouseleave");
-
     // disable panning if it is enabled
     if (editor_is_panning || editor_is_pan_attempted || !can_pan_enabled) {
         editor_pan_start_pointer_pos = null;
