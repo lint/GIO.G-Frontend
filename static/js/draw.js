@@ -672,23 +672,6 @@ function draw_corridors(cell_info, parent, for_main_stage) {
         corridors_group.add(corridor_line);
     }
 
-    // draw small squares at center points to hide any non connecting lines
-    for (let building_id in connection_mods) {
-
-        let center = connection_mods[building_id].center;
-        let center_stage = door_grid_coords_to_stage_coords(center, building_grid_coords, for_main_stage)
-
-        let corridor_line = new Konva.Rect({
-            x: center_stage.x - corridor_width / 2,
-            y: center_stage.y - corridor_width / 2,
-            width: corridor_width,
-            height: corridor_width,
-            fill: corridor_color,
-            perfectDrawEnabled: false,
-        });
-        corridors_group.add(corridor_line);
-    }
-
     // // iterate over every connected building cell for the given building
     // for (let building_id in connection_mods) {
         

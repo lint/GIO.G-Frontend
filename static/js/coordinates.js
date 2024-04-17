@@ -36,7 +36,6 @@ function door_grid_coords_to_stage_coords(door_grid_coords, building_grid_coords
         };
         return door_grid_coords_to_editor_stage_coords(normalized_door_grid_coords, building_mods.normalized_bounding_rect);
     }
-
 }
 
 
@@ -617,54 +616,48 @@ function calculate_building_corridors(cell_info) {
 
     // iterate over every connected building cell for the given building
     for (let building_id in connection_mods) {
-    
-        let connection_mod = connection_mods[building_id];
-        // let adjacent_walls = connection_mod.adjacent_walls;
-        let center = connection_mod.center;
-
-        // define a "line" that is just the center point as to include it for single cell buildings
-        // if (adjacent_walls.length === 0) {
-        //     center_lines.push([center, center]);
-        //     continue;
-        // }
         
-        // // iterate over every adjacent building wall
-        // for (let i = 0; i < adjacent_walls.length; i++) {
-            
-        //     // get the target point on the current wall
-        //     let wall = adjacent_walls[i];
-        //     let wall_midpoint = calc_avg_point(wall);
-
-        //     // find the corner between the center and the target wall point
-        //     let corner_to_wall = calc_corner_between_points2(center, wall_midpoint, true);
-        //     let center_corridor_path = [center, corner_to_wall, wall_midpoint];
-            
-        //     all_corridor_paths.push(center_corridor_path);
-        //     center_lines.push(...lines_from_path(center_corridor_path, false));
-        // }
+        let building_grid_coords = grid_coords_for_building_id(building_id);
+        let connection_mod = connection_mods[building_id];
+        let center = connection_mod.center;
 
         // define a "line" that is just the center point as to include it for single cell buildings
         if (Object.keys(connection_mod.adjacent_cells).length === 0) {
             center_lines.push([center, center]);
-            continue;
+        } else {
+
+            // iterate over every adjacent building
+            for (let adjacent_building_id in connection_mod.adjacent_cells) {
+                let adjacent_info = connection_mod.adjacent_cells[adjacent_building_id];
+                
+                // get the target point on the current wall
+                let wall = adjacent_info.wall;
+                let wall_midpoint = calc_avg_point(wall);
+    
+                // find the corner between the center and the target wall point
+                let corner_to_wall = calc_corner_between_points2(center, wall_midpoint, true);
+                let center_corridor_path = [center, corner_to_wall, wall_midpoint];
+                
+                all_corridor_paths.push(center_corridor_path);
+                center_lines.push(...lines_from_path(center_corridor_path, false));
+                adjacent_info.path_to_wall = center_corridor_path;
+            }
         }
 
-        // iterate over every adjacent building
-        for (let adjacent_building_id in connection_mod.adjacent_cells) {
-            let adjacent_info = connection_mod.adjacent_cells[adjacent_building_id];
-            
-            // get the target point on the current wall
-            let wall = adjacent_info.wall;
-            let wall_midpoint = calc_avg_point(wall);
+        // make corridors from center point to non adjacent walls
+        let non_connected_coords_list = get_non_connected_building_coords(building_id);
+        let non_connected_path = [];
 
-            // find the corner between the center and the target wall point
-            let corner_to_wall = calc_corner_between_points2(center, wall_midpoint, true);
-            let center_corridor_path = [center, corner_to_wall, wall_midpoint];
-            
-            all_corridor_paths.push(center_corridor_path);
-            center_lines.push(...lines_from_path(center_corridor_path, false));
-            adjacent_info.path_to_wall = center_corridor_path;
+        for (let i = 0; i < non_connected_coords_list.length; i++) {
+            let non_connected_grid_coords = non_connected_coords_list[i];
+
+            let far_from_center = calc_point_translation(center, building_grid_coords, non_connected_grid_coords, grid.length * 2);
+            let closest_wall_intersection = calc_closest_intersection_for_lines(building_mods.outline_grid_walls, [center, far_from_center], center);
+
+            non_connected_path.push(center, closest_wall_intersection, center);
         }
+        all_corridor_paths.push(non_connected_path);
+
     }
     building_mods.corridor_center_lines = center_lines;
 
@@ -1100,4 +1093,23 @@ function find_door_orientation(cell_info, door_id, door_grid_coords_override=nul
     }
 
     door_mod.orientation = orientation;
+}
+
+
+// get a list of non-connected building ids for a given building id
+function get_non_connected_building_coords(building_id) {
+
+    let building_grid_coords = grid_coords_for_building_id(building_id);
+    let cell_info = grid_object_at_coords(building_grid_coords);
+
+    let left_coords   = {x:building_grid_coords.x-1, y:building_grid_coords.y};
+    let right_coords  = {x:building_grid_coords.x+1, y:building_grid_coords.y};
+    let up_coords     = {x:building_grid_coords.x, y:building_grid_coords.y-1};
+    let down_coords   = {x:building_grid_coords.x, y:building_grid_coords.y+1};
+
+    let non_connected_coords = [left_coords, right_coords, up_coords, down_coords];
+    return non_connected_coords.filter((coords) => {
+        let id = grid_coords_to_building_id(coords);
+        return !(id in cell_info.building_mods.connection_mods[building_id].adjacent_cells);
+    });
 }

@@ -845,7 +845,6 @@ function about_deactivate_all() {
 
         // get the associated content for each navbar item
         let content_id = content_id_for_about_navbar_item(navbar_item);
-        console.log(content_id);
 
         // hide the associated content
         let content_div = document.getElementById(content_id);
@@ -866,7 +865,6 @@ function about_deactivate_noninitially_active() {
 
         // get the associated content for each navbar item
         let content_id = content_id_for_about_navbar_item(navbar_item);
-        console.log(content_id);
 
         // hide the associated content
         let content_div = document.getElementById(content_id);

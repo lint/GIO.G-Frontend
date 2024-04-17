@@ -449,6 +449,33 @@ function calc_path_cutoff_at_point(path, point) {
 }
 
 
+// helper method to calculate the closest intersection of a line to a list of lines
+function calc_closest_intersection_for_lines(lines, target_line, target_point) {
+
+    let best_dist = Number.MAX_SAFE_INTEGER;
+    let best_point = null;
+
+    for (let i = 0; i < lines.length; i++) {
+
+        let line = lines[i];
+        let intersection = calc_lines_intersection(line, target_line);
+
+        if (intersection === null) {
+            continue;
+        }
+
+        let dist = calc_dist(target_point, intersection);
+        
+        if (dist < best_dist) {
+            best_dist = dist;
+            best_point = intersection;
+        }
+    }
+
+    return best_point;
+}
+
+
 // helper method to determine equality of floats 
 function floats_eq(f1, f2, tol=0.0001) {
     return Math.abs(f1 - f2) < tol
