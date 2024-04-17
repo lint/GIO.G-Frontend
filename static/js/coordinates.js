@@ -463,8 +463,8 @@ function update_doors_to_effective_walls(cell_info) {
         // get the closest wall location to the current location
         let best_point_and_line = calc_closest_line_and_point_from_point_to_lines(effective_walls, door_grid_coords);
         let line_direction = calc_line_orthogonal_direction(best_point_and_line.line[0], best_point_and_line.line[1]);
-        door_mod["wall_direction"] = line_direction;
-        door_mod["attached_wall"] = best_point_and_line.line;
+        door_mod.wall_direction = line_direction;
+        door_mod.attached_wall = best_point_and_line.line;
 
         // set door's new coordinates (and convert index back to 1-indexed)
         door.x = best_point_and_line.point.x + 1;

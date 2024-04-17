@@ -155,26 +155,30 @@ function add_new_building_door(cell_info) {
     let door = generate_new_doors(rand_building_grid_coords, 1, door_id)[0];
     let door_grid_coords = grid_coords_for_building_or_door(door);
 
-    // move the door point to the outline of the building
-    if (building_mods.outline_grid_path.length > 0) {
-        door_grid_coords = calc_closest_point_to_shape(building_mods.outline_grid_path, door_grid_coords);
-        door.x = door_grid_coords.x + 1; // convert from 0-indexed to 1-indexed
-        door.y = door_grid_coords.y + 1;
-    }
+    // get the closest wall location to the current location
+    let best_point_and_line = calc_closest_line_and_point_from_point_to_lines(building_mods.effective_grid_walls, door_grid_coords);
+    let line_direction = calc_line_orthogonal_direction(best_point_and_line.line[0], best_point_and_line.line[1]);
+
+    // set door's new coordinates (and convert index back to 1-indexed)
+    door.x = best_point_and_line.point.x + 1;
+    door.y = best_point_and_line.point.y + 1;
 
     // create a new door modification object
     let door_mod =  {
         open: true,
         data_ref: door,
         last_drag_time: 0,
-        wall_direction: "none",
-        attached_wall: null,
+        wall_direction: line_direction,
+        attached_wall: best_point_and_line.line,
         editor_highlighted: false
     };
 
     // add new door structures to grid data
     cell_info.building_data.entrances.push(door);
     building_mods.entrance_mods[door_id] = door_mod;
+
+    // calculate door orientation 
+    find_door_orientation(cell_info, door_id);
 
     return door_id
 }
