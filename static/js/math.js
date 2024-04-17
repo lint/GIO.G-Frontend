@@ -417,6 +417,38 @@ function lines_from_path(path, closed) {
 }
 
 
+// helper method to cut off a path at a given point (assumes non-closed path)
+function calc_path_cutoff_at_point(path, point) {
+
+    // check if the path is only one point
+    if (path.length <= 1) {
+        return path;
+    }
+
+    // check if the point is equal to any of the path points
+    for (let i = 0; i < path.length; i++) {
+        if (coords_eq(point, path[i])) {
+            return path.slice(0, i+1);
+        }
+    }
+
+    // check if point is on any of the path lines
+    for (let i = 0; i < path.length - 1; i++) {
+        let l1 = path[i];
+        let l2 = path[i+1];
+
+        if (point_is_on_line([l1, l2], point)) {
+            let new_path = path.slice(0, i+1);
+            new_path.push(point);
+            return new_path;
+        }
+    }
+
+    // path is unchanged
+    return path;
+}
+
+
 // helper method to determine equality of floats 
 function floats_eq(f1, f2, tol=0.0001) {
     return Math.abs(f1 - f2) < tol
