@@ -246,8 +246,10 @@ window.addEventListener("resize", function(event) {
 }, true);
 
 
-// add escape key press detection for closing about page or disabling current selections
+// add escape key press detection for different actions
 document.addEventListener("keyup", function(e) { 
+
+    // closes the about page or disables current selection statuses
     if (e.key === "Escape") {
        
         if (about_page_visible) {
@@ -255,5 +257,37 @@ document.addEventListener("keyup", function(e) {
         } else {
             reset_cell_selections();
         }
-    }
+    
+    // enable selection for a new path start point
+    } else if (e.key.toLowerCase() === "s") {
+        handle_select_start_building_button();
+
+    // enable selection for a new path end point
+    } else if (e.key.toLowerCase() === "e") {
+        handle_select_end_building_button();
+
+    // enable selection for a new building to connect to
+    } else if (e.key.toLowerCase() === "c") {
+        if (editor_selected_cell_info !== null) {
+            handle_select_connect_building_button(editor_selected_cell_info);
+        }
+
+    // delete the current building
+    } else if (e.key.toLowerCase() === "d") {
+        if (editor_selected_cell_info !== null && editor_selected_cell_info.building_data !== null) {
+            handle_delete_building_button(editor_selected_cell_info);
+        }
+
+    // add a new building at the given coords
+    } else if (e.key.toLowerCase() === "a") {
+        if (editor_selected_grid_coords !== null) {
+
+            // delete the current building first if it exists
+            if (editor_selected_cell_info.building_data !== null) {
+                handle_delete_building_button(editor_selected_cell_info);
+            }
+
+            handle_add_building_button(editor_selected_grid_coords);
+        }
+    }   
 });
