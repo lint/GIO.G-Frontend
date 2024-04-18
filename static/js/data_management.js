@@ -681,7 +681,7 @@ function check_building_connected_adjacency(building_id, adjacent_id) {
     let cell_info = grid_object_for_id(building_id);
 
     if (cell_info.building_data === null) {
-        return true;
+        return false;
     }
 
     return adjacent_id in cell_info.building_mods.connection_mods[building_id].adjacent_cells;

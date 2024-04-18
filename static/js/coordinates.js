@@ -975,8 +975,6 @@ function connect_building_cell_walls_grid_path(building1_id, wall_direction1, bu
         usable_grid_walls.push(row);
     }
 
-    console.log("usable_grid_walls", usable_grid_walls);
-
     // helper method to get the usable neighbors of a given building wall
     function get_usable_neighbors(entry) {
 
@@ -1192,9 +1190,16 @@ function connect_building_cell_walls_grid_path(building1_id, wall_direction1, bu
 
         let wall1_grid_line = wall_to_grid_line(wall1);
         let wall2_grid_line = wall_to_grid_line(wall2);
+        
+        // find the corner between wall lines the first line and choosing the corner that lays on it
+        // TODO: there's definitely more exact way to choose...
 
-        // corner concave vs convex doesn't really matter (if you wanted you could probably make it extend in the right way but eh)
-        let corner = calc_corner_between_points(wall1_grid_line[1], wall2_grid_line[0], true, false);
+        let wall1_line_extended = [wall1_grid_line[0], calc_line_extend_point(wall1_grid_line[0], wall1_grid_line[1], grid.length * 2)];
+
+        let corner1 = calc_corner_between_points(wall1_grid_line[1], wall2_grid_line[0], true, false);
+        let corner2 = calc_corner_between_points(wall1_grid_line[1], wall2_grid_line[0], false, false);
+
+        let corner = point_is_on_line(wall1_line_extended, corner1) ? corner1 : corner2;
         
         grid_path.push(...wall1_grid_line, corner);
     }
@@ -1202,10 +1207,6 @@ function connect_building_cell_walls_grid_path(building1_id, wall_direction1, bu
     // add the final wall
     let final_wall_grid_line = wall_to_grid_line(wall_path[wall_path.length-1]);
     grid_path.push(...final_wall_grid_line);
-
-
-    console.log("find wall connections: building1: ", building1_id, "wall_dir: ", wall_direction1, "building2: ", building2_id, "wall_dir: ", wall_direction2);
-    console.log("resulting wall_path: ", wall_path);
 
     return simplify_path(grid_path, false);
 }
