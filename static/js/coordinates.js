@@ -931,7 +931,7 @@ function connect_door_grid_center_path(cell_info, door_id1, door_id2) {
 }
 
 // get the path that connects the center points of two doors
-function connect_building_cell_walls_grid_path(building1_id, wall_direction1, building2_id, wall_direction2, path_grid_offset) {
+function connect_building_cell_walls_grid_path(building1_id, wall_direction1, building2_id, wall_direction2, target_end_coords, path_grid_offset) {
 
     // construct a wall usability grid for each grid cell
     let usable_grid_walls = [];
@@ -1104,14 +1104,14 @@ function connect_building_cell_walls_grid_path(building1_id, wall_direction1, bu
     }
 
     // heuristic for finding best wall to use
-    function calc_wall_heuristic(wall1, wall2) {
+    // function calc_wall_heuristic(wall1, wall2) {
 
-        let wall1_coords = get_wall_grid_coords(wall1);
-        let wall2_coords = get_wall_grid_coords(wall2);
+    //     let wall1_coords = get_wall_grid_coords(wall1);
+    //     let wall2_coords = get_wall_grid_coords(wall2);
 
-        // TODO: use manhattan distance?
-        return calc_dist(wall1_coords, wall2_coords);
-    }
+    //     // TODO: use manhattan distance?
+    //     return calc_dist(wall1_coords, wall2_coords);
+    // }
 
     // initialize start and end walls for path finding
     let start = {cell_id: building1_id, wall_dir: wall_direction1};
@@ -1146,7 +1146,10 @@ function connect_building_cell_walls_grid_path(building1_id, wall_direction1, bu
                 continue;
             }
 
-            priority = calc_wall_heuristic(next, end);
+            let next_coords = get_wall_grid_coords(next);
+
+            // priority = calc_wall_heuristic(next, end);
+            priority = calc_dist(next_coords, target_end_coords);
 
             pqueue.push({item:next, priority: priority});
             came_from.set(next_str, cur_str);
@@ -1159,7 +1162,7 @@ function connect_building_cell_walls_grid_path(building1_id, wall_direction1, bu
 
     while (cur_str !== start_str) {
         let cur = JSON.parse(cur_str);
-        cur.priority = calc_wall_heuristic(cur, end);
+        // cur.priority = calc_wall_heuristic(cur, end);
         wall_path.push(cur);
         cur_str = came_from.get(cur_str);
     }
