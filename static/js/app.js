@@ -25,6 +25,9 @@ let next_config_con_values = {
 // store list of supported path finding algorithms
 const path_algs = ["astro", "dijkstraC", "astroG", "dijkstra", "greedy"];
 
+// store list of directions
+const ordered_directions = ["up", "right", "down", "left"];
+
 // store data about the current graph
 let current_config = default_config;
 let current_graph = null;

@@ -203,23 +203,8 @@ function grid_object_at_coords(grid_coords) {
 
 // get the grid object for the provided building
 function grid_object_for_id(building_id) {
-
-    // use the id to get the grid coords directly
-    let x = Math.floor(building_id / grid.length);
-    let y = building_id % grid.length;
-
-    if (x >= grid.length || x < 0 || y >= grid.length || y < 0) {
-        return null;
-    }
-
-    let cell_info = grid[y][x];
-
-    // TODO: why do i do this check? is it actually necessary?
-    if (cell_info.building_data !== null) {
-        return cell_info
-    }
-
-    return null;
+    let building_grid_coords = grid_coords_for_building_id(building_id);
+    return grid_object_at_coords(building_grid_coords);
 }
 
 
@@ -687,6 +672,19 @@ function get_all_doors(cell_info) {
     doors.sort((a, b) => a.id - b.id);
 
     return doors;
+}
+
+
+// check if the building at the given id is adjacently connected to the other id
+function check_building_connected_adjacency(building_id, adjacent_id) {
+
+    let cell_info = grid_object_for_id(building_id);
+
+    if (cell_info.building_data === null) {
+        return true;
+    }
+
+    return adjacent_id in cell_info.building_mods.connection_mods[building_id].adjacent_cells;
 }
 
 

@@ -127,9 +127,15 @@ function calc_corner_between_points2(p1, p2, choose_closest) {
 }
 
 
-// helper method to calculate the distance between two points
+// helper method to calculate the euclidean distance between two points
 function calc_dist(p1, p2) {
     return Math.hypot(p2.x-p1.x, p2.y-p1.y);
+}
+
+
+// helper method to calculate manhattan distance between two points
+function calc_manhattan_dist(p1, p2) {
+    return Math.abs(p1.x - p2.x) + Math.abs(p1.y - p2.y);
 }
 
 
@@ -676,6 +682,55 @@ function coords_are_adjacent(p1, p2) {
     }
 
     return false;
+}
+
+
+// helper method to get an adjacent grid cell coordinate in a given direction
+function calc_adjacent_grid_coord(grid_coords, direction) {
+
+    if (direction === "left") {
+        return {x:grid_coords.x-1, y:grid_coords.y};
+    }
+    if (direction === "right") {
+        return {x:grid_coords.x+1, y:grid_coords.y};
+    }
+    if (direction === "up") {
+        return {x:grid_coords.x,   y:grid_coords.y-1};
+    }
+    if (direction === "down") {
+        return {x:grid_coords.x,   y:grid_coords.y+1};
+    }
+    
+    return null; // or should just return grid_coords?
+}
+
+
+// get the opposite direction for a given direction
+function get_opposite_direction(direction) {
+
+    let direction_index = ordered_directions.indexOf(direction);
+
+    if (direction_index === -1) {
+        return -1;
+    }
+
+    return ordered_directions[(direction_index + 2) % 4];    
+}
+
+
+// get the matching adjacent corner index in a given direction (only works if provided corner index is on the correct wall)
+function get_matching_adjacent_corner_index(corner_index, direction) {
+
+    
+    let direction_index = ordered_directions.indexOf(direction);
+
+    if (direction_index === -1) {
+        return -1;
+    }
+    // direction_index = (direction_index + 2) % 4;
+
+    let offset = corner_index === direction_index ? 3 : 1;
+    return (corner_index + offset) % 4;
 }
 
 

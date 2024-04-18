@@ -40,7 +40,12 @@ function door_grid_coords_to_stage_coords(door_grid_coords, building_grid_coords
 
 
 // convert door grid coordinates to main stage coordinates
-function door_grid_coords_to_main_stage_coords(door_grid_coords, building_grid_coords) {
+function door_grid_coords_to_main_stage_coords(door_grid_coords, building_grid_coords, should_estimate_coords=false) {
+
+    if (should_estimate_coords) {
+        building_grid_coords = estimate_building_grid_coords(door_grid_coords);
+    }
+
     let building_stage_coords = grid_coords_to_main_stage_coords(building_grid_coords);
     let cell_dims = get_cell_dims(true);
 
@@ -925,6 +930,286 @@ function connect_door_grid_center_path(cell_info, door_id1, door_id2) {
     return simplify_path(connected_centers_path, false);
 }
 
+// get the path that connects the center points of two doors
+function connect_building_cell_walls_grid_path(building1_id, wall_direction1, building2_id, wall_direction2, path_grid_offset) {
+
+    // construct a wall usability grid for each grid cell
+    let usable_grid_walls = [];
+    
+    // iterate over every grid cell
+    for (let y = 0; y < grid.length; y++) {
+        let row = [];
+        for (let x = 0; x < grid.length; x++) {
+
+            let grid_coords = {x:x, y:y};
+            let building_id = grid_coords_to_building_id(grid_coords);
+
+            let cell_usability = {
+                id: building_id,
+                up: true,
+                down: true,
+                right: true,
+                left: true, 
+            };
+
+            // check all directions from the current cell
+            for (let d = 0; d < ordered_directions.length; d++) {
+                let direction = ordered_directions[d];
+                let adjacent_coords = calc_adjacent_grid_coord(grid_coords, direction);
+                
+                // don't check adjaceny if out of bounds
+                if (adjacent_coords.x < 0 || adjacent_coords.x >= grid.length || adjacent_coords.y < 0 || adjacent_coords.y >= grid.length) {
+                    continue;
+                }
+
+                // check if the adjacent builing in the given direction is connected
+                let adjacent_id = grid_coords_to_building_id(adjacent_coords);
+                if (check_building_connected_adjacency(building_id, adjacent_id)) {
+                    cell_usability[direction] = false;
+                }
+            }
+      
+            row.push(cell_usability);
+        }
+
+        usable_grid_walls.push(row);
+    }
+
+    console.log("usable_grid_walls", usable_grid_walls);
+
+    // helper method to get the usable neighbors of a given building wall
+    function get_usable_neighbors(entry) {
+
+        let neighbors = [];
+        let coords = grid_coords_for_building_id(entry.cell_id);
+        // console.log("get usable neighbors: ", entry, coords);
+        let cur_usability = usable_grid_walls[coords.y][coords.x];
+        let wall_dir = entry.wall_dir;
+
+        if (wall_dir === "left" || wall_dir === "right") {
+
+            // check if matching wall direction in up cell is usable
+            if (coords.y - 1 >= 0) {
+                let adj_up_usability = usable_grid_walls[coords.y - 1][coords.x];
+                if (adj_up_usability[wall_dir]) {
+                    neighbors.push({cell_id: adj_up_usability.id, wall_dir: wall_dir});
+                }
+            }
+
+            // check if matching wall direction in down cell is usable
+            if (coords.y + 1 < usable_grid_walls.length) {
+                let adj_down_usability = usable_grid_walls[coords.y + 1][coords.x];
+                if (adj_down_usability[wall_dir]) {
+                    neighbors.push({cell_id: adj_down_usability.id, wall_dir: wall_dir});
+                }
+            }
+
+            // check if cell adjacent to wall_dir has usable up / down walls
+            let left_right_offset = wall_dir === "left" ? -1 : 1;
+            if (coords.x + left_right_offset >= 0 && coords.x + left_right_offset < usable_grid_walls.length) {
+                let adj_left_right_usability = usable_grid_walls[coords.y][coords.x + left_right_offset];
+                if (adj_left_right_usability.up) {
+                    neighbors.push({cell_id: adj_left_right_usability.id, wall_dir: "up"});
+                }
+                if (adj_left_right_usability.down) {
+                    neighbors.push({cell_id: adj_left_right_usability.id, wall_dir: "down"});
+                }
+            }
+
+            // check if current cell's up / down walls are usable
+            if (cur_usability.up) {
+                neighbors.push({cell_id: cur_usability.id, wall_dir: "up"});
+            }
+            if (cur_usability.down) {
+                neighbors.push({cell_id: cur_usability.id, wall_dir: "down"});
+            }
+
+        } else if (wall_dir === "up" || wall_dir === "down") {
+
+            // check if matching wall direction in left cell is usable
+            if (coords.x - 1 >= 0) {
+                let adj_left_usability = usable_grid_walls[coords.y][coords.x - 1];
+                if (adj_left_usability[wall_dir]) {
+                    neighbors.push({cell_id: adj_left_usability.id, wall_dir: wall_dir});
+                }
+            }
+
+            // check if matching wall direction in right cell is usable
+            if (coords.x + 1 < usable_grid_walls.length) {
+                let adj_right_usability = usable_grid_walls[coords.y][coords.x + 1];
+                if (adj_right_usability[wall_dir]) {
+                    neighbors.push({cell_id: adj_right_usability.id, wall_dir: wall_dir});
+                }
+            }
+
+            // check if cell adjacent to wall_dir has usable left / right walls
+            let up_down_offset = wall_dir === "up" ? -1 : 1;
+            if (coords.y + up_down_offset >= 0 && coords.y + up_down_offset < usable_grid_walls.length) {
+                let adj_up_down_usability = usable_grid_walls[coords.y + up_down_offset][coords.x];
+                if (adj_up_down_usability.left) {
+                    neighbors.push({cell_id: adj_up_down_usability.id, wall_dir: "left"});
+                }
+                if (adj_up_down_usability.right) {
+                    neighbors.push({cell_id: adj_up_down_usability.id, wall_dir: "right"});
+                }
+            }
+
+            // check if current cell's up / down walls are usable
+            if (cur_usability.left) {
+                neighbors.push({cell_id: cur_usability.id, wall_dir: "left"});
+            }
+            if (cur_usability.right) {
+                neighbors.push({cell_id: cur_usability.id, wall_dir: "right"});
+            }
+        }
+
+        // find paired wall in adjacent cells for each found neighbor
+        let neighbor_pairs = [];
+        
+        for (let i = 0; i < neighbors.length; i++) {
+
+            let neighbor = neighbors[i];
+            let opposite_dir = get_opposite_direction(neighbor.wall_dir);
+
+            let cell_coords = grid_coords_for_building_id(neighbor.cell_id);
+            let adj_coords = calc_adjacent_grid_coord(cell_coords, neighbor.wall_dir);
+
+            // found neighbors are guaranteed to have a matching adjacent wall unless out of bounds
+            if (adj_coords.x < 0 || adj_coords.x >= grid.length || adj_coords.y < 0 || adj_coords.y >= grid.length) {
+                continue;
+            }
+
+            let adj_id = grid_coords_to_building_id(adj_coords);
+            neighbor_pairs.push({cell_id: adj_id, wall_dir: opposite_dir});
+        };
+
+        return neighbors.concat(neighbor_pairs);
+    }
+
+    // get the grid coords of a given wall based on the cell coords and direction
+    function get_wall_grid_coords(wall) {
+        let wall_cell_coords = grid_coords_for_building_id(wall.cell_id);
+
+        if (wall.wall_dir === "left") {
+            wall_cell_coords.y += 0.5;
+        } else if (wall.wall_dir === "right") {
+            wall_cell_coords.y += 0.5;
+            wall_cell_coords.x += 1;
+        } else if (wall.wall_dir === "up") {
+            wall_cell_coords.x += 0.5;
+        } else if (wall.wall_dir === "down") {
+            wall_cell_coords.y += 1;
+            wall_cell_coords.x += 0.5;
+        }
+
+        return wall_cell_coords;
+    }
+
+    // heuristic for finding best wall to use
+    function calc_wall_heuristic(wall1, wall2) {
+
+        let wall1_coords = get_wall_grid_coords(wall1);
+        let wall2_coords = get_wall_grid_coords(wall2);
+
+        // TODO: use manhattan distance?
+        return calc_dist(wall1_coords, wall2_coords);
+    }
+
+    // initialize start and end walls for path finding
+    let start = {cell_id: building1_id, wall_dir: wall_direction1};
+    let start_str = JSON.stringify(start);
+    let end = {cell_id: building2_id, wall_dir: wall_direction2};
+    let end_str = JSON.stringify(end);
+
+    // intialize priority queue for dijkastra
+    let pqueue = new TinyQueue([{item: start, priority: 0}], function (a, b) {
+        return a.priority - b.priority;
+    });
+    let came_from = new Map();
+    came_from.set(start_str, null);
+
+    // perform dijkastra search on the usable walls
+    while (pqueue.length > 0) {
+        let cur_entry = pqueue.pop();
+        let cur = cur_entry.item;
+        let cur_str = JSON.stringify(cur);
+
+        if (cur_str === end_str) {
+            break;
+        }
+
+        let cur_neighbors = get_usable_neighbors(cur);
+        console.log(cur, cur_neighbors);
+        for (let i = 0; i < cur_neighbors.length; i++) {
+            let next = cur_neighbors[i];
+            let next_str = JSON.stringify(next);
+
+            if (came_from.has(next_str)) {
+                continue;
+            }
+
+            priority = calc_wall_heuristic(next, end);
+
+            pqueue.push({item:next, priority: priority});
+            came_from.set(next_str, cur_str);
+        }
+    }
+
+    // reconstruct the path
+    let cur_str = end_str;
+    let wall_path = [];
+
+    while (cur_str !== start_str) {
+        let cur = JSON.parse(cur_str);
+        cur.priority = calc_wall_heuristic(cur, end);
+        wall_path.push(cur);
+        cur_str = came_from.get(cur_str);
+    }
+    wall_path.push(start);
+    wall_path.reverse();
+
+    // convert wall path to grid coords path
+    let grid_path = [];
+
+    // helper function to convert the wall to a grid coords line in the proper order
+    function wall_to_grid_line(wall) {
+        let cell_coords = grid_coords_for_building_id(wall.cell_id);
+        let cell_corners = [
+            {x:cell_coords.x-0.5+path_grid_offset, y:cell_coords.y-0.5+path_grid_offset}, 
+            {x:cell_coords.x+0.5-path_grid_offset, y:cell_coords.y-0.5+path_grid_offset}, 
+            {x:cell_coords.x+0.5-path_grid_offset, y:cell_coords.y+0.5-path_grid_offset},
+            {x:cell_coords.x-0.5+path_grid_offset, y:cell_coords.y+0.5-path_grid_offset}
+        ];
+        let dir_index = ordered_directions.indexOf(wall.wall_dir);
+        return [cell_corners[dir_index], cell_corners[(dir_index + 1) % 4]];
+    }
+
+    // iterate over sequential pairs of walls
+    for (let i = 0; i < wall_path.length - 1; i++) {
+
+        let wall1 = wall_path[i];
+        let wall2 = wall_path[i+1];
+
+        let wall1_grid_line = wall_to_grid_line(wall1);
+        let wall2_grid_line = wall_to_grid_line(wall2);
+
+        // corner concave vs convex doesn't really matter (if you wanted you could probably make it extend in the right way but eh)
+        let corner = calc_corner_between_points(wall1_grid_line[1], wall2_grid_line[0], true, false);
+        
+        grid_path.push(...wall1_grid_line, corner);
+    }
+
+    // add the final wall
+    let final_wall_grid_line = wall_to_grid_line(wall_path[wall_path.length-1]);
+    grid_path.push(...final_wall_grid_line);
+
+
+    console.log("find wall connections: building1: ", building1_id, "wall_dir: ", wall_direction1, "building2: ", building2_id, "wall_dir: ", wall_direction2);
+    console.log("resulting wall_path: ", wall_path);
+
+    return simplify_path(grid_path, false);
+}
+
 
 // get the door grid path to center coordinate
 function door_grid_path_to_border(cell_info, door_id, outline_offset, door_offset) {
@@ -972,7 +1257,10 @@ function door_grid_path_to_border(cell_info, door_id, outline_offset, door_offse
     // offset the best point
     best_point = calc_line_extend_point(door_grid_coords, best_point, -1 * outline_offset);
 
-    return [door_grid_coords, best_point];
+    return {
+        path: [door_grid_coords, best_point],
+        wall_dir: door_mod.orientation
+    }
 }
 
 
@@ -998,20 +1286,25 @@ function door_grid_path_to_border_closest(building_grid_coords, door_grid_coords
         walls.push([corner1, corner2]);
     }
 
-    let wall_dist_points = walls.map(function (wall) {
+    let wall_dist_points = walls.map(function (wall, index) {
         let closest_point = calc_closest_point(wall[0], wall[1], door_grid_coords);
         let dist = calc_dist(closest_point, door_grid_coords);
 
         return {
             point: closest_point,
-            dist: dist
+            dist: dist,
+            wall_dir: ordered_directions[index]
         };
     });
 
     // sort the walls based on closest point
     wall_dist_points.sort((a, b) => a.dist - b.dist);
+    let best_wall = wall_dist_points[0];
 
-    return [door_grid_coords, wall_dist_points[0].point];
+    return {
+        path: [door_grid_coords, best_wall.point],
+        wall_dir: best_wall.wall_dir
+    };
 }
 
 // find orientation of doors
