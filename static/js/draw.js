@@ -1303,7 +1303,7 @@ function draw_external_path_part(cell1_info, door1_id, cell2_info, door2_id, par
     let connected_wall_grid_path = connect_building_cell_walls_grid_path(building1_id, border1_dir, building2_id, border2_dir, offset_door2_to_border, path_grid_offset);
 
     // remove first and last point to allow walls to end at cutoff points
-    connected_wall_grid_path.splice(0, 1);
+    connected_wall_grid_path.shift();
     connected_wall_grid_path.pop();
 
     // construct the grid path then convert to stage coords

@@ -933,6 +933,8 @@ function connect_door_grid_center_path(cell_info, door_id1, door_id2) {
 // get the path that connects the center points of two doors
 function connect_building_cell_walls_grid_path(building1_id, wall_direction1, building2_id, wall_direction2, target_end_coords, path_grid_offset) {
 
+    // console.log("connect building cell wells building1_id:", building1_id, wall_direction1, "building2_id: ", building2_id, wall_direction2);
+
     // construct a wall usability grid for each grid cell
     let usable_grid_walls = [];
     
@@ -980,7 +982,6 @@ function connect_building_cell_walls_grid_path(building1_id, wall_direction1, bu
 
         let neighbors = [];
         let coords = grid_coords_for_building_id(entry.cell_id);
-        // console.log("get usable neighbors: ", entry, coords);
         let cur_usability = usable_grid_walls[coords.y][coords.x];
         let wall_dir = entry.wall_dir;
 
@@ -1103,15 +1104,18 @@ function connect_building_cell_walls_grid_path(building1_id, wall_direction1, bu
         return wall_cell_coords;
     }
 
-    // heuristic for finding best wall to use
-    // function calc_wall_heuristic(wall1, wall2) {
-
-    //     let wall1_coords = get_wall_grid_coords(wall1);
-    //     let wall2_coords = get_wall_grid_coords(wall2);
-
-    //     // TODO: use manhattan distance?
-    //     return calc_dist(wall1_coords, wall2_coords);
-    // }
+    // helper function to convert the wall to a grid coords line in the proper order
+    function wall_to_grid_line(wall) {
+        let cell_coords = grid_coords_for_building_id(wall.cell_id);
+        let cell_corners = [
+            {x:cell_coords.x-0.5+path_grid_offset, y:cell_coords.y-0.5+path_grid_offset}, 
+            {x:cell_coords.x+0.5-path_grid_offset, y:cell_coords.y-0.5+path_grid_offset}, 
+            {x:cell_coords.x+0.5-path_grid_offset, y:cell_coords.y+0.5-path_grid_offset},
+            {x:cell_coords.x-0.5+path_grid_offset, y:cell_coords.y+0.5-path_grid_offset}
+        ];
+        let dir_index = ordered_directions.indexOf(wall.wall_dir);
+        return [cell_corners[dir_index], cell_corners[(dir_index + 1) % 4]];
+    }
 
     // initialize start and end walls for path finding
     let start = {cell_id: building1_id, wall_dir: wall_direction1};
@@ -1137,7 +1141,7 @@ function connect_building_cell_walls_grid_path(building1_id, wall_direction1, bu
         }
 
         let cur_neighbors = get_usable_neighbors(cur);
-        console.log(cur, cur_neighbors);
+
         for (let i = 0; i < cur_neighbors.length; i++) {
             let next = cur_neighbors[i];
             let next_str = JSON.stringify(next);
@@ -1146,10 +1150,9 @@ function connect_building_cell_walls_grid_path(building1_id, wall_direction1, bu
                 continue;
             }
 
-            let next_coords = get_wall_grid_coords(next);
+            let next_wall_line = wall_to_grid_line(next);
 
-            // priority = calc_wall_heuristic(next, end);
-            priority = calc_dist(next_coords, target_end_coords);
+            priority = Math.min(calc_manhattan_dist(next_wall_line[0], target_end_coords), calc_manhattan_dist(next_wall_line[1], target_end_coords));
 
             pqueue.push({item:next, priority: priority});
             came_from.set(next_str, cur_str);
@@ -1169,23 +1172,10 @@ function connect_building_cell_walls_grid_path(building1_id, wall_direction1, bu
     wall_path.push(start);
     wall_path.reverse();
 
-    // convert wall path to grid coords path
-    let grid_path = [];
+    // convert wall path to grid lines
+    let wall_grid_lines = [];
 
-    // helper function to convert the wall to a grid coords line in the proper order
-    function wall_to_grid_line(wall) {
-        let cell_coords = grid_coords_for_building_id(wall.cell_id);
-        let cell_corners = [
-            {x:cell_coords.x-0.5+path_grid_offset, y:cell_coords.y-0.5+path_grid_offset}, 
-            {x:cell_coords.x+0.5-path_grid_offset, y:cell_coords.y-0.5+path_grid_offset}, 
-            {x:cell_coords.x+0.5-path_grid_offset, y:cell_coords.y+0.5-path_grid_offset},
-            {x:cell_coords.x-0.5+path_grid_offset, y:cell_coords.y+0.5-path_grid_offset}
-        ];
-        let dir_index = ordered_directions.indexOf(wall.wall_dir);
-        return [cell_corners[dir_index], cell_corners[(dir_index + 1) % 4]];
-    }
-
-    // iterate over sequential pairs of walls
+    // iterate over sequential pairs of walls to create grid lines
     for (let i = 0; i < wall_path.length - 1; i++) {
 
         let wall1 = wall_path[i];
@@ -1193,22 +1183,38 @@ function connect_building_cell_walls_grid_path(building1_id, wall_direction1, bu
 
         let wall1_grid_line = wall_to_grid_line(wall1);
         let wall2_grid_line = wall_to_grid_line(wall2);
-        
-        // find the corner between wall lines the first line and choosing the corner that lays on it
-        // TODO: there's definitely more exact way to choose...
 
-        let wall1_line_extended = [wall1_grid_line[0], calc_line_extend_point(wall1_grid_line[0], wall1_grid_line[1], grid.length * 2)];
+        // sort the current grid line so that it lines up properly with the next grid wall
+        wall1_grid_line.sort((a, b) => {
+            let a_closest = Math.min(calc_dist(a, wall2_grid_line[0]), calc_dist(a, wall2_grid_line[1]));
+            let b_closest = Math.min(calc_dist(b, wall2_grid_line[0]), calc_dist(b, wall2_grid_line[1]));
 
-        let corner1 = calc_corner_between_points(wall1_grid_line[1], wall2_grid_line[0], true, false);
-        let corner2 = calc_corner_between_points(wall1_grid_line[1], wall2_grid_line[0], false, false);
+            return b_closest - a_closest;
+        });
 
-        let corner = point_is_on_line(wall1_line_extended, corner1) ? corner1 : corner2;
-        
-        grid_path.push(...wall1_grid_line, corner);
+        wall_grid_lines.push(wall1_grid_line);
     }
 
-    // add the final wall
+    // add the final wall (sorting to end point)
     let final_wall_grid_line = wall_to_grid_line(wall_path[wall_path.length-1]);
+    let penult_wall_grid_line = wall_grid_lines[wall_grid_lines.length-1];
+    final_wall_grid_line.sort((a, b) => {
+        return calc_dist(a, penult_wall_grid_line[1]) - calc_dist(b, penult_wall_grid_line[1]);
+    });
+    wall_grid_lines.push(final_wall_grid_line);
+
+    // finally construct a path of points for each wall
+    let grid_path = [];
+
+    // iterate over sequential pairs of grid lines to add them and a corner between them to a final path
+    for (let i = 0; i < wall_grid_lines.length - 1; i++) {
+        let wall1_grid_line = wall_grid_lines[i];
+        let wall2_grid_line = wall_grid_lines[i + 1];
+
+        let corner = calc_corner_between_points(wall1_grid_line[1], wall2_grid_line[0]);
+
+        grid_path.push(...wall1_grid_line, corner);
+    }
     grid_path.push(...final_wall_grid_line);
 
     return simplify_path(grid_path, false);
