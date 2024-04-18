@@ -8,7 +8,7 @@
 
 
 // contact the graph generator with the given config
-function generate_graph(config) {
+async function generate_graph(config) {
 
     // TODO: connect with backend
 
@@ -30,10 +30,19 @@ function generate_graph(config) {
     //     process_generated_graph(json, config);
     // })
     // .catch((e) => console.error(e));
+
+    // backend connection to generate a new graph
+    const response = await fetch("http://localhost:9000/new_graph", {
+        method: "POST",
+        headers: {
+            'Accept': 'application/json',
+        },
+        body: JSON.stringify(config)
+    });
 }
 
 // contact the path recommender with the given options
-function recommend_paths(path_configs) {
+async function recommend_paths(path_configs) {
     
     // TODO: connect with backend
 
@@ -99,6 +108,12 @@ function recommend_paths(path_configs) {
         console.log("paths data: ", alg_results);
         process_paths(alg_results);
     }).catch(err => console.log(err));
+
+
+
+
+
+
 }
 
 
