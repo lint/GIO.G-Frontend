@@ -14,33 +14,32 @@ async function generate_graph(config) {
 
     console.log("generating graph with config: ", config);
 
-    // // send request to generate a new graph
-    // fetch("BACKEND_GRAPH_GEN_URL_HERE", {
-    //     method: 'POST',
-    //     headers: {
-    //       'Accept': 'application/json, text/plain, */*',
-    //       'Content-Type': 'application/json'
-    //     },
-    //     body: JSON.stringify(config)})
-    // // get json response data
-    // .then((res) => res.json())
-    // // process the graph and draw it
-    // .then((json) => {
-    //     console.log("preset graph data: ", json);
-    //     process_generated_graph(json, config);
-    // })
-    // .catch((e) => console.error(e));
-
-    // backend connection to generate a new graph
-    const response = await fetch("http://localhost:9000/new_graph", {
-        method: "POST",
+    // send request to generate a new graph
+    fetch("http://localhost:9000/new_graph", {
+        method: 'POST',
         headers: {
-            'Content-Type': 'application/json',
+          'Accept': 'application/json, text/plain, */*',
+          'Content-Type': 'application/json'
         },
-        body: JSON.stringify(config)
-    });
+        body: JSON.stringify(config)})
+    // get json response data
+    .then((res) => res.json())
+    // process the graph and draw it
+    .then((json) => {
+        console.log("preset graph data: ", json);
+        process_generated_graph(json, config);
+    })
+    .catch((e) => console.error(e));
 
-    console.log(response.json());
+    // // backend connection to generate a new graph
+    // const response = await fetch("http://localhost:9000/new_graph", {
+    //     method: "POST",
+    //     headers: {
+    //         'Content-Type': 'application/json',
+    //     },
+    //     body: JSON.stringify(config)
+    // });
+    // console.log(response.json());
 }
 
 // contact the path recommender with the given options
