@@ -234,7 +234,7 @@ function submit_graph_gen_form() {
         num_buildings: num_buildings_value,
         coverage: coverage_value,
         cluster: clustering_value,
-        constant_conestion: constant_con_value,
+        constant_congestion: constant_con_value,
         high_con: high_con_value,
         med_con: med_con_value,
         low_con: low_con_value 
