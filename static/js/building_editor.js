@@ -155,7 +155,7 @@ function select_building_to_edit(building_grid_coords, can_unselect, reset_edito
         building_open_title.innerHTML = "Availability:";
         building_open_container.appendChild(building_open_title);
 
-        // create span wrapped radios and label for each congestion level
+        // create span wrapped radios and labels for open / closed status
         let open_radio = create_open_radio(cell_info, "open");
         let closed_radio = create_open_radio(cell_info, "closed");
         building_open_container.appendChild(open_radio);
@@ -478,6 +478,7 @@ function building_con_radio_checked(cell_info, con_level) {
 
     // update building data
     building.congestion = new_con;
+    building.congestion_type = con_level;
     building_mods.con_level = con_level;
 
     // redraw the building to reflect the changes in congestion

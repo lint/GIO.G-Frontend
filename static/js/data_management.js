@@ -130,10 +130,13 @@ function process_building(building, cell_info_override=null, skip_outline_calc=f
 
     // initialize the info object for the given building
     let cell_info = cell_info_override !== null ? cell_info_override : init_grid_cell_info(building);
-    
-    // update any coordinates of deep doors in the building
-    update_deep_doors(building || cell_info.building_data);
 
+    // make building available at connected cell coordinates
+    setup_connected_grid_cell_info(cell_info);
+
+    // update any coordinates of deep doors in the building (no longer needed as it's handled outline calculation)
+    // update_deep_doors(building || cell_info.building_data);
+    
     // create the building outline path 
     if (!skip_outline_calc) {
         create_building_outline_path(cell_info);
@@ -159,9 +162,6 @@ function process_building(building, cell_info_override=null, skip_outline_calc=f
 
     // calculate the corridors for the given building
     calculate_building_corridors(cell_info);
-
-    // make building available at connected cell coordinates
-    setup_connected_grid_cell_info(cell_info);
 }
 
 
@@ -309,7 +309,8 @@ function init_grid_cell_info(building) {
             attached_wall: null,
             editor_highlighted: false,
             orientation: null,
-            path_count: 0
+            path_count: 0,
+            corridor_path: []
         };
     }
 
@@ -317,7 +318,7 @@ function init_grid_cell_info(building) {
     cell_info.building_mods.connection_mods[cell_info.building_data.id] = {
         center: null,
         outline_path: [],
-        // adjacent_walls: [],
+        adjacent_walls: [],
         adjacent_cells: {}
     };
 
@@ -336,7 +337,7 @@ function init_grid_cell_info(building) {
             cell_info.building_mods.connection_mods[connected_building_id] = {
                 center: null,
                 outline_path: [],
-                // adjacent_walls: [],
+                adjacent_walls: [],
                 adjacent_cells: {}
             };
         }

@@ -284,13 +284,13 @@ document.addEventListener("keyup", function(e) {
 
     // add a new building at the given coords
     } else if (e.key.toLowerCase() === "a") {
-        if (editor_selected_grid_coords !== null) {
+        if (editor_selected_grid_coords !== null && editor_selected_cell_info !== null) {
 
             // delete the current building first if it exists
             if (editor_selected_cell_info.building_data !== null) {
                 handle_delete_building_button(editor_selected_cell_info);
             }
-
+            
             handle_add_building_button(editor_selected_grid_coords);
         }
     }   

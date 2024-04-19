@@ -493,35 +493,36 @@ function find_building_center(cell_info) {
 // find the center point of all connected buildings
 function find_building_centers_and_adjacent_walls(cell_info) {
 
-    let door_mods = cell_info.building_mods.entrance_mods;
-    let connection_mods = cell_info.building_mods.connection_mods;
-    let outline_grid_path = cell_info.building_mods.outline_grid_path;
+    let building_mods = cell_info.building_mods;
+    let door_mods = building_mods.entrance_mods;
+    let connection_mods = building_mods.connection_mods;
+    let outline_grid_path = building_mods.outline_grid_path;
 
-    // get doors associated with each building
-    for (let i = 0; i < outline_grid_path.length; i++) {
-        let coords = outline_grid_path[i];
+    // store a modified outline grid path that includes extra points when intersections are found
+    let outline_grid_path_with_splits = outline_grid_path.slice();
+    let outline_splits_added = [];
 
-        let estimated_building_grid_coords = estimate_building_grid_coords(coords);
-        let estimated_building_id = grid_coords_to_building_id(estimated_building_grid_coords);
+    // helper function to add new split points to the outline grid paht
+    function add_outline_split_points(intersection, outline_index, direction) {
 
-        if (estimated_building_id in connection_mods) {
-            connection_mods[estimated_building_id].outline_path.push(coords);
+        if (outline_splits_added.indexOf(outline_index) > -1) {
+            return;
         }
-    }
+        
+        let point1 = outline_grid_path[outline_index]
+        let point2 = outline_grid_path[(outline_index+1)%outline_grid_path.length];
+        
+        let point1_to_split = calc_line_extend_point(point1, intersection, -0.025);
+        let point2_to_split = calc_line_extend_point(point2, intersection, -0.025);
+        
+        let split_index = outline_grid_path_with_splits.indexOf(point1);
 
-    // get the center for each connected building
-    for (let building_id in connection_mods) {
-        let connection_mod = connection_mods[building_id];
-
-        // average points to get the center
-        connection_mod.center = calc_avg_point(connection_mod.outline_path);
-
-        // let center = polylabel([connection_mod.outline_path.map(coord => [coord.x, coord.y])]);        
-        // connection_mod.center = {x: center[0], y: center[1]};
+        outline_grid_path_with_splits.splice(split_index + 1, 0, point1_to_split, point2_to_split);
+        outline_splits_added.push(outline_index);
     }
 
     // get grid coords for all connected buildings
-    let connected_grid_coords = [cell_info.building_data, ...cell_info.building_mods.connected_building_coords].map(coords => grid_coords_for_building_or_door(coords));
+    let connected_grid_coords = [cell_info.building_data, ...building_mods.connected_building_coords].map(coords => grid_coords_for_building_or_door(coords));
     
     // this is so inefficient...
 
@@ -531,6 +532,9 @@ function find_building_centers_and_adjacent_walls(cell_info) {
         let coords = connected_grid_coords[i];
         let building_id = grid_coords_to_building_id(coords);
         let connection_mod = connection_mods[building_id];
+
+        // reset outline path
+        connection_mod.outline_path = [];
 
         // get door grid coordinates representing the bounds of the grid cell
         let left_bounds     = [{x:coords.x-0.5, y:coords.y-0.5}, {x:coords.x-0.5, y:coords.y+0.5}];
@@ -562,48 +566,87 @@ function find_building_centers_and_adjacent_walls(cell_info) {
 
             if (left_intersection !== null) {
                 left_intersections.push(left_intersection);
+                add_outline_split_points(left_intersection, j, "left");
             }
             if (down_intersection !== null) {
                 down_intersections.push(down_intersection);
+                add_outline_split_points(down_intersection, j, "down");
             }
             if (right_intersection !== null) {
                 right_intersections.push(right_intersection);
+                add_outline_split_points(right_intersection, j, "right");
             }
             if (up_intersection !== null) {
                 up_intersections.push(up_intersection);
+                add_outline_split_points(up_intersection, j, "up");
             }
         }
 
         // only add intersections if they were found
         if (left_intersections.length > 0) {
-            // connection_mod.adjacent_walls.push(left_intersections);
+            connection_mod.adjacent_walls.push(left_intersections);
             connection_mod.adjacent_cells[left_id] = {
                 wall: left_intersections,
                 path_to_wall: null
             };
         }
         if (down_intersections.length > 0) {
-            // connection_mod.adjacent_walls.push(down_intersections);
+            connection_mod.adjacent_walls.push(down_intersections);
             connection_mod.adjacent_cells[down_id] = {
                 wall: down_intersections,
                 path_to_wall: null
             };
         }
         if (right_intersections.length > 0) {
-            // connection_mod.adjacent_walls.push(right_intersections);
+            connection_mod.adjacent_walls.push(right_intersections);
             connection_mod.adjacent_cells[right_id] = {
                 wall: right_intersections,
                 path_to_wall: null
             };
         }
         if (up_intersections.length > 0) {
-            // connection_mod.adjacent_walls.push(up_intersections);
+            connection_mod.adjacent_walls.push(up_intersections);
             connection_mod.adjacent_cells[up_id] = {
                 wall: up_intersections,
                 path_to_wall: null
             };
         }
     }
+
+    // get outline grid path parts associated with each building
+    for (let i = 0; i < outline_grid_path_with_splits.length; i++) {
+        let coords = outline_grid_path_with_splits[i];
+
+        let estimated_building_grid_coords = estimate_building_grid_coords(coords);
+        let estimated_building_id = grid_coords_to_building_id(estimated_building_grid_coords);
+
+        if (estimated_building_id in connection_mods) {
+            connection_mods[estimated_building_id].outline_path.push(coords);
+        }
+    }
+
+    // get the center for each connected building
+    for (let building_id in connection_mods) {
+        let connection_mod = connection_mods[building_id];
+
+        let center = null;
+
+        // try to use polylabel to find decent center point
+        try {
+            let poly_center = polylabel([connection_mod.outline_path.map(coord => [coord.x, coord.y])]);        
+            center= {x: poly_center[0], y: poly_center[1]};
+        } catch(e) {
+            console.log(e);
+            console.log("failed cell_info: ", cell_info);
+            console.log("center attempt for path: ", [connection_mod.outline_path.map(coord => [coord.x, coord.y])]);
+
+            // backup is to average points to get the center
+            center = calc_avg_point(connection_mod.outline_path);
+        }
+        connection_mod.center = center;
+    }
+
+    building_mods.outline_grid_path_with_splits = outline_grid_path_with_splits;
 }
 
 
@@ -621,7 +664,7 @@ function calculate_building_corridors(cell_info) {
 
     // iterate over every connected building cell for the given building
     for (let building_id in connection_mods) {
-        
+
         let building_grid_coords = grid_coords_for_building_id(building_id);
         let connection_mod = connection_mods[building_id];
         let center = connection_mod.center;
@@ -659,7 +702,9 @@ function calculate_building_corridors(cell_info) {
             let far_from_center = calc_point_translation(center, building_grid_coords, non_connected_grid_coords, grid.length * 2);
             let closest_wall_intersection = calc_closest_intersection_for_lines(building_mods.outline_grid_walls, [center, far_from_center], center);
 
-            non_connected_path.push(center, closest_wall_intersection, center);
+            if (closest_wall_intersection !== null) {
+                non_connected_path.push(center, closest_wall_intersection, center);
+            }
         }
         all_corridor_paths.push(non_connected_path);
 
@@ -673,6 +718,7 @@ function calculate_building_corridors(cell_info) {
 
         let closest_center_corridor_point = calc_closest_point_to_lines(center_lines, door_grid_coords);
         let path_to_center = door_grid_path_to_center(cell_info, door_id);
+        door_mod.corridor_path = path_to_center;
         // let corner_to_center_line = calc_corner_between_points2(door_grid_coords, closest_center_corridor_point, true);
         // let path_to_center = [door_grid_coords, corner_to_center_line, closest_center_corridor_point];
         all_corridor_paths.push(path_to_center);
@@ -705,6 +751,11 @@ function door_grid_path_to_center(cell_info, door_id, center_override=null) {
 
         let closest_center_corridor_point = calc_closest_point_to_lines(building_mods.corridor_center_lines, door_grid_coords);
         shape_grid_center = closest_center_corridor_point;
+    }
+
+    // if shape grid center is still null, something is wrong...
+    if (shape_grid_center == null) {
+        return [door_grid_coords];
     }
 
     // calculate grid points in all directions from center
@@ -878,7 +929,9 @@ function connect_door_grid_center_path(cell_info, door_id1, door_id2) {
     // there is only one connected building in the path
     if (connected_building_ids_path.length === 1) {
 
-        if (best_adjacency_id1 === best_adjacency_id2) {
+        let vert_or_horz = calc_line_orthogonal_direction(best_adjacency_point1, best_adjacency_point2);
+
+        if (best_adjacency_id1 === best_adjacency_id2 && vert_or_horz !== null) {
             connected_centers_path = [best_adjacency_point1, best_adjacency_point2];
         } else {
             let cutoff_path1 = calc_path_cutoff_at_point(center_path1, best_adjacency_point1).toReversed();
@@ -1161,10 +1214,48 @@ function connect_building_cell_walls_grid_path(building1_id, wall_direction1, bu
 
     // reconstruct the path
     let cur_str = end_str;
+
+    // TODO: this prevents the error from occuring, but paths still go through the building
+    // need to choose and replace start and end point when they themselves are unreachable
+    // check if the end goal could not be reached
+    // if (came_from.get(cur_str) == null) {
+
+    //     // try to find neighbor of end that was reached
+    //     let end_neigbors = get_usable_neighbors(end);
+    //     console.log("end neighbors: ", end_neigbors);
+
+    //     for (let i = 0; i < end_neigbors.length; i++) {
+    //         let neighbor = end_neigbors[i];
+    //         let neighbor_str = JSON.stringify(neighbor);
+
+    //         if (came_from.get(neighbor_str) != null) {
+    //             cur_str = neighbor_str;
+    //             break;
+    //         }
+    //     }
+
+    //     console.log(usable_grid_walls);
+    //     console.log("selected neighbor: ", cur_str);
+    // }
+
     let wall_path = [];
 
     while (cur_str !== start_str) {
-        let cur = JSON.parse(cur_str);
+
+        let cur = null;
+        try {
+            cur = JSON.parse(cur_str);
+        } catch(e) {
+            console.log(e);
+            console.log("cur str:", cur_str);
+            console.log("came_from: ", came_from);
+            console.log("wall_path: ", wall_path);
+        }
+        
+        if (cur === null) {
+            break;
+        }
+
         // cur.priority = calc_wall_heuristic(cur, end);
         wall_path.push(cur);
         cur_str = came_from.get(cur_str);
@@ -1335,66 +1426,73 @@ function find_door_orientation(cell_info, door_id, door_grid_coords_override=nul
 
     let building_grid_coords = estimate_building_grid_coords(door_grid_coords);
     let building_id = grid_coords_to_building_id(building_grid_coords);
-
-    // find points guaranteed to exceed building coords
-    let far_door_grid_coords  = {x: door_grid_coords.x - grid.length * 2, y: door_grid_coords.y};
-
+    
     let orientation = null;
     let walls = cell_info.building_mods.outline_grid_walls;
+    
+    // TODO: i tried to increase the precision and reduce the number of edge cases by adding more far lines then averaging them, however that just made it worse ...
+    let far_door_grid_coords_list = [
+        {x: door_grid_coords.x - grid.length * 2, y: door_grid_coords.y  - grid.length * 2},
+    ];
+
+    let offset_door_grid_coords = null;
 
     // door is vertical
     if (door_mod.wall_direction === "vertical") {
 
-        let offset_door_grid_coords = {
+        // guess offset is point inside building
+        offset_door_grid_coords = {
             x: door_grid_coords.x+door_len_ratio/4, // offset is arbitrary, assuming it is small enough where it won't pass through other side of skinny building,
             y: door_grid_coords.y
         };
-        let from_far_line = [far_door_grid_coords, offset_door_grid_coords];
-        let num_intersections = 0;
-
-        // calculate the number of intersections of line to right/left borders with each wall
-        walls.forEach(function (wall) {
-
-            let intersection_point = calc_lines_intersection(from_far_line, wall);
-
-            if (intersection_point !== null) {
-                num_intersections += 1;
-            }
-        });
-
-        if (num_intersections % 2 === 0) {
-            orientation = "right";
-        } else {
-            orientation = "left";
-        }
 
     // door is horizontal
     } else {
 
-        let offset_door_grid_coords = {
+        // guess offset is point inside building
+        offset_door_grid_coords = {
             x: door_grid_coords.x, 
             y: door_grid_coords.y+door_len_ratio/4 // offset is arbitrary, assuming it is small enough where it won't pass through other side of skinny building,
         };
-        let from_far_line = [far_door_grid_coords, offset_door_grid_coords];
-        let num_intersections = 0;
+    }
 
-        // calculate the number of intersections of line to right/left borders with each wall
-        walls.forEach(function (wall) {
+    // create lines from the far point to the offset door coords
+    let from_far_lines = far_door_grid_coords_list.map(far_door_grid_coords => [far_door_grid_coords, offset_door_grid_coords]);
+    let num_intersections = 0;
 
+    // calculate the number of intersections of line to right/left borders with each wall
+    walls.forEach(function (wall) {
+
+        for (let i = 0; i < from_far_lines.length; i++) {
+
+            let from_far_line = from_far_lines[i];
             let intersection_point = calc_lines_intersection(from_far_line, wall);
 
             if (intersection_point !== null) {
                 num_intersections += 1;
             }
-        });
+        }
+    });
 
-        if (num_intersections % 2 === 0) {
+    // get the average number of intersections based on the number of far lines used
+    let avg_num_intersections = Math.round(num_intersections / from_far_lines.length);
+
+    // determine door direction by checking if offset guess was correct
+    if (door_mod.wall_direction === "vertical") {
+        if (avg_num_intersections % 2 === 0) {
+            orientation = "right";
+        } else {
+            orientation = "left";
+        }
+    } else {
+        if (avg_num_intersections % 2 === 0) {
             orientation = "down";
         } else {
             orientation = "up";
         }
     }
 
+    // set the orientation of the door
     door_mod.orientation = orientation;
 }
 
@@ -1405,12 +1503,17 @@ function get_non_connected_building_coords(building_id) {
     let building_grid_coords = grid_coords_for_building_id(building_id);
     let cell_info = grid_object_at_coords(building_grid_coords);
 
+    if (cell_info.building_data === null) {
+        return [];
+    }
+
     let left_coords   = {x:building_grid_coords.x-1, y:building_grid_coords.y};
     let right_coords  = {x:building_grid_coords.x+1, y:building_grid_coords.y};
     let up_coords     = {x:building_grid_coords.x, y:building_grid_coords.y-1};
     let down_coords   = {x:building_grid_coords.x, y:building_grid_coords.y+1};
 
     let non_connected_coords = [left_coords, right_coords, up_coords, down_coords];
+
     return non_connected_coords.filter((coords) => {
         let id = grid_coords_to_building_id(coords);
         return !(id in cell_info.building_mods.connection_mods[building_id].adjacent_cells);
