@@ -35,10 +35,12 @@ async function generate_graph(config) {
     const response = await fetch("http://localhost:9000/new_graph", {
         method: "POST",
         headers: {
-            'Accept': 'application/json',
+            'Content-Type': 'application/json',
         },
         body: JSON.stringify(config)
     });
+
+    console.log(response.json());
 }
 
 // contact the path recommender with the given options
