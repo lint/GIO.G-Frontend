@@ -351,12 +351,11 @@ function submit_path_gen_form() {
         end_y = path_end_selected_grid_coords.y;
     }
 
-    // TODO: reenable this
     // check if an error has been detected
-    // if (has_error) {
-    //     alert(error_message);
-    //     return;
-    // }
+    if (has_error) {
+        alert(error_message);
+        return;
+    }
 
     // create an object containing the path recommendation options
     let path_config = {

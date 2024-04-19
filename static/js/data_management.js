@@ -105,6 +105,17 @@ function filter_current_graph(include_closed_doors_and_buildings, include_few_do
                 ...cell_info.building_data
             };
 
+            // ensure building object has congestion type (supports older graph files)
+            if (!("congestion_type" in building)) {
+                building.congestion_type = building_mods.con_level || "constant";
+            }
+
+            // ensure building object has merged x and y congestion type (supports older graph files)
+            if (!("merged_x" in building) || !("merged_y" in building)) {
+                building.merged_x = building_mods.connected_building_coords.map(coords => coords.x);
+                building.merged_y = building_mods.connected_building_coords.map(coords => coords.y);
+            }
+
             // filter the entrances to only include open ones
             let filtered_entrances = building.entrances.filter(function (door) {
                 let door_mod = door_mods[door.id];
