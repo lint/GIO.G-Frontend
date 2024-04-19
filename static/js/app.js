@@ -8,7 +8,7 @@
 const default_config = {
     num_buildings: 25,
     coverage: 0.75,
-    cluster: 0.15,
+    clustering: 0.15,
     constant_con: false,
     high_con: 0.3,
     med_con: 0.4,
