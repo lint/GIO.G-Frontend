@@ -63,7 +63,7 @@ function calc_weighted_midpoint(p1, p2, end_weight) {
 
 
 // calculates a corner point from the rectangle bounding the two given points
-function calc_corner_between_points(p1, p2, convex, invert_y) {
+function calc_corner_between_points(p1, p2, convex, invert_y=false) {
 
     // assumes points are sorted counter clockwise around a circle to determine which direction is convex vs concave
     // invert_y == false : y increases as you go up (normal Cartesian coordinate system), 
@@ -90,14 +90,14 @@ function calc_corner_between_points(p1, p2, convex, invert_y) {
 
 
 // calculates three corner points to construct a cutout corner 
-function calc_cutout_corner_between_points(p1, p2, convex, cutout_weight=0.5) {
+function calc_cutout_corner_between_points(p1, p2, convex, start_cutout_weight=0.5, end_cutout_weight=0.5) {
 
     // assumes points are sorted counter clockwise around a circle to determine which direction is convex vs concave
 
     let main_corner = calc_corner_between_points(p1, p2, convex, false);
 
-    let p1_midpoint = calc_weighted_midpoint(p1, main_corner, cutout_weight);
-    let p2_midpoint = calc_weighted_midpoint(p2, main_corner, cutout_weight);
+    let p1_midpoint = calc_weighted_midpoint(p1, main_corner, start_cutout_weight);
+    let p2_midpoint = calc_weighted_midpoint(p2, main_corner, end_cutout_weight);
 
     let cutout_corner = calc_corner_between_points(p1_midpoint, p2_midpoint, !convex, false);
 
@@ -752,6 +752,30 @@ function calc_avg_point(points) {
     avg.y /= points.length;
 
     return avg;
+}
+
+
+// get the quadrant of a point around a reference point
+function calc_point_quadrant(point, ref_point) {
+
+    // top right quadrant
+    if (point.x >= ref_point.x && point.y <= ref_point.y) {
+        return "NE";
+    
+    // bottom right quadrant
+    } else if (point.x >= ref_point.x && point.y >= ref_point.y) {
+        return "SE";
+
+    // top left quadrant
+    } else if (point.x <= ref_point.x && point.y <= ref_point.y) {
+        return "NW";
+
+    // bottom left quadrant
+    } else if (point.x <= ref_point.x && point.y >= ref_point.y) {
+        return "SW";
+    }
+
+    return null;
 }
 
 

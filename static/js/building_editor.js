@@ -545,6 +545,7 @@ function selected_door_moved(cell_info, door_id, editor_door_shape) {
 
     // find new door orientation
     find_door_orientation(cell_info, door_id);
+    console.log("building: ", cell_info.building_data.id, "door: ", door_id, "moved! new orientation: ", door_mod.orientation);
 
     // recalculate door corridors
     calculate_building_corridors(cell_info);

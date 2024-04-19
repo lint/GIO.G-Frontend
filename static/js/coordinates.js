@@ -718,6 +718,8 @@ function calculate_building_corridors(cell_info) {
 
         let closest_center_corridor_point = calc_closest_point_to_lines(center_lines, door_grid_coords);
         let path_to_center = door_grid_path_to_center(cell_info, door_id);
+        // let path_to_center = [door_grid_coords, closest_center_corridor_point];
+
         door_mod.corridor_path = path_to_center;
         // let corner_to_center_line = calc_corner_between_points2(door_grid_coords, closest_center_corridor_point, true);
         // let path_to_center = [door_grid_coords, corner_to_center_line, closest_center_corridor_point];
@@ -757,6 +759,101 @@ function door_grid_path_to_center(cell_info, door_id, center_override=null) {
     if (shape_grid_center == null) {
         return [door_grid_coords];
     }
+
+    // let offset_door_grid_coords = {...door_grid_coords};
+    // let quadrant = calc_point_quadrant(offset_door_grid_coords, shape_grid_center);
+
+    // let convex = Math.random() > 0.5;
+    // let convex = true;
+    // let cutout_weight = Math.random();
+    // let use_cutout_corner = Math.random() > 0.65;
+
+    // if (door_mod.orientation === "up") {
+    //     offset_door_grid_coords.y += door_len_ratio;
+        
+    //     if (quadrant === "NW") {
+    //         convex = false; // false is proper value to go straight to center line, but need to flip to prevent swasticas
+    //         // convex = true;
+    //         // use_cutout_corner = true;
+    //     } else if (quadrant === "NE") {
+    //         convex = true;
+    //     } 
+    //     // TODO: these happen on concave shapes, need more work to figure out which...
+    //     /*
+    //     else if (quadrant === "SW") { // doesn't happen on squares
+    //         convex = false;
+    //     } else if (quadrant === "SE") { // doesn't happen on squares
+    //         convex = false;
+    //     }
+    //     */
+
+    // } else if (door_mod.orientation === "right") {
+    //     offset_door_grid_coords.x -= door_len_ratio;
+
+    //     if (quadrant === "SE") { 
+    //         convex = true; // true is proper value to go straight to center line, but need to flip to prevent swasticas
+    //         // convex = false;
+    //         // use_cutout_corner = true;
+    //     } else if (quadrant === "NE") {
+    //         convex = false;
+    //     } 
+    //     /*
+    //     else if (quadrant === "SW") { // doesn't happen on squares
+    //         convex = false;
+    //     } else if (quadrant === "NW") { // doesn't happen on squares
+    //         convex = false;
+    //     } 
+    //     */
+
+    // } else if (door_mod.orientation === "down") {
+    //     offset_door_grid_coords.y -= door_len_ratio;
+
+    //     if (quadrant === "SW") {
+    //         convex = true;
+    //     } else if (quadrant === "SE") { 
+    //         convex = false; // false is proper value to go straight to center line, but need to flip to prevent swasticas
+    //         // convex = true;
+    //         // use_cutout_corner = true;
+    //     } 
+    //     /* 
+    //     else if (quadrant === "NW") { // doesn't happen on squares
+    //         convex = true;
+    //     } else if (quadrant === "NE") { // doesn't happen on squares
+    //         convex = false;
+    //     }
+    //     */
+
+    // } else if (door_mod.orientation === "left") {
+    //     offset_door_grid_coords.x += door_len_ratio;
+
+    //     if (quadrant === "NW") {
+    //         convex = true; // true is proper value to go straight to center line, but need to flip to prevent swasticas
+    //         // convex = false;
+    //         // use_cutout_corner = true;
+    //     } else if (quadrant === "SW") {
+    //         convex = false;
+    //     } 
+    //     /*
+    //     else if (quadrant === "NE") { // doesn't happen on squares
+    //         convex = false;
+    //     } else if (quadrant === "SE") { // doesn't happen on squares
+    //         convex = false;
+    //     }
+    //     */
+    // } else {
+    //     console.log("door does not have orientation...", cell_info, door_id);
+    // }
+
+    // let corner_path = null;
+
+    // if (use_cutout_corner) {
+    //     corner_path = calc_cutout_corner_between_points(offset_door_grid_coords, shape_grid_center, convex, 0.25, 0.75);
+    // } else {
+    //     let corner = calc_corner_between_points(offset_door_grid_coords, shape_grid_center, convex);
+    //     corner_path = [corner];
+    // }
+
+    // return [door_grid_coords, offset_door_grid_coords, ...corner_path, shape_grid_center];
 
     // calculate grid points in all directions from center
     let center_grid_left   = calc_point_translation(shape_grid_center, {x:0, y:0}, {x:grid.length, y:0}, grid.length);
@@ -1418,7 +1515,7 @@ function find_all_doors_orientations(cell_info) {
 }
 
 // calculate and set the orientation of a given door
-function find_door_orientation(cell_info, door_id, door_grid_coords_override=null) {
+function find_door_orientation(cell_info, door_id, door_grid_coords_override=null, wall_direction_override=null) {
 
     let door_mods = cell_info.building_mods.entrance_mods;
     let door_mod = door_mods[door_id];
@@ -1426,6 +1523,8 @@ function find_door_orientation(cell_info, door_id, door_grid_coords_override=nul
 
     let building_grid_coords = estimate_building_grid_coords(door_grid_coords);
     let building_id = grid_coords_to_building_id(building_grid_coords);
+
+    let direction = wall_direction_override !== null ? wall_direction_override : door_mod.wall_direction;
     
     let orientation = null;
     let walls = cell_info.building_mods.outline_grid_walls;
@@ -1438,7 +1537,7 @@ function find_door_orientation(cell_info, door_id, door_grid_coords_override=nul
     let offset_door_grid_coords = null;
 
     // door is vertical
-    if (door_mod.wall_direction === "vertical") {
+    if (direction === "vertical") {
 
         // guess offset is point inside building
         offset_door_grid_coords = {
@@ -1478,7 +1577,7 @@ function find_door_orientation(cell_info, door_id, door_grid_coords_override=nul
     let avg_num_intersections = Math.round(num_intersections / from_far_lines.length);
 
     // determine door direction by checking if offset guess was correct
-    if (door_mod.wall_direction === "vertical") {
+    if (direction === "vertical") {
         if (avg_num_intersections % 2 === 0) {
             orientation = "right";
         } else {
@@ -1492,8 +1591,10 @@ function find_door_orientation(cell_info, door_id, door_grid_coords_override=nul
         }
     }
 
-    // set the orientation of the door
-    door_mod.orientation = orientation;
+    if (door_id !== null) {
+        // set the orientation of the door
+        door_mod.orientation = orientation;
+    }
 }
 
 
