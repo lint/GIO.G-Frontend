@@ -988,6 +988,27 @@ function draw_paths() {
         path_layer.add(path_group);
         path_mod.shape = path_group;
 
+        // TODO: do this properly
+        // check if there are no actual buildings in the path
+        if (path_obj.path.length === 2) {
+
+            let start_door = path_obj.path[0].entrances[0];
+            let end_door = path_obj.path[1].entrances[0];
+
+            // flip coords since path recommender comes reverse due to lon/lat vs x/y
+            let start_point_grid_coords = {
+                x: start_door.y - 1,
+                y: start_door.x - 1
+            };
+            let end_point_grid_coords = {
+                x: end_door.y - 1,
+                y: end_door.x - 1
+            };
+
+            draw_endpoint_to_endpoint_path_part(start_point_grid_coords, end_point_grid_coords, path_group, path_type);
+            continue;
+        }
+
         // iterate over every building in the path
         for (let i = 0; i < path_obj.path.length - 1; i++) {
 
@@ -999,11 +1020,13 @@ function draw_paths() {
 
             // check for drawing starting path
             if (i === 0) {
-                
+
                 let start_door = building1.entrances[0];
+
+                // flip coords since path recommender comes reverse due to lon/lat vs x/y
                 let end_point_grid_coords = {
-                    x: start_door.x,
-                    y: start_door.y
+                    x: start_door.y - 1,
+                    y: start_door.x - 1
                 };
 
                 draw_endpoint_path_part(end_point_grid_coords, cell_info2, building2.entrances[0].id, path_group, path_type);
@@ -1012,9 +1035,11 @@ function draw_paths() {
             } else if (i + 1 === path_obj.path.length - 1) {
 
                 let end_door = building2.entrances[0];
+
+                // flip coords since path recommender comes reverse due to lon/lat vs x/y
                 let end_point_grid_coords = {
-                    x: end_door.x,
-                    y: end_door.y
+                    x: end_door.y - 1,
+                    y: end_door.x - 1
                 };
 
                 draw_endpoint_path_part(end_point_grid_coords, cell_info1, building1.entrances[0].id, path_group, path_type);
@@ -1077,6 +1102,41 @@ function draw_point_selection(door_grid_coords, building_grid_coords, parent, is
 }
 
 
+// draw path directly between endpoint and endpoint
+function draw_endpoint_to_endpoint_path_part(start_point_grid_coords, end_point_grid_coords, parent, path_type) {
+    
+    // TODO: do this properly
+    
+    let door_dims = get_door_dims(true);
+
+    // get path drawing options 
+    let path_options = path_type_options[path_type];
+    let path_color = show_path_type_color ? path_options.color : "red";
+    let path_width = door_dims.size / 5;
+
+    let path = [start_point_grid_coords, end_point_grid_coords];
+    let stage_path = path.map(coords => door_grid_coords_to_main_stage_coords(coords, null, true));
+
+    // create the shape for the external path
+    let external_path_shape = new Konva.Line({
+        points: flatten_points(stage_path),
+        stroke: path_color,
+        strokeWidth: path_width,
+        perfectDrawEnabled: false,
+        lineCap: path_line_cap,
+        lineJoin: path_line_join,
+    });
+
+    // set the line dash style if necessary
+    let path_dash = get_main_stage_path_dash(path_type);
+    if (path_dash !== null) {
+        external_path_shape.dash(path_dash);
+    }
+
+    parent.add(external_path_shape);
+}
+
+
 // draw path between an endpoint and building
 function draw_endpoint_path_part(endpoint_door_grid_coords, cell_info, door_id, parent, path_type) {
     
@@ -1096,6 +1156,38 @@ function draw_endpoint_path_part(endpoint_door_grid_coords, cell_info, door_id, 
     // draw_external_path_part(endpoint_cell_info, endpoint_door_grid_coords, null, cell_info, door_grid_coords, door_id, parent, path_type);
 
     // TODO: need to redo this...
+
+    // TEMPORARY path drawing so that you can see start and end points
+
+    let cell_dims = get_cell_dims(true);
+    let door_dims = get_door_dims(true);
+
+    // get path drawing options 
+    let path_options = path_type_options[path_type];
+    let path_color = show_path_type_color ? path_options.color : "red";
+    let path_width = door_dims.size / 5;
+
+    let door_grid_coords = grid_coords_for_building_or_door(cell_info.building_mods.entrance_mods[door_id].data_ref);
+    let path = [endpoint_door_grid_coords, door_grid_coords];
+    let stage_path = path.map(coords => door_grid_coords_to_main_stage_coords(coords, null, true));
+
+    // create the shape for the external path
+    let external_path_shape = new Konva.Line({
+        points: flatten_points(stage_path),
+        stroke: path_color,
+        strokeWidth: path_width,
+        perfectDrawEnabled: false,
+        lineCap: path_line_cap,
+        lineJoin: path_line_join,
+    });
+
+    // set the line dash style if necessary
+    let path_dash = get_main_stage_path_dash(path_type);
+    if (path_dash !== null) {
+        external_path_shape.dash(path_dash);
+    }
+
+    parent.add(external_path_shape);
 }
 
 // draw external path from a given building to another building

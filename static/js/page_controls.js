@@ -338,8 +338,8 @@ function submit_path_gen_form() {
         error_message += "ERROR: Select a start point\n";
         has_error = true;
     } else {
-        start_x = path_start_selected_grid_coords.x;
-        start_y = path_start_selected_grid_coords.y;
+        start_x = path_start_selected_grid_coords.x + 1;
+        start_y = path_start_selected_grid_coords.y + 1;
     }
 
     // check if there is a selected end cell
@@ -347,8 +347,8 @@ function submit_path_gen_form() {
         error_message += "ERROR: Select an end point\n"
         has_error = true;
     } else {
-        end_x = path_end_selected_grid_coords.x;
-        end_y = path_end_selected_grid_coords.y;
+        end_x = path_end_selected_grid_coords.x + 1;
+        end_y = path_end_selected_grid_coords.y + 1;
     }
 
     // check if an error has been detected
