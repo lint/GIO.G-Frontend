@@ -698,6 +698,9 @@ html, body {
 
 /* ---------------------------------- misc ---------------------------------- */
 
+.error-text {
+    color: red;
+}
 
 .standard-button {
     background-color: #E9E9ED;

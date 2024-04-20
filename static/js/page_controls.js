@@ -213,19 +213,24 @@ function submit_graph_gen_form() {
     // check the number of buildings
     if (num_buildings_value <= 0 || isNaN(num_buildings_value)) {
         has_error = true;
-        error_message += "ERROR: Number of buildings must be at least 1\n";
+        error_message += "ERROR: Number of buildings must be at least 1<br>";
     }
 
     // verify that the congestion values sum to one
     let con_sum = high_con_value + med_con_value + low_con_value;
     if (Math.abs(con_sum - 1) > 0.00001) {
         has_error = true;
-        error_message += "ERROR: High, Medium, and Low congestion values must sum to 100%\n";
+        error_message += "ERROR: High, Medium, and Low congestion values must sum to 100%<br>";
     }
 
-    // display the error
+    // set error text
+    document.getElementById("graph-gen-error-text").innerHTML = error_message;
+    
+    // update accordion section heights
+    update_accordion_heights();
+
+    // do not continue if there is an error
     if (has_error) {
-        alert(error_message);
         return;
     }
 
@@ -329,13 +334,13 @@ function submit_path_gen_form() {
 
     // check that at least one algorithm is selected
     if (selected_algs.length === 0) {
-        error_message += "ERROR: Select at least one algorithm\n";
+        error_message += "ERROR: Select at least one algorithm<br>";
         has_error = true;
     }
 
     // check if there is a selected start cell
     if (path_start_selected_grid_coords === null) {
-        error_message += "ERROR: Select a start point\n";
+        error_message += "ERROR: Select a start point<br>";
         has_error = true;
     } else {
         start_x = path_start_selected_grid_coords.x + 1;
@@ -344,16 +349,21 @@ function submit_path_gen_form() {
 
     // check if there is a selected end cell
     if (path_end_selected_grid_coords === null) {
-        error_message += "ERROR: Select an end point\n"
+        error_message += "ERROR: Select an end point<br>"
         has_error = true;
     } else {
         end_x = path_end_selected_grid_coords.x + 1;
         end_y = path_end_selected_grid_coords.y + 1;
     }
 
-    // check if an error has been detected
+    // set error text
+    document.getElementById("path-gen-error-text").innerHTML = error_message;
+
+    // update accordion section heights
+    update_accordion_heights();
+
+    // do not continue if there is an error
     if (has_error) {
-        alert(error_message);
         return;
     }
 
