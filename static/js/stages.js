@@ -38,7 +38,7 @@ function setup_main_stage_callbacks() {
     // (different from panning mouseup which is already bound, if want to bind to that event you need to use namespaces like mouseup.pan and mouseup.select)
     main_stage.off(".selection");
     main_stage.on("click.selection", function (e) {
-        if (!main_is_panning) {
+        if (!main_is_panning && e.evt.button === 0) {
             select_point();
         }
     });
@@ -169,7 +169,7 @@ function size_stages_to_containers() {
 function panning_main_stage_mousedown(e) {
     // console.log("stage mouse down!");
 
-    if (road_hiding_drag_enabled || !can_pan_enabled) {
+    if (e.evt.button !== 0 || road_hiding_drag_enabled || !can_pan_enabled) {
         return;
     }
 
@@ -319,9 +319,8 @@ function zooming_main_stage_wheel(e) {
 
 // callback for detection of any mouse down events on the stage
 function panning_editor_stage_mousedown(e) {
-    console.log("editor mouse down!");
 
-    if (editor_is_dragging_door || !can_pan_enabled) {
+    if (e.evt.button !== 0 || editor_is_dragging_door || !can_pan_enabled) {
         return;
     }
 
