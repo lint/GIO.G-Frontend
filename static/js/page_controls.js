@@ -500,7 +500,6 @@ function update_toggle_buttons_active() {
 
     // developer options
     update_toggle_button_active(document.getElementById("toggle-clipping-button"), building_clipping_enabled);
-    update_toggle_button_active(document.getElementById("toggle-drag-road-hide-button"), road_hiding_drag_enabled);
     update_toggle_button_active(document.getElementById("toggle-pan-button"), can_pan_enabled);
     update_toggle_button_active(document.getElementById("toggle-zoom-button"), can_zoom_enabled);
     update_toggle_button_active(document.getElementById("toggle-about-multi-button"), about_page_multi_select_enabled);
@@ -699,14 +698,6 @@ function handle_path_endpoint_visibility_button(button) {
     path_endpoints_enabled = !path_endpoints_enabled;
 
     update_toggle_buttons_active(button, path_endpoints_enabled);
-}
-
-
-// toggles the road hiding variable
-function handle_road_hiding_button(button) {
-    road_hiding_drag_enabled = !road_hiding_drag_enabled;
-
-    update_toggle_buttons_active(button, road_hiding_drag_enabled);
 }
 
 

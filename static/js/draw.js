@@ -891,69 +891,6 @@ function draw_road_line(grid_road_line, is_dashed, is_vertical, parent) {
 
 /* ------------------------------ path drawing ------------------------------ */
 
-// draw a few manually selected paths
-function draw_manual_paths() {
-
-    // reset the path layer
-    path_layer.destroy();
-    path_layer = new Konva.Layer();
-    main_stage.add(path_layer);
-
-    try {
-        draw_endpoint_path_part({x:-0.6, y:5.4}, grid_object_at_coords({x:0, y:5}), 1, path_layer, "dashed");
-        draw_internal_path_part(grid_object_at_coords({x:0, y:5}), 1, 4, path_layer, "dashed");
-        draw_external_path_part(grid_object_at_coords({x:0, y:5}), 4, grid_object_at_coords({x:2, y:3}), 1, path_layer, "dashed");
-        draw_internal_path_part(grid_object_at_coords({x:2, y:3}), 1, 2, path_layer, "dashed");
-        draw_external_path_part(grid_object_at_coords({x:2, y:3}), 2, grid_object_at_coords({x:3, y:1}), 3, path_layer, "dashed");
-        draw_internal_path_part(grid_object_at_coords({x:3, y:1}), 3, 2, path_layer, "dashed");
-        draw_external_path_part(grid_object_at_coords({x:3, y:1}), 2, grid_object_at_coords({x:5, y:0}), 1, path_layer, "dashed");
-        draw_internal_path_part(grid_object_at_coords({x:5, y:0}), 1, 2, path_layer, "dashed");
-        draw_endpoint_path_part({x:5.6, y:-0.45}, grid_object_at_coords({x:5, y:0}), 2, path_layer, "dashed");
-    } catch(e){console.log(e);}
-
-    try {
-        draw_endpoint_path_part({x:-0.6, y:5.4}, grid_object_at_coords({x:0, y:5}), 1, path_layer, "dotted");
-        draw_internal_path_part(grid_object_at_coords({x:0, y:5}), 1, 4, path_layer, "dotted");
-        draw_external_path_part(grid_object_at_coords({x:0, y:5}), 4, grid_object_at_coords({x:3, y:4}), 2, path_layer, "dotted");
-        draw_internal_path_part(grid_object_at_coords({x:3, y:4}), 2, 4, path_layer, "dotted");
-        draw_external_path_part(grid_object_at_coords({x:3, y:4}), 4, grid_object_at_coords({x:5, y:0}), 1, path_layer, "dotted");
-        draw_internal_path_part(grid_object_at_coords({x:5, y:0}), 1, 2, path_layer, "dotted");
-        draw_endpoint_path_part({x:5.6, y:-0.45}, grid_object_at_coords({x:5, y:0}), 2, path_layer, "dotted");
-    } catch(e){console.log(e);}
-
-    try {
-        draw_endpoint_path_part({x:-0.6, y:5.4}, grid_object_at_coords({x:0, y:5}), 1, path_layer, "solid");
-        draw_internal_path_part(grid_object_at_coords({x:0, y:5}), 1, 4, path_layer, "solid");
-        draw_external_path_part(grid_object_at_coords({x:0, y:5}), 4, grid_object_at_coords({x:1, y:1}), 1, path_layer, "solid");
-        draw_internal_path_part(grid_object_at_coords({x:1, y:1}), 1, 2, path_layer, "solid");
-        draw_external_path_part(grid_object_at_coords({x:1, y:1}), 2, grid_object_at_coords({x:5, y:0}), 1, path_layer, "solid");
-        draw_internal_path_part(grid_object_at_coords({x:5, y:0}), 1, 2, path_layer, "solid");
-        draw_endpoint_path_part({x:5.6, y:-0.45}, grid_object_at_coords({x:5, y:0}), 2, path_layer, "solid");
-    } catch(e){console.log(e);}
-
-    try {
-        draw_endpoint_path_part({x:-0.6, y:5.4}, grid_object_at_coords({x:0, y:5}), 1, path_layer, "dotdashed");
-        draw_internal_path_part(grid_object_at_coords({x:0, y:5}), 1, 4, path_layer, "dotdashed");
-        draw_external_path_part(grid_object_at_coords({x:0, y:5}), 4, grid_object_at_coords({x:4, y:1}), 1, path_layer, "dotdashed");
-        draw_internal_path_part(grid_object_at_coords({x:4, y:1}), 1, 3, path_layer, "dotdashed");
-        draw_external_path_part(grid_object_at_coords({x:4, y:1}), 3, grid_object_at_coords({x:5, y:0}), 1, path_layer, "dotdashed");
-        draw_internal_path_part(grid_object_at_coords({x:5, y:0}), 1, 2, path_layer, "dotdashed");
-        draw_endpoint_path_part({x:5.6, y:-0.45}, grid_object_at_coords({x:5, y:0}), 2, path_layer, "dotdashed");
-    } catch(e){console.log(e);}
-
-    try {
-        draw_endpoint_path_part({x:-0.6, y:5.4}, grid_object_at_coords({x:0, y:5}), 1, path_layer, "longdashed");
-        draw_internal_path_part(grid_object_at_coords({x:0, y:5}), 1, 4, path_layer, "longdashed");
-        draw_external_path_part(grid_object_at_coords({x:0, y:5}), 4, grid_object_at_coords({x:3, y:4}), 2, path_layer, "longdashed");
-        draw_internal_path_part(grid_object_at_coords({x:3, y:4}), 2, 4, path_layer, "longdashed");
-        draw_external_path_part(grid_object_at_coords({x:3, y:4}), 4, grid_object_at_coords({x:4, y:3}), 1, path_layer, "longdashed");
-        draw_internal_path_part(grid_object_at_coords({x:4, y:3}), 1, 4, path_layer, "longdashed");
-        draw_external_path_part(grid_object_at_coords({x:4, y:3}), 4, grid_object_at_coords({x:5, y:0}), 1, path_layer, "longdashed");
-        draw_internal_path_part(grid_object_at_coords({x:5, y:0}), 1, 2, path_layer, "longdashed");
-        draw_endpoint_path_part({x:5.6, y:-0.45}, grid_object_at_coords({x:5, y:0}), 2, path_layer, "longdashed");
-    } catch(e){console.log(e);}
-}
-
 // draw the current paths on the main stage
 function draw_paths() {
 

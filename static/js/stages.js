@@ -42,14 +42,6 @@ function setup_main_stage_callbacks() {
             select_point();
         }
     });
-
-    // setup stage road hiding events
-    main_stage.off(".road_hiding");
-    main_stage.on("mousedown.road_hiding", road_hiding_stage_mousedown);
-    main_stage.on("mousemove.road_hiding", road_hiding_stage_mousemove);
-    main_stage.on("mouseup.road_hiding", road_hiding_stage_mouseup);
-    road_hiding_bounds_rect = new Konva.Rect({x: 0, y: 0, width: 0, height: 0, stroke: 'red', dash: [2,2], listening: false});
-    road_layer.add(road_hiding_bounds_rect);
 }
 
 
@@ -169,7 +161,7 @@ function size_stages_to_containers() {
 function panning_main_stage_mousedown(e) {
     // console.log("stage mouse down!");
 
-    if (e.evt.button !== 0 || road_hiding_drag_enabled || !can_pan_enabled) {
+    if (e.evt.button !== 0 || !can_pan_enabled) {
         return;
     }
 
@@ -463,76 +455,3 @@ function zooming_editor_stage_wheel(e) {
     };
     editor_stage.position(new_pos);
 };
-
-
-/* ------------------------- main stage road hiding ------------------------- */
-
-
-// start the road hiding rect bounds on mouse down
-function road_hiding_stage_mousedown(e) {
-
-    if (road_hiding_drag_enabled) {
-        is_dragging_road_hide = true;
-        
-        let scale = main_stage.scaleX();
-        let pointer = main_stage.getPointerPosition();
-
-        let pointer_stage_coords = {
-            x: (pointer.x - main_stage.x()) / scale,
-            y: (pointer.y - main_stage.y()) / scale,
-        };
-
-        road_hide_start_pos = pointer_stage_coords;
-        road_hide_cur_pos = pointer_stage_coords;
-    } else {
-        is_dragging_road_hide = false;
-        road_hide_start_pos = null;
-        road_hide_cur_pos = null;
-    }
-};
-
-
-// update hiding road rect bounds
-function road_hiding_stage_mousemove(e) {
-    if (is_dragging_road_hide) {
-        
-        let scale = main_stage.scaleX();
-        let pointer = main_stage.getPointerPosition();
-
-        let pointer_stage_coords = {
-            x: (pointer.x - main_stage.x()) / scale,
-            y: (pointer.y - main_stage.y()) / scale,
-        };
-
-        road_hide_cur_pos = pointer_stage_coords;
-        let pos_rect = invert_rect_coords(road_hide_start_pos, road_hide_cur_pos);
-
-        road_hiding_bounds_rect.x(pos_rect.x1);
-        road_hiding_bounds_rect.y(pos_rect.y1);
-        road_hiding_bounds_rect.width(pos_rect.x2 - pos_rect.x1);
-        road_hiding_bounds_rect.height(pos_rect.y2 - pos_rect.y1);
-        road_hiding_bounds_rect.visible(true);        
-    }
-};
-  
-
-// draw a new road hiding rectangle at the current bound coordinates and size
-function road_hiding_stage_mouseup(e) {
-    
-    is_dragging_road_hide = false;
-    road_hiding_bounds_rect.visible(false);
-
-    if (!road_hiding_drag_enabled) {
-        return;
-    }
-    
-    var new_hide_rect = new Konva.Rect({
-        x: road_hiding_bounds_rect.x(),
-        y: road_hiding_bounds_rect.y(),
-        width: road_hiding_bounds_rect.width(),
-        height: road_hiding_bounds_rect.height(),
-        fill: "white",
-        draggable: true
-    })
-    road_layer.add(new_hide_rect);
-}

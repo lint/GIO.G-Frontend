@@ -68,7 +68,6 @@ let building_corridors_enabled = true;
 let building_con_colors_enabled = true;
 let highlight_colors_enabled = true;
 let path_endpoints_enabled = true;
-let road_hiding_drag_enabled = false;
 let can_pan_enabled = true;
 let can_zoom_enabled = true;
 let auto_open_sections_enabled = true;
@@ -186,12 +185,6 @@ let selection_layer = null;
 let building_layer = null;
 let road_layer = null;
 let path_layer = null;
-
-// define variables to support road hiding
-let road_hide_start_pos = null;
-let road_hide_cur_pos = null;
-let is_dragging_road_hide = false;
-let road_hiding_bounds_rect = null;
 
 // about page variables
 let year_text = new Date().getFullYear();
