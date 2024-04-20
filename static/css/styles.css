@@ -13,7 +13,7 @@ html, body {
     height: calc(100vh - 64px); /* calculates height minus fixed nav bar height */
     width: 100%;
     display: grid;
-    grid-template-columns: 0.2fr 0.6fr 0.2fr;
+    grid-template-columns: 0.21fr 0.58fr 0.21fr;
 }
 
 #left-sidebar {
@@ -204,6 +204,7 @@ html, body {
 
 #path-start-building-info {
     display: inline-block;
+    white-space: nowrap;
 }
 
 #path-end-building-info {
