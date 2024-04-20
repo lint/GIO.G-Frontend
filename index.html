@@ -388,7 +388,7 @@
         </div>
 
         <div class="options-category-container">
-          <button type="button" onclick="submit_graph_gen_form()">Submit</button>
+          <button type="button" onclick="submit_graph_gen_form()" class="standard-button">Submit</button>
         </div>
       </div>
       </div>
@@ -438,17 +438,17 @@
             <div class="options-input-container">
               <span id="path-start-building-label" class="subsubtitle">Start:</span>
               <span id="path-start-building-info"></span>
-              <button id="select-path-start-button" type="button" onclick="handle_select_start_building_button()">Select</button>
+              <button id="select-path-start-button" type="button" onclick="handle_select_start_building_button()" class="standard-button">Select</button>
             </div>
             <div class="options-input-container">
               <span id="path-end-building-label" class="subsubtitle">End:</span>
               <span id="path-end-building-info"></span>
-              <button id="select-path-end-button" type="button" onclick="handle_select_end_building_button()">Select</button>
+              <button id="select-path-end-button" type="button" onclick="handle_select_end_building_button()" class="standard-button">Select</button>
             </div>
           </div>
           
           <div class="options-category-container">
-            <button type="button" onclick="submit_path_gen_form()">Submit</button>
+            <button type="button" onclick="submit_path_gen_form()" class="standard-button">Submit</button>
           </div>
         </div>
       </div>
@@ -474,7 +474,7 @@
               </select>
             </div>
             <div class="options-input-container">
-              <button type="button" onclick="submit_load_graph_preset()">Submit</button>
+              <button type="button" onclick="submit_load_graph_preset()" class="standard-button">Submit</button>
             </div>
           </div>
 
@@ -484,14 +484,14 @@
               <input id="import-graph-input" type="file"/>
             </div>
             <div class="options-input-container">
-              <button type="button" onclick="submit_uploaded_graph()">Submit</button>
+              <button type="button" onclick="submit_uploaded_graph()" class="standard-button">Submit</button>
             </div>
           </div>
 
           <div class="options-category-container">
             <div class="subsubtitle">Export Graph:</div>
             <div class="options-input-container">
-              <button type="button" onclick="download_graph_export()">Download</button>
+              <button type="button" onclick="download_graph_export()" class="standard-button">Download</button>
               <span class="options-short-group">
                 <input type="checkbox" id="export-pretty-cb">
                 <label for="export-pretty-cb">Prettify</label>
@@ -508,16 +508,16 @@
         <div class="options-form-container">
           
           <div class="options-category-container" id="display-options-buttons-container">
-            <button type="button" onclick="handle_buildings_visible_button()">Toggle Buildings</button>
-            <button type="button" onclick="handle_corridors_visible_button()">Toggle Corridors</button>
-            <button type="button" onclick="handle_paths_visible_button()">Toggle Paths</button>
-            <button type="button" onclick="handle_roads_visible_button()">Toggle All Roads</button>
-            <button type="button" onclick="handle_removed_roads_visible_button()">Toggle Removed Roads</button>
-            <button type="button" onclick="handle_congestion_colors_button()">Toggle Congestion Colors</button>
-            <button type="button" onclick="handle_cell_highlights_visible_button()">Toggle Selection Highlight</button>
-            <button type="button" onclick="handle_path_endpoint_visibility_button()">Toggle Path Endpoints</button>
-            <button type="button" onclick="handle_auto_open_button()">Toggle Auto Open Sections</button>
-            <button type="button" onclick="handle_auto_path_endpoint_reset_button()">Toggle Auto Endpoint Reset</button>
+            <button id="toggle-buildings-button" type="button" onclick="handle_buildings_visible_button(this)" class="standard-button">Toggle Buildings</button>
+            <button id="toggle-corridors-button" type="button" onclick="handle_corridors_visible_button(this)" class="standard-button">Toggle Corridors</button>
+            <button id="toggle-paths-button" type="button" onclick="handle_paths_visible_button(this)" class="standard-button">Toggle Paths</button>
+            <button id="toggle-all-roads-button" type="button" onclick="handle_roads_visible_button(this)" class="standard-button">Toggle All Roads</button>
+            <button id="toggle-removed-roads-button" type="button" onclick="handle_removed_roads_visible_button(this)" class="standard-button">Toggle Removed Roads</button>
+            <button id="toggle-con-colors-button" type="button" onclick="handle_congestion_colors_button(this)" class="standard-button">Toggle Congestion Colors</button>
+            <button id="toggle-selection-highlights-button" type="button" onclick="handle_cell_highlights_visible_button(this)" class="standard-button">Toggle Selection Highlight</button>
+            <button id="toggle-path-endpoints-button" type="button" onclick="handle_path_endpoint_visibility_button(this)" class="standard-button">Toggle Path Endpoints</button>
+            <button id="toggle-auto-sections-button" type="button" onclick="handle_auto_open_button(this)" class="standard-button">Toggle Auto Open Sections</button>
+            <button id="toggle-auto-endpoint-button" type="button" onclick="handle_auto_path_endpoint_reset_button(this)" class="standard-button">Toggle Auto Endpoint Reset</button>
           </div>
         </div>     
       </div>   
@@ -529,24 +529,24 @@
         <div class="options-form-container">
 
           <div class="options-category-container">
-            <button type="button" onclick="draw_manual_paths()">Test Path Drawing</button>
+            <button id="manual-paths-button" type="button" onclick="draw_manual_paths()" class="standard-button">Test Path Drawing</button>
           </div>
 
           <div class="options-category-container">
-            <button type="button" onclick="handle_clipping_visible_button()">Toggle Building Clipping</button>
+            <button id="toggle-clipping-button" type="button" onclick="handle_clipping_visible_button(this)" class="standard-button">Toggle Building Clipping</button>
           </div>
 
           <div class="options-category-container">
-            <button type="button" onclick="handle_road_hiding_button()">Toggle Road Hiding</button>
+            <button id="toggle-drag-road-hide-button" type="button" onclick="handle_dragging_road_hiding_button(this)" class="standard-button">Toggle Dragging Road Hiding</button>
           </div>
           <div class="options-category-container">
-            <button type="button" onclick="handle_panning_toggle_button()">Toggle Panning</button>
+            <button id="toggle-pan-button" type="button" onclick="handle_panning_toggle_button(this)" class="standard-button">Toggle Panning</button>
           </div>
           <div class="options-category-container">
-            <button type="button" onclick="handle_zooming_toggle_button()">Toggle Zooming</button>
+            <button id="toggle-zoom-button" type="button" onclick="handle_zooming_toggle_button(this)" class="standard-button">Toggle Zooming</button>
           </div>
           <div class="options-category-container">
-            <button type="button" onclick="handle_about_multiselect_toggle_button()">Toggle About Multi-Select</button>
+            <button id="toggle-about-multi-button" type="button" onclick="handle_about_multiselect_toggle_button(this)" class="standard-button">Toggle About Multi-Select</button>
           </div>
         </div>
       </div>

@@ -429,15 +429,15 @@ function update_path_select_buttons_active() {
     let end_button = document.getElementById("select-path-end-button");
 
     if (is_selecting_path_start) {
-        start_button.classList.add("select-button-active");
+        start_button.classList.add("toggle-button-active");
     } else {
-        start_button.classList.remove("select-button-active");
+        start_button.classList.remove("toggle-button-active");
     }
 
     if (is_selecting_path_end) {
-        end_button.classList.add("select-button-active");
+        end_button.classList.add("toggle-button-active");
     } else {
-        end_button.classList.remove("select-button-active");
+        end_button.classList.remove("toggle-button-active");
     }
 }
 
@@ -473,47 +473,95 @@ function handle_select_end_building_button() {
 /* ----------------------------- display options ---------------------------- */
 
 
+// updates the active class of the various toggle buttons
+function update_toggle_buttons_active() {
+
+    // display options
+    update_toggle_button_active(document.getElementById("toggle-buildings-button"), building_layer.visible());
+    update_toggle_button_active(document.getElementById("toggle-corridors-button"), building_corridors_enabled);
+    update_toggle_button_active(document.getElementById("toggle-paths-button"), path_layer.visible());
+    update_toggle_button_active(document.getElementById("toggle-all-roads-button"), road_layer.visible());
+    update_toggle_button_active(document.getElementById("toggle-removed-roads-button"), removed_roads_enabled);
+    update_toggle_button_active(document.getElementById("toggle-con-colors-button"), building_con_colors_enabled);
+    update_toggle_button_active(document.getElementById("toggle-selection-highlights-button"), highlight_colors_enabled);
+    update_toggle_button_active(document.getElementById("toggle-path-endpoints-button"), path_endpoints_enabled);
+    update_toggle_button_active(document.getElementById("toggle-auto-sections-button"), auto_open_sections_enabled);
+    update_toggle_button_active(document.getElementById("toggle-auto-endpoint-button"), auto_reset_path_endpoints_enabled);
+
+    // developer options
+    update_toggle_button_active(document.getElementById("toggle-clipping-button"), building_clipping_enabled);
+    update_toggle_button_active(document.getElementById("toggle-drag-road-hide-button"), road_hiding_drag_enabled);
+    update_toggle_button_active(document.getElementById("toggle-pan-button"), can_pan_enabled);
+    update_toggle_button_active(document.getElementById("toggle-zoom-button"), can_zoom_enabled);
+    update_toggle_button_active(document.getElementById("toggle-about-multi-button"), about_page_multi_select_enabled);
+}
+
+
+// sets the toggle active class of a specific button based on the given value
+function update_toggle_button_active(button, is_active) {
+    
+    if (button === null) {
+        return;
+    }
+
+    // currently using the inverse.. looks better on page load since they're all selected at first
+    if (!is_active) { 
+        button.classList.add("toggle-button-active");
+    } else {
+        button.classList.remove("toggle-button-active");
+    }
+}
+
+
 // buildings visibility toggle
-function handle_buildings_visible_button() {
+function handle_buildings_visible_button(button) {
 
     if (building_layer.visible()) {
         building_layer.hide();
     } else {
         building_layer.show();
     }
+
+    update_toggle_button_active(button, building_layer.visible());
 }
 
 
 // roads visibility toggle
-function handle_roads_visible_button() {
+function handle_roads_visible_button(button) {
     if (road_layer.visible()) {
         road_layer.hide();
     } else {
         road_layer.show();
     }
+
+    update_toggle_buttons_active(button, road_layer.visible());
 }
 
 
 // removed roads visibility toggle
-function handle_removed_roads_visible_button() {
+function handle_removed_roads_visible_button(button) {
     removed_roads_enabled = !removed_roads_enabled;
 
     draw_roads(road_layer);
+
+    update_toggle_buttons_active(button, removed_roads_enabled);
 }
 
 
 // paths visibility toggle
-function handle_paths_visible_button() {
+function handle_paths_visible_button(button) {
     if (path_layer.visible()) {
         path_layer.hide();
     } else {
         path_layer.show();
     }
+
+    update_toggle_buttons_active(button, path_layer.visible());
 }
 
 
 // building clipping toggle
-function handle_clipping_visible_button() {
+function handle_clipping_visible_button(button) {
 
     // TODO: probably a better way to do this, but it's just a test method so..
 
@@ -535,11 +583,13 @@ function handle_clipping_visible_button() {
 
     // redraw the building in the editor
     redraw_selected_building(editor_selected_cell_info);
+
+    update_toggle_buttons_active(button, building_clipping_enabled);
 }
 
 
 // building corridors toggle
-function handle_corridors_visible_button() {
+function handle_corridors_visible_button(button) {
     
     // find the corridor group of every building and toggle it visible or not visible
     for (let x = 0; x < grid.length; x++) {
@@ -562,11 +612,13 @@ function handle_corridors_visible_button() {
     building_corridors_enabled = !building_corridors_enabled;
 
     redraw_selected_building(editor_selected_cell_info);
+
+    update_toggle_buttons_active(button, building_clipping_enabled);
 }
 
 
 // congestion colors visibility toggle
-function handle_congestion_colors_button() {
+function handle_congestion_colors_button(button) {
 
     // toggle the colors boolean
     building_con_colors_enabled = !building_con_colors_enabled;
@@ -585,11 +637,13 @@ function handle_congestion_colors_button() {
     }
 
     redraw_selected_building(editor_selected_cell_info);
+
+    update_toggle_buttons_active(button, building_con_colors_enabled);
 }
 
 
 // selected cell highlight colors visibility toggle
-function handle_cell_highlights_visible_button() {
+function handle_cell_highlights_visible_button(button) {
 
     // TODO: change for just selected building highlight
 
@@ -608,11 +662,13 @@ function handle_cell_highlights_visible_button() {
     //         set_overlay_highlight({x:x, y:y}, null);
     //     }
     // }
+
+    update_toggle_buttons_active();
 }
 
 
 // handle path end points visibility toggle
-function handle_path_endpoint_visibility_button() {
+function handle_path_endpoint_visibility_button(button) {
 
     if (path_endpoints_enabled) {
         if (path_start_selection_shape) {
@@ -631,36 +687,48 @@ function handle_path_endpoint_visibility_button() {
     }
 
     path_endpoints_enabled = !path_endpoints_enabled;
+
+    update_toggle_buttons_active(button, path_endpoints_enabled);
 }
 
 
 // toggles the road hiding variable
-function handle_road_hiding_button() {
+function handle_road_hiding_button(button) {
     road_hiding_drag_enabled = !road_hiding_drag_enabled;
+
+    update_toggle_buttons_active(button, road_hiding_drag_enabled);
 }
 
 
 // toggles the can pan variable
-function handle_panning_toggle_button() {
+function handle_panning_toggle_button(button) {
     can_pan_enabled = !can_pan_enabled;
+
+    update_toggle_buttons_active(button, can_pan_enabled);
 }
 
 
 // toggles the can zoom variable
-function handle_zooming_toggle_button() {
+function handle_zooming_toggle_button(button) {
     can_zoom_enabled = !can_zoom_enabled;
+
+    update_toggle_buttons_active(button, can_zoom_enabled);
 }
 
 
 // toggles building editor auto open variable
-function handle_auto_open_button() {
+function handle_auto_open_button(button) {
     auto_open_sections_enabled = !auto_open_sections_enabled;
+
+    update_toggle_buttons_active(button, auto_open_sections_enabled);
 }
 
 
 // toggles auto reset path endpoint variable
-function handle_auto_path_endpoint_reset_button() {
+function handle_auto_path_endpoint_reset_button(button) {
     auto_reset_path_endpoints_enabled = !auto_reset_path_endpoints_enabled;
+
+    update_toggle_buttons_active(button, auto_reset_path_endpoints_enabled);
 }
 
 

@@ -130,6 +130,7 @@ function select_building_to_edit(building_grid_coords, can_unselect, reset_edito
         // create a button that adds a door to the current building
         let add_door_button = document.createElement("button");
         add_door_button.innerHTML = "+ Door";
+        add_door_button.classList.add("standard-button");
         add_door_button.addEventListener("click", function (e) {
             handle_add_door_button(cell_info);
         });
@@ -197,6 +198,7 @@ function select_building_to_edit(building_grid_coords, can_unselect, reset_edito
         let delete_building_button = document.createElement("button");
         delete_building_button.innerHTML = "Delete Building";
         // delete_building_button.classList.add("delete-text");
+        delete_building_button.classList.add("standard-button");
         delete_building_button.addEventListener("click", function (e) {
             handle_delete_building_button(cell_info);
         });
@@ -206,6 +208,7 @@ function select_building_to_edit(building_grid_coords, can_unselect, reset_edito
         let connect_building_button = document.createElement("button");
         connect_building_button.id = "select-building-connection-button";
         connect_building_button.innerHTML = "Select New Connection";
+        connect_building_button.classList.add("standard-button");
         connect_building_button.addEventListener("click", function (e) {
             handle_select_connect_building_button(cell_info);
         });
@@ -216,6 +219,7 @@ function select_building_to_edit(building_grid_coords, can_unselect, reset_edito
         // create a button to create a new
         let add_building_button = document.createElement("button");
         add_building_button.innerHTML = "Create Building";
+        add_building_button.classList.add("standard-button");
         add_building_button.addEventListener("click", function (e) {
             handle_add_building_button(building_grid_coords);
         });
@@ -298,6 +302,7 @@ function create_door_list_item(cell_info, door_id) {
     let delete_button = document.createElement("button");
     delete_button.innerHTML = "Delete";
     delete_button.classList.add("edit-doors-list-item-control");
+    delete_button.classList.add("standard-button");
     delete_button.addEventListener("click", function (e) {
         handle_delete_door_button(cell_info, door_id);
     });
@@ -508,9 +513,9 @@ function update_new_connection_button_active() {
     let connection_button = document.getElementById("select-building-connection-button");
     if (connection_button !== null) {
         if (is_selecting_new_connection) {
-            connection_button.classList.add("select-button-active");
+            connection_button.classList.add("toggle-button-active");
         } else {
-            connection_button.classList.remove("select-button-active");
+            connection_button.classList.remove("toggle-button-active");
         }
     }
 }

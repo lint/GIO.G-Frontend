@@ -190,10 +190,6 @@ html, body {
     padding-left: 5px;
 }
 
-.select-button-active {
-    color: blue;
-}
-
 #path-start-building-label {
     display: inline-block;
 }
@@ -701,6 +697,38 @@ html, body {
 }
 
 /* ---------------------------------- misc ---------------------------------- */
+
+
+.standard-button {
+    background-color: #E9E9ED;
+    color: black;
+    border-radius: 4px;
+    cursor: pointer;
+    border: solid 1px #444;
+    padding: 2px 4px 2px 4px;
+    text-align: center;
+}
+
+.standard-button:hover {
+    background-color: #D0D0D7;
+}
+
+.standard-button:active {
+    background-color: #B1B1B9;
+}
+
+.toggle-button-active {
+    background-color: #0060DF;
+    color: white;
+}
+
+.toggle-button-active:hover {
+    background-color: #0055c6;
+}
+
+.toggle-button-active:active {
+    background-color: #003f93;
+}
 
 .title {
     color: #444;

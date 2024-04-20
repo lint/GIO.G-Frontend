@@ -213,8 +213,9 @@ function draw_main_stage() {
     // create the necessary layers to draw
     create_main_layers();
 
+    // TODO: necessary every time main is drawn?
     // setup necessary callbacks
-    setup_main_stage_callbacks();
+    // setup_main_stage_callbacks();
 
     // draw buildings 
     draw_buildings(building_layer);

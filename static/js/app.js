@@ -201,6 +201,12 @@ document.addEventListener("DOMContentLoaded", function() {
     // create the stages to fit to parent containers
     create_stages();
     
+    // create the necessary layers to draw
+    create_main_layers();
+
+    // setup necessary callbacks
+    setup_main_stage_callbacks();
+
     // initialize graph gen config form
     setup_graph_gen_form();
     
@@ -218,6 +224,9 @@ document.addEventListener("DOMContentLoaded", function() {
 
     // hide non initially active about items
     about_deactivate_noninitially_active();
+
+    // set toggle buttons active class
+    update_toggle_buttons_active();
 
     // generate a graph with the default config
     // generate_graph(default_config);
@@ -294,5 +303,13 @@ document.addEventListener("keyup", function(e) {
             
             handle_add_building_button(editor_selected_grid_coords);
         }
+
+    // generate a new graph
+    } else if (e.key.toLowerCase() === "g") {
+        submit_graph_gen_form();
+
+    // recommend new paths
+    } else if (e.key.toLowerCase() === "r") {
+        submit_path_gen_form();
     }   
 });
