@@ -201,13 +201,8 @@ function draw_main_stage() {
     // main_stage.scale({x:1, y:1});
     // main_stage.position({x:0, y:0});
 
-    // reset selected points
-    path_start_selected_grid_coords = null;
-    path_end_selected_grid_coords = null;
-    update_path_select_labels();    
-
-    // reset cell selections
-    reset_cell_selections();
+    // reset selections
+    reset_cell_selections(auto_reset_path_endpoints_enabled, true);
 
     // clear the building editor
     reset_building_editor(true);
@@ -221,14 +216,14 @@ function draw_main_stage() {
     // setup necessary callbacks
     setup_main_stage_callbacks();
 
-    // draw selection overlay
-    // draw_selection_overlays(selection_layer);
-
     // draw buildings 
     draw_buildings(building_layer);
 
     // draw roads display
     draw_roads(road_layer);
+
+    // draw selection points
+    draw_path_endpoint_selections(selection_layer);
 }
 
 
@@ -1064,14 +1059,26 @@ function draw_paths() {
 }
 
 
-// draws a point at the location of selection
-function draw_point_selection(door_grid_coords, building_grid_coords, parent, is_start) {
+// draws endpoints using currently stored points
+function draw_path_endpoint_selections(parent) {
 
-    console.log(door_grid_coords, building_grid_coords);
-    
+    if (path_start_selected_grid_coords !== null) {
+        draw_point_selection(path_start_selected_grid_coords, parent, true);
+    }
+
+    if (path_end_selected_grid_coords !== null) {
+        draw_point_selection(path_end_selected_grid_coords, parent, false);
+    }
+}
+
+
+// draws a point at the location of selection
+function draw_point_selection(door_grid_coords, parent, is_start) {
+
     let cell_dims = get_cell_dims(true);
     let selection_color = is_start ? selection_colors.path_start : selection_colors.path_end;
-    console.log(selection_color);
+    let building_grid_coords = estimate_building_grid_coords(door_grid_coords);
+    // console.log(selection_color);
 
     // remove the previous selection point shapes if they exist
     if (is_start && path_start_selection_shape !== null) {

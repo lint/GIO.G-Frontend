@@ -658,6 +658,12 @@ function handle_auto_open_button() {
 }
 
 
+// toggles auto reset path endpoint variable
+function handle_auto_path_endpoint_reset_button() {
+    auto_reset_path_endpoints_enabled = !auto_reset_path_endpoints_enabled;
+}
+
+
 /* -------------------------- path legend and stats ------------------------- */
 
 

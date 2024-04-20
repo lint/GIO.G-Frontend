@@ -786,18 +786,18 @@ function count_paths_through_doors() {
 
 
 // handle a path or end point being selected
-function select_path_endpoint(door_grid_coords, building_grid_coords, is_start) {
+function select_path_endpoint(grid_coords, is_start) {
 
     // set the new selected grid coords
     if (is_start) {
-        path_start_selected_grid_coords = door_grid_coords;
+        path_start_selected_grid_coords = grid_coords;
     
     // set the new selected grid coords
     } else {
-        path_end_selected_grid_coords = door_grid_coords;
+        path_end_selected_grid_coords = grid_coords;
     }
 
-    draw_point_selection(door_grid_coords, building_grid_coords, selection_layer, is_start);
+    draw_point_selection(grid_coords, selection_layer, is_start);
 
     // after selection is made, neither selection type should be active
     is_selecting_path_start = false;
@@ -844,9 +844,9 @@ function select_point() {
 
     // determine the selection to make based on the current system state
     if (is_selecting_path_start) {
-        select_path_endpoint(grid_coords.door, grid_coords.building, true);
+        select_path_endpoint(grid_coords.door, true);
     } else if (is_selecting_path_end) {
-        select_path_endpoint(grid_coords.door, grid_coords.building, false);
+        select_path_endpoint(grid_coords.door, false);
     } else if (is_selecting_new_connection) {
         select_new_building_connection(grid_coords.building);
     } else {
@@ -855,12 +855,8 @@ function select_point() {
 }
 
 
-// reset all selected coordinates
-function reset_cell_selections() {
-    path_start_selected_grid_coords = null;
-    path_end_selected_grid_coords = null;
-    editor_selected_cell_info = null;
-    new_connection_start_cell_info = null;
+// reset currently selecting statuses
+function reset_currently_selecting_status() {
 
     is_selecting_path_start = false;
     is_selecting_path_end = false;
@@ -868,6 +864,30 @@ function reset_cell_selections() {
 
     update_path_select_buttons_active();
     update_new_connection_button_active();
+}
+
+
+// reset all selected variables
+function reset_cell_selections(reset_endpoints, reset_editor) {
+    
+    if (reset_endpoints) {
+        path_start_selected_grid_coords = null;
+        path_end_selected_grid_coords = null;
+
+        update_path_select_buttons_active();
+        update_path_select_labels();    
+    }
+
+    if (reset_editor) {
+        editor_selected_cell_info = null;
+        new_connection_start_cell_info = null;
+    
+        is_selecting_path_start = false;
+        is_selecting_path_end = false;
+        is_selecting_new_connection = false;
+    
+        update_new_connection_button_active();
+    }
 }
 
 // handle a new building being selected to connect to

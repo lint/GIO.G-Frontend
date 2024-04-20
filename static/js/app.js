@@ -71,6 +71,7 @@ let road_hiding_drag_enabled = false;
 let can_pan_enabled = true;
 let can_zoom_enabled = true;
 let auto_open_sections_enabled = true;
+let auto_reset_path_endpoints_enabled = true;
 
 let road_rand_weight_min = 0.35;
 let road_rand_weight_max = 1.25;
@@ -259,7 +260,7 @@ document.addEventListener("keyup", function(e) {
         if (about_page_visible) {
             toggle_about_visibility();
         } else {
-            reset_cell_selections();
+            reset_currently_selecting_status();
         }
     
     // enable selection for a new path start point
