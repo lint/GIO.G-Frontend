@@ -1405,7 +1405,7 @@ function connect_building_cell_walls_grid_path(building1_id, wall_direction1, bu
     }
     grid_path.push(...final_wall_grid_line);
 
-    return simplify_path(grid_path, false);
+    return grid_path;
 }
 
 
@@ -1462,17 +1462,15 @@ function door_grid_path_to_border(cell_info, door_id, outline_offset, door_offse
 }
 
 
-// find the path from a door to the border simply based on closest border
-function door_grid_path_to_border_closest(building_grid_coords, door_grid_coords, outline_offset, door_offset) {
-
-    // TODO: offset the door coords
+// find the path from an endpoint to cell border
+function endpoint_grid_path_to_border(building_grid_coords, door_grid_coords, outline_offset, door_offset, target_door_grid_coords=null) {
 
     // adjusted to be door coordinates
     let building_grid_corners = [
-        {x:building_grid_coords.x-0.5+outline_offset, y:building_grid_coords.y-0.5+outline_offset}, 
-        {x:building_grid_coords.x+0.5-outline_offset, y:building_grid_coords.y-0.5+outline_offset}, 
-        {x:building_grid_coords.x+0.5-outline_offset, y:building_grid_coords.y+0.5-outline_offset},
-        {x:building_grid_coords.x-0.5+outline_offset, y:building_grid_coords.y+0.5-outline_offset}
+        {x:building_grid_coords.x-0.5, y:building_grid_coords.y-0.5}, 
+        {x:building_grid_coords.x+0.5, y:building_grid_coords.y-0.5}, 
+        {x:building_grid_coords.x+0.5, y:building_grid_coords.y+0.5},
+        {x:building_grid_coords.x-0.5, y:building_grid_coords.y+0.5}
     ];
 
     // calculate walls from the corners
@@ -1484,26 +1482,132 @@ function door_grid_path_to_border_closest(building_grid_coords, door_grid_coords
         walls.push([corner1, corner2]);
     }
 
-    let wall_dist_points = walls.map(function (wall, index) {
-        let closest_point = calc_closest_point(wall[0], wall[1], door_grid_coords);
-        let dist = calc_dist(closest_point, door_grid_coords);
+    let best_wall = null;
 
-        return {
-            point: closest_point,
-            dist: dist,
-            wall_dir: ordered_directions[index]
-        };
-    });
+    // target door provided, find the wall that intersects with the line between endpoint and target door
+    if (target_door_grid_coords !== null) {
+               
+        let target_line = [door_grid_coords, target_door_grid_coords];
+        let potential_best_wall = null;
 
-    // sort the walls based on closest point
-    wall_dist_points.sort((a, b) => a.dist - b.dist);
-    let best_wall = wall_dist_points[0];
+        // iterate over every wall
+        for (let i = 0; i < walls.length; i++) {
+
+            let wall = walls[i];
+            let intersection = calc_lines_intersection(wall, target_line);
+
+            if (intersection !== null) {
+                let closest_point = calc_closest_point(wall[0], wall[1], door_grid_coords);
+                let dist = calc_dist(closest_point, door_grid_coords);
+    
+                potential_best_wall = {
+                    point: closest_point,
+                    dist: dist,
+                    wall_dir: ordered_directions[i],
+                    wall: wall
+                };
+
+                break;
+            }
+        }
+
+        if (potential_best_wall !== null) {
+            // check if potential best wall intersects building
+            let cell_info = grid_object_at_coords(building_grid_coords);
+            let potential_path = [door_grid_coords, potential_best_wall.point];
+            let building_intersection = check_line_intersects_building(cell_info, potential_path);
+
+            // no intersection found
+            if (building_intersection === null) {
+                best_wall = potential_best_wall;
+            }
+        }
+    } 
+
+    // best wall has not been found by previous attempts, just select the closest
+    if (best_wall === null) {
+
+        // get dist and point for each wall
+        let wall_dist_points = walls.map(function (wall, index) {
+            let closest_point = calc_closest_point(wall[0], wall[1], door_grid_coords);
+            let dist = calc_dist(closest_point, door_grid_coords);
+
+            return {
+                point: closest_point,
+                dist: dist,
+                wall_dir: ordered_directions[index],
+                wall: wall
+            };
+        });
+
+        // sort the walls based on closest point
+        wall_dist_points.sort((a, b) => a.dist - b.dist);
+        best_wall = wall_dist_points[0];
+    }
+
+    // offset the starting point and wall point
+    let best_point = best_wall.point;
+    
+    if (best_wall.wall_dir === "left") {
+        best_point.x += outline_offset;
+    } else if (best_wall.wall_dir === "up") {
+        best_point.y += outline_offset;
+    } else if (best_wall.wall_dir === "right") {
+        best_point.x -= outline_offset;
+    } else if (best_wall.wall_dir === "down") {
+        best_point.y -= outline_offset;
+    }
+    
+    // let best_point = calc_line_extend_point(door_grid_coords, best_wall.point, -1 * outline_offset);
+    best_point = calc_point_translation(best_point, best_wall.wall[0], best_wall.wall[1], door_offset)
+    let offset_door_grid_coords = calc_point_translation(door_grid_coords, best_wall.wall[0], best_wall.wall[1], door_offset);
 
     return {
-        path: [door_grid_coords, best_wall.point],
+        path: [offset_door_grid_coords, best_point],
         wall_dir: best_wall.wall_dir
     };
 }
+
+
+// gets the location status of a given endpoint
+function get_endpoint_location_status(endpoint_door_grid_coords) {
+
+    let endpoint_building_grid_coords = estimate_building_grid_coords(endpoint_door_grid_coords);
+
+    // endpoint is out of grid bounds, status 0
+    if (endpoint_building_grid_coords.x < 0 || endpoint_building_grid_coords.x >= grid.length 
+        || endpoint_building_grid_coords.y < 0 || endpoint_building_grid_coords.y >= grid.length) {
+        
+        return 0;
+    }
+
+    // check if end point is inside or outside the building of the cell
+    let cell_info = grid_object_at_coords(endpoint_building_grid_coords);
+    let walls = cell_info.building_mods.outline_grid_walls;
+
+    let far_point = {x:-grid.length, y:-grid.length};
+    let from_far_line = [far_point, endpoint_door_grid_coords];
+    let num_intersections = 0;
+
+    walls.forEach(function (wall) {
+        let intersection_point = calc_lines_intersection(from_far_line, wall);
+
+        if (intersection_point !== null) {
+            num_intersections += 1;
+        }
+    });
+
+    let is_outside = num_intersections % 2 === 0;
+
+    // endpoint inside grid, outside building, status 1
+    if (is_outside) {
+        return 1
+    }
+
+    // endpoint inside grid, inside building, status 2
+    return 2;
+}
+
 
 // find orientation of doors
 function find_all_doors_orientations(cell_info) {
@@ -1513,6 +1617,7 @@ function find_all_doors_orientations(cell_info) {
         find_door_orientation(cell_info, door_id);
     }
 }
+
 
 // calculate and set the orientation of a given door
 function find_door_orientation(cell_info, door_id, door_grid_coords_override=null, wall_direction_override=null) {
@@ -1619,4 +1724,89 @@ function get_non_connected_building_coords(building_id) {
         let id = grid_coords_to_building_id(coords);
         return !(id in cell_info.building_mods.connection_mods[building_id].adjacent_cells);
     });
+}
+
+
+// check if a given line intersects a given building
+function check_line_intersects_building(cell_info, line) {
+
+    let intersection = null;
+
+    // check if there is a building at the given building data
+    if (cell_info !== null && cell_info.building_data !== null) {
+
+        let outline_walls = cell_info.building_mods.outline_grid_walls;
+
+        // iterate over every wall in the building
+        for (let i = 0; i < outline_walls.length; i++) {
+            let wall = outline_walls[i];
+            intersection = calc_lines_intersection(wall, line);
+
+            if (intersection !== null) {
+                break
+            }
+        }
+    }
+    
+    return intersection;
+}
+
+
+// get the closest grid coords for out of bounds grid coords
+function closest_cell_coords_for_out_of_bounds(building_grid_coords) {
+    // check if building grid coords is out of bounds and adjust to closest cell in grid
+    if (building_grid_coords.x < 0 || building_grid_coords.x >= grid.length || building_grid_coords.y < 0 || building_grid_coords.y >= grid.length) {
+
+        // NW corner
+        if (building_grid_coords.x <= 0 && building_grid_coords.y <= 0) {
+            building_grid_coords = {
+                x: 0, 
+                y: 0
+            };
+        // NE corner
+        } else if (building_grid_coords.x >= grid.length && building_grid_coords.y <= 0) {
+            building_grid_coords = {
+                x: grid.length-1, 
+                y: 0
+            };
+        // SE corner
+        } else if (building_grid_coords.x >= grid.length && building_grid_coords.y >= grid.length) {
+            building_grid_coords = {
+                x: grid.length-1, 
+                y: grid.length-1
+            };
+        // SW corner
+        } else if (building_grid_coords.x <= 0 && building_grid_coords.y >= grid.length) {
+            building_grid_coords = {
+                x: 0, 
+                y: grid.length-1
+            };
+        // up wall
+        } else if (building_grid_coords.x >= 0 && building_grid_coords.x <= grid.length && building_grid_coords.y <= 0) {
+            building_grid_coords = {
+                x: building_grid_coords.x, 
+                y: 0
+            };
+        // right wall
+        } else if (building_grid_coords.y >= 0 && building_grid_coords.y <= grid.length && building_grid_coords.x >= grid.length) {
+            building_grid_coords = {
+                x: grid.length-1, 
+                y: building_grid_coords.y
+            };
+        // down wall
+        } else if (building_grid_coords.x >= 0 && building_grid_coords.x <= grid.length && building_grid_coords.y >= grid.length) {
+            building_grid_coords = {
+                x: building_grid_coords.x, 
+                y: grid.length-1
+            };
+        // left wall
+        } else if (building_grid_coords.y >= 0 && building_grid_coords.y <= grid.length && building_grid_coords.x <= 0) {
+            building_grid_coords = {
+                x: 0, 
+                y: building_grid_coords.y
+            };
+        } 
+    }
+
+    return building_grid_coords;
 }

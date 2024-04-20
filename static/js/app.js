@@ -136,6 +136,13 @@ const path_type_options = {
         color: "#DB508C"
     }
 };
+const alg_path_types = {
+    astro: "solid",
+    dijkstraC: "dotdashed",
+    astroG: "dashed", 
+    dijkstra: "dotted",
+    greedy: "longdashed"
+};
 let path_line_cap = "round"; // round, square, or butt
 let path_line_join = "round"; // round, mite, or bevel
 let show_path_type_color = true;
