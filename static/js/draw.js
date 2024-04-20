@@ -922,13 +922,13 @@ function draw_manual_paths() {
     } catch(e){console.log(e);}
 
     try {
-        // draw_endpoint_path_part({x:-0.6, y:5.4}, grid_object_at_coords({x:0, y:5}), 1, path_layer, "solid");
+        draw_endpoint_path_part({x:-0.6, y:5.4}, grid_object_at_coords({x:0, y:5}), 1, path_layer, "solid");
         draw_internal_path_part(grid_object_at_coords({x:0, y:5}), 1, 4, path_layer, "solid");
         draw_external_path_part(grid_object_at_coords({x:0, y:5}), 4, grid_object_at_coords({x:1, y:1}), 1, path_layer, "solid");
         draw_internal_path_part(grid_object_at_coords({x:1, y:1}), 1, 2, path_layer, "solid");
         draw_external_path_part(grid_object_at_coords({x:1, y:1}), 2, grid_object_at_coords({x:5, y:0}), 1, path_layer, "solid");
         draw_internal_path_part(grid_object_at_coords({x:5, y:0}), 1, 2, path_layer, "solid");
-        // draw_endpoint_path_part({x:5.6, y:-0.45}, grid_object_at_coords({x:5, y:0}), 2, path_layer, "solid");
+        draw_endpoint_path_part({x:5.6, y:-0.45}, grid_object_at_coords({x:5, y:0}), 2, path_layer, "solid");
     } catch(e){console.log(e);}
 
     try {
@@ -973,7 +973,7 @@ function draw_paths() {
 
         // do not try to display paths that are not present
         if (!path_mod.has_data) {
-            console.log("no data for path: ", alg);
+            // console.log("no data for path: ", alg);
             continue;
         }
 
@@ -1093,11 +1093,11 @@ function draw_point_selection(door_grid_coords, parent, is_start) {
     let endpoint_circle = new Konva.Circle({
         x: stage_coords.x,
         y: stage_coords.y,
-        radius: cell_dims.size / 10,
+        radius: cell_dims.size * endpoint_selection_size_ratio,
         // fill: "red",
         // fill: "rgba(255, 0, 0, 0.5)",
         stroke: selection_color,
-        strokeWidth: cell_dims.size / 20
+        strokeWidth: cell_dims.size * endpoint_selection_size_ratio / 2
     });
 
     if (is_start) {
@@ -1145,8 +1145,82 @@ function draw_endpoint_to_endpoint_path_part(start_point_grid_coords, end_point_
 }
 
 
+// gets the location status of a given endpoint
+function get_endpoint_location_status(endpoint_door_grid_coords) {
+
+    let endpoint_building_grid_coords = estimate_building_grid_coords(endpoint_door_grid_coords);
+
+    // endpoint is out of grid bounds, status 0
+    if (endpoint_building_grid_coords.x < 0 || endpoint_building_grid_coords.x >= grid.length 
+        || endpoint_building_grid_coords.y < 0 || endpoint_building_grid_coords.y >= grid.length) {
+        
+        return 0;
+    }
+
+    // check if end point is inside or outside the building of the cell
+    let cell_info = grid_object_at_coords(endpoint_building_grid_coords);
+    let walls = cell_info.building_mods.outline_grid_walls;
+
+    let far_point = {x:-grid.length, y:-grid.length};
+    let from_far_line = [far_point, endpoint_door_grid_coords];
+    let num_intersections = 0;
+
+    walls.forEach(function (wall) {
+        let intersection_point = calc_lines_intersection(from_far_line, wall);
+
+        if (intersection_point !== null) {
+            num_intersections += 1;
+        }
+    });
+
+    let is_outside = num_intersections % 2 === 0;
+
+    // endpoint inside grid, outside building, status 1
+    if (is_outside) {
+        return 1
+    }
+
+    // endpoint inside grid, inside building, status 2
+    return 2;
+}
+
+
 // draw path between an endpoint and building
 function draw_endpoint_path_part(endpoint_door_grid_coords, cell_info, door_id, parent, path_type) {
+
+    let cell_dims = get_cell_dims(true);
+    let door_dims = get_door_dims(true);
+
+    // get path drawing options 
+    let path_options = path_type_options[path_type];
+    let path_color = show_path_type_color ? path_options.color : "red";
+    let path_width = door_dims.size / 5;
+    let path_grid_offset = path_options.exterior_offset * (path_width / cell_dims.size * 1.25);
+    let door_grid_offset = (path_options.exterior_offset - 3) * (path_width / cell_dims.size);
+
+    let endpoint_location_status = get_endpoint_location_status(endpoint_door_grid_coords);
+    let endpoint_building_grid_coords = estimate_building_grid_coords(endpoint_door_grid_coords);
+
+    console.log("ENDPOINT LOCATION: ", endpoint_location_status);
+
+    // endpoint is inside grid, outside building
+    if (endpoint_location_status === 1) {
+        let endpoint_to_border_results = door_grid_path_to_border_closest(endpoint_building_grid_coords, endpoint_door_grid_coords, path_grid_offset, door1_grid_offset);
+        let door_to_border_results = door_grid_path_to_border(cell2_info, door2_id, path_grid_offset, door2_grid_offset);
+    
+        // extract the offsat door coordinates the the border point from the results
+        // let offset_door1 = door1_to_border_results.path[0];
+        let offset_door = door_to_border_results.path[0];
+        let offset_door1_to_border = door1_to_border_results.path[1];
+        let offset_door2_to_border = door2_to_border_results.path[1];
+        let border1_dir = door1_to_border_results.wall_dir;
+        let border2_dir = door2_to_border_results.wall_dir;
+    
+        // find the path that connects the border walls for each cell
+        let connected_wall_grid_path = connect_building_cell_walls_grid_path(building1_id, border1_dir, building2_id, border2_dir, offset_door2_to_border, path_grid_offset);
+    
+    }
+    
     
     // get the cell info for the provided building
     // let door_mods = cell_info.building_mods.entrance_mods[door_id];
@@ -1167,13 +1241,7 @@ function draw_endpoint_path_part(endpoint_door_grid_coords, cell_info, door_id, 
 
     // TEMPORARY path drawing so that you can see start and end points
 
-    let cell_dims = get_cell_dims(true);
-    let door_dims = get_door_dims(true);
 
-    // get path drawing options 
-    let path_options = path_type_options[path_type];
-    let path_color = show_path_type_color ? path_options.color : "red";
-    let path_width = door_dims.size / 5;
 
     let door_grid_coords = grid_coords_for_building_or_door(cell_info.building_mods.entrance_mods[door_id].data_ref);
     let path = [endpoint_door_grid_coords, door_grid_coords];

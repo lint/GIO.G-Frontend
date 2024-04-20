@@ -57,6 +57,7 @@ let cell_spacing_ratio = 0;
 let editor_inset_ratio = 0.05;
 let building_stroke_size_ratio = 0.0075;
 let door_stroke_size_ratio = 0.005;
+let endpoint_selection_size_ratio = 0.075;
 let should_invert_door_y = false;
 let road_size_ratio = 0.1;
 let road_dashes_per_cell = 10;
@@ -97,9 +98,9 @@ const con_text_color_classes = {
     high: "high-con-text-color"
 };
 const selection_colors = {
-    editing: "rgba(0,0,255,0.5)",
-    path_start: "rgba(0,255,0,0.5)",
-    path_end: "rgba(255,0,0,0.5)"
+    editing: "rgba(0,0,255,0.65)",
+    path_start: "rgba(0,255,0,0.65)",
+    path_end: "rgba(255,0,0,0.65)"
 };
 
 // options to define path styles
